@@ -1,5 +1,0 @@
-[workspace]
-members = [
-    "tests/e2e",
-    "timestampvm",
-]
