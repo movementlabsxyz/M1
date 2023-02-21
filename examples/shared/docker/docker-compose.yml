@@ -1,0 +1,95 @@
+# Copyright (C) 2023, Ava Labs, Inc. All rights reserved.
+# See the file LICENSE for licensing terms.
+
+version: "3"
+services:
+  redis:
+    image: redis
+    restart: unless-stopped
+    ports:
+      - 6379:6379
+
+  postgres:
+    image: postgres:10.0
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_DB: gorse
+      POSTGRES_USER: gorse
+      POSTGRES_PASSWORD: gorse_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  worker:
+    image: zhenghaoz/gorse-worker:0.4.10
+    restart: unless-stopped
+    ports:
+      - 8089:8089
+    command: >
+      --master-host master --master-port 8086
+      --http-host 0.0.0.0 --http-port 8089
+      --log-path /var/log/gorse/worker.log
+      --cache-path /var/lib/gorse/worker_cache.data
+    volumes:
+      - gorse_log:/var/log/gorse
+      - worker_data:/var/lib/gorse
+    depends_on:
+      - master
+
+  server:
+    image: zhenghaoz/gorse-server:0.4.10
+    restart: unless-stopped
+    ports:
+      - 8087:8087
+    command: >
+      --master-host master --master-port 8086
+      --http-host 0.0.0.0 --http-port 8087
+      --log-path /var/log/gorse/server.log
+      --cache-path /var/lib/gorse/server_cache.data
+    volumes:
+      - gorse_log:/var/log/gorse
+      - server_data:/var/lib/gorse
+    depends_on:
+      - master
+
+  master:
+    image: zhenghaoz/gorse-master:0.4.10
+    restart: unless-stopped
+    ports:
+      - 8086:8086
+      - 8088:8088
+    environment:
+      GORSE_CACHE_STORE: redis://redis:6379
+      GORSE_DATA_STORE: postgres://gorse:gorse_pass@postgres/gorse?sslmode=disable
+    command: >
+      -c /etc/gorse/config.toml
+      --log-path /var/log/gorse/master.log
+      --cache-path /var/lib/gorse/master_cache.data
+    volumes:
+      - ./config/config.toml:/etc/gorse/config.toml
+      - gorse_log:/var/log/gorse
+      - master_data:/var/lib/gorse
+    depends_on:
+      - redis
+      - postgres
+  ipfs:
+    image: ipfs/go-ipfs:v0.18.0
+    restart: unless-stopped
+    environment:
+      - IPFS_PATH=/ipfsdata
+    volumes:
+      - ipfs_data:/ipfsdata
+    ports:
+      - 4001:4001
+      - 8080:8080
+      - 8081:8081
+      - 5001:5001
+
+
+volumes:
+  worker_data:
+  server_data:
+  master_data:
+  gorse_log:
+  postgres_data:
+  ipfs_data:
