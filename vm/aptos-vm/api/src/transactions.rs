@@ -1,7 +1,5 @@
 // Copyright © Aptos Foundation
-// SPDX-License-Identifier: Apache-2.0
-
-// Copyright © Aptos Foundation
+// Parts of the project are originally copyright © Meta Platforms, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
@@ -34,8 +32,8 @@ use aptos_types::{
     account_view::AccountView,
     mempool_status::MempoolStatusCode,
     transaction::{
-        ExecutionStatus, RawTransaction, RawTransactionWithData, SignedTransaction,
-        TransactionPayload, TransactionStatus,
+        EntryFunction, ExecutionStatus, MultisigTransactionPayload, RawTransaction,
+        RawTransactionWithData, SignedTransaction, TransactionPayload, TransactionStatus,
     },
     vm_status::StatusCode,
 };
@@ -60,7 +58,7 @@ generate_error_response!(
 );
 
 type SubmitTransactionResult<T> =
-    poem::Result<SubmitTransactionResponse<T>, SubmitTransactionError>;
+poem::Result<SubmitTransactionResponse<T>, SubmitTransactionError>;
 
 generate_success_response!(
     SubmitTransactionsBatchResponse,
@@ -69,7 +67,7 @@ generate_success_response!(
 );
 
 type SubmitTransactionsBatchResult<T> =
-    poem::Result<SubmitTransactionsBatchResponse<T>, SubmitTransactionError>;
+poem::Result<SubmitTransactionsBatchResponse<T>, SubmitTransactionError>;
 
 type SimulateTransactionResult<T> = poem::Result<BasicResponse<T>, SubmitTransactionError>;
 
@@ -121,14 +119,15 @@ impl VerifyInput for SubmitTransactionsBatchPost {
                 for request in inner.0.iter() {
                     request.verify()?;
                 }
-            },
-            SubmitTransactionsBatchPost::Bcs(_) => {},
+            }
+            SubmitTransactionsBatchPost::Bcs(_) => {}
         }
         Ok(())
     }
 }
 
 /// API for interacting with transactions
+#[derive(Clone)]
 pub struct TransactionsApi {
     pub context: Arc<Context>,
 }
@@ -144,10 +143,10 @@ impl TransactionsApi {
     ///
     /// To retrieve a pending transaction, use /transactions/by_hash.
     #[oai(
-        path = "/transactions",
-        method = "get",
-        operation_id = "get_transactions",
-        tag = "ApiTags::Transactions"
+    path = "/transactions",
+    method = "get",
+    operation_id = "get_transactions",
+    tag = "ApiTags::Transactions"
     )]
     async fn get_transactions(
         &self,
@@ -187,12 +186,12 @@ impl TransactionsApi {
     ///   3. Hex-encode the hash bytes with `0x` prefix.
     // TODO: Include a link to an example of how to do this ^
     #[oai(
-        path = "/transactions/by_hash/:txn_hash",
-        method = "get",
-        operation_id = "get_transaction_by_hash",
-        tag = "ApiTags::Transactions"
+    path = "/transactions/by_hash/:txn_hash",
+    method = "get",
+    operation_id = "get_transaction_by_hash",
+    tag = "ApiTags::Transactions"
     )]
-    async fn get_transaction_by_hash(
+    pub async fn get_transaction_by_hash(
         &self,
         accept_type: AcceptType,
         /// Hash of transaction to retrieve
@@ -206,15 +205,28 @@ impl TransactionsApi {
             .await
     }
 
+    pub async fn get_transaction_by_hash_raw(
+        &self,
+        accept_type: AcceptType,
+        txn_hash: HashValue,
+        // TODO: Use a new request type that can't return 507.
+    ) -> BasicResultWith404<Transaction> {
+        fail_point_poem("endpoint_transaction_by_hash")?;
+        self.context
+            .check_api_output_enabled("Get transactions by hash", &accept_type)?;
+        self.get_transaction_by_hash_inner(&accept_type, txn_hash)
+            .await
+    }
+
     /// Get transaction by version
     ///
     /// Retrieves a transaction by a given version. If the version has been
     /// pruned, a 410 will be returned.
     #[oai(
-        path = "/transactions/by_version/:txn_version",
-        method = "get",
-        operation_id = "get_transaction_by_version",
-        tag = "ApiTags::Transactions"
+    path = "/transactions/by_version/:txn_version",
+    method = "get",
+    operation_id = "get_transaction_by_version",
+    tag = "ApiTags::Transactions"
     )]
     async fn get_transaction_by_version(
         &self,
@@ -238,10 +250,10 @@ impl TransactionsApi {
     ///
     /// To retrieve a pending transaction, use /transactions/by_hash.
     #[oai(
-        path = "/accounts/:address/transactions",
-        method = "get",
-        operation_id = "get_account_transactions",
-        tag = "ApiTags::Transactions"
+    path = "/accounts/:address/transactions",
+    method = "get",
+    operation_id = "get_account_transactions",
+    tag = "ApiTags::Transactions"
     )]
     async fn get_accounts_transactions(
         &self,
@@ -288,10 +300,10 @@ impl TransactionsApi {
     /// Make sure to use the `application/x.aptos.signed_transaction+bcs` Content-Type.
     // TODO: Point to examples of both of these flows, in multiple languages.
     #[oai(
-        path = "/transactions",
-        method = "post",
-        operation_id = "submit_transaction",
-        tag = "ApiTags::Transactions"
+    path = "/transactions",
+    method = "post",
+    operation_id = "submit_transaction",
+    tag = "ApiTags::Transactions"
     )]
     async fn submit_transaction(
         &self,
@@ -341,10 +353,10 @@ impl TransactionsApi {
     /// encoded as BCS. See SignedTransaction in types/src/transaction/mod.rs.
     /// Make sure to use the `application/x.aptos.signed_transaction+bcs` Content-Type.
     #[oai(
-        path = "/transactions/batch",
-        method = "post",
-        operation_id = "submit_batch_transactions",
-        tag = "ApiTags::Transactions"
+    path = "/transactions/batch",
+    method = "post",
+    operation_id = "submit_batch_transactions",
+    tag = "ApiTags::Transactions"
     )]
     async fn submit_transactions_batch(
         &self,
@@ -396,10 +408,10 @@ impl TransactionsApi {
     /// To use this endpoint with BCS, you must submit a SignedTransaction
     /// encoded as BCS. See SignedTransaction in types/src/transaction/mod.rs.
     #[oai(
-        path = "/transactions/simulate",
-        method = "post",
-        operation_id = "simulate_transaction",
-        tag = "ApiTags::Transactions"
+    path = "/transactions/simulate",
+    method = "post",
+    operation_id = "simulate_transaction",
+    tag = "ApiTags::Transactions"
     )]
     async fn simulate_transaction(
         &self,
@@ -444,7 +456,7 @@ impl TransactionsApi {
                         .prioritized_gas_estimate
                         .unwrap_or(gas_estimation.gas_estimate),
                 )
-            },
+            }
             (true, false) => Some(self.context.estimate_gas_price(&ledger_info)?.gas_estimate),
             (false, false) => None,
         };
@@ -546,10 +558,10 @@ impl TransactionsApi {
     /// - Use that as the signature field in something like Ed25519Signature, which you then use to build a TransactionSignature.
     //
     #[oai(
-        path = "/transactions/encode_submission",
-        method = "post",
-        operation_id = "encode_submission",
-        tag = "ApiTags::Transactions"
+    path = "/transactions/encode_submission",
+    method = "post",
+    operation_id = "encode_submission",
+    tag = "ApiTags::Transactions"
     )]
     async fn encode_submission(
         &self,
@@ -581,10 +593,10 @@ impl TransactionsApi {
     ///
     /// If there have been no transactions in the last 100,000 transactions, the price will be 1.
     #[oai(
-        path = "/estimate_gas_price",
-        method = "get",
-        operation_id = "estimate_gas_price",
-        tag = "ApiTags::Transactions"
+    path = "/estimate_gas_price",
+    method = "get",
+    operation_id = "estimate_gas_price",
+    tag = "ApiTags::Transactions"
     )]
     async fn estimate_gas_price(&self, accept_type: AcceptType) -> BasicResult<GasEstimation> {
         fail_point_poem("endpoint_encode_submission")?;
@@ -608,7 +620,7 @@ impl TransactionsApi {
                     &latest_ledger_info,
                     BasicResponseStatus::Ok,
                 ))
-            },
+            }
         }
     }
 }
@@ -647,10 +659,10 @@ impl TransactionsApi {
                     &latest_ledger_info,
                     BasicResponseStatus::Ok,
                 ))
-            },
+            }
             AcceptType::Bcs => {
                 BasicResponse::try_from_bcs((data, &latest_ledger_info, BasicResponseStatus::Ok))
-            },
+            }
         }
     }
 
@@ -729,7 +741,7 @@ impl TransactionsApi {
                                     ledger_info,
                                 )
                             })?
-                    },
+                    }
                     TransactionData::Pending(txn) => resolver
                         .as_converter(self.context.db.clone())
                         .try_into_pending_transaction(*txn)
@@ -742,9 +754,8 @@ impl TransactionsApi {
                             )
                         })?,
                 };
-
                 BasicResponse::try_from_json((transaction, ledger_info, BasicResponseStatus::Ok))
-            },
+            }
             AcceptType::Bcs => BasicResponse::try_from_bcs((
                 transaction_data,
                 ledger_info,
@@ -820,12 +831,12 @@ impl TransactionsApi {
             )),
             AcceptType::Bcs => {
                 BasicResponse::try_from_bcs((data, &latest_ledger_info, BasicResponseStatus::Ok))
-            },
+            }
         }
     }
 
     /// Parses a single signed transaction
-    fn get_signed_transaction(
+   pub fn get_signed_transaction(
         &self,
         ledger_info: &LedgerInfo,
         data: SubmitTransactionPost,
@@ -845,38 +856,11 @@ impl TransactionsApi {
                 // Verify the signed transaction
                 match signed_transaction.payload() {
                     TransactionPayload::EntryFunction(entry_function) => {
-                        verify_module_identifier(entry_function.module().name().as_str())
-                            .context("Transaction entry function module invalid")
-                            .map_err(|err| {
-                                SubmitTransactionError::bad_request_with_code(
-                                    err,
-                                    AptosErrorCode::InvalidInput,
-                                    ledger_info,
-                                )
-                            })?;
-
-                        verify_function_identifier(entry_function.function().as_str())
-                            .context("Transaction entry function name invalid")
-                            .map_err(|err| {
-                                SubmitTransactionError::bad_request_with_code(
-                                    err,
-                                    AptosErrorCode::InvalidInput,
-                                    ledger_info,
-                                )
-                            })?;
-                        for arg in entry_function.ty_args() {
-                            let arg: MoveType = arg.into();
-                            arg.verify(0)
-                                .context("Transaction entry function type arg invalid")
-                                .map_err(|err| {
-                                    SubmitTransactionError::bad_request_with_code(
-                                        err,
-                                        AptosErrorCode::InvalidInput,
-                                        ledger_info,
-                                    )
-                                })?;
-                        }
-                    },
+                        TransactionsApi::validate_entry_function_payload_format(
+                            ledger_info,
+                            entry_function,
+                        )?;
+                    }
                     TransactionPayload::Script(script) => {
                         if script.code().is_empty() {
                             return Err(SubmitTransactionError::bad_request_with_code(
@@ -898,13 +882,27 @@ impl TransactionsApi {
                                     )
                                 })?;
                         }
-                    },
-                    TransactionPayload::ModuleBundle(_) => {},
+                    }
+                    TransactionPayload::Multisig(multisig) => {
+                        if let Some(payload) = &multisig.transaction_payload {
+                            match payload {
+                                MultisigTransactionPayload::EntryFunction(entry_function) => {
+                                    TransactionsApi::validate_entry_function_payload_format(
+                                        ledger_info,
+                                        entry_function,
+                                    )?;
+                                }
+                            }
+                        }
+                    }
+
+                    // Deprecated. Will be removed in the future.
+                    TransactionPayload::ModuleBundle(_) => {}
                 }
                 // TODO: Verify script args?
 
                 Ok(signed_transaction)
-            },
+            }
             SubmitTransactionPost::Json(data) => self
                 .context
                 .move_resolver_poem(ledger_info)?
@@ -919,6 +917,46 @@ impl TransactionsApi {
                     )
                 }),
         }
+    }
+
+    // Validates that the module, function, and args in EntryFunction payload are correctly
+    // formatted.
+    fn validate_entry_function_payload_format(
+        ledger_info: &LedgerInfo,
+        payload: &EntryFunction,
+    ) -> Result<(), SubmitTransactionError> {
+        verify_module_identifier(payload.module().name().as_str())
+            .context("Transaction entry function module invalid")
+            .map_err(|err| {
+                SubmitTransactionError::bad_request_with_code(
+                    err,
+                    AptosErrorCode::InvalidInput,
+                    ledger_info,
+                )
+            })?;
+
+        verify_function_identifier(payload.function().as_str())
+            .context("Transaction entry function name invalid")
+            .map_err(|err| {
+                SubmitTransactionError::bad_request_with_code(
+                    err,
+                    AptosErrorCode::InvalidInput,
+                    ledger_info,
+                )
+            })?;
+        for arg in payload.ty_args() {
+            let arg: MoveType = arg.into();
+            arg.verify(0)
+                .context("Transaction entry function type arg invalid")
+                .map_err(|err| {
+                    SubmitTransactionError::bad_request_with_code(
+                        err,
+                        AptosErrorCode::InvalidInput,
+                        ledger_info,
+                    )
+                })?;
+        }
+        Ok(())
     }
 
     /// Parses a batch of signed transactions
@@ -979,7 +1017,7 @@ impl TransactionsApi {
                     &mempool_status.message,
                     AptosErrorCode::MempoolIsFull,
                 ))
-            },
+            }
             MempoolStatusCode::VmError => {
                 if let Some(status) = vm_status_opt {
                     Err(AptosError::new_with_vm_status(
@@ -998,7 +1036,7 @@ impl TransactionsApi {
                         StatusCode::UNKNOWN_STATUS,
                     ))
                 }
-            },
+            }
             MempoolStatusCode::InvalidSeqNumber => Err(AptosError::new_with_error_code(
                 mempool_status.message,
                 AptosErrorCode::SequenceNumberTooOld,
@@ -1008,7 +1046,7 @@ impl TransactionsApi {
                 AptosErrorCode::InvalidTransactionUpdate,
             )),
             MempoolStatusCode::UnknownStatus => Err(AptosError::new_with_error_code(
-                format!("Transaction was rejected with status {}", mempool_status,),
+                format!("Transaction was rejected with status {}", mempool_status, ),
                 AptosErrorCode::InternalError,
             )),
         }
@@ -1038,20 +1076,20 @@ impl TransactionsApi {
 
                     // We provide the pending transaction so that users have the hash associated
                     let pending_txn = resolver
-                            .as_converter(self.context.db.clone())
-                            .try_into_pending_transaction_poem(txn)
-                            .context("Failed to build PendingTransaction from mempool response, even though it said the request was accepted")
-                            .map_err(|err| SubmitTransactionError::internal_with_code(
-                                err,
-                                AptosErrorCode::InternalError,
-                                ledger_info,
-                            ))?;
+                        .as_converter(self.context.db.clone())
+                        .try_into_pending_transaction_poem(txn)
+                        .context("Failed to build PendingTransaction from mempool response, even though it said the request was accepted")
+                        .map_err(|err| SubmitTransactionError::internal_with_code(
+                            err,
+                            AptosErrorCode::InternalError,
+                            ledger_info,
+                        ))?;
                     SubmitTransactionResponse::try_from_json((
                         pending_txn,
                         ledger_info,
                         SubmitTransactionResponseStatus::Accepted,
                     ))
-                },
+                }
                 // With BCS, we don't return the pending transaction for efficiency, because there
                 // is no new information.  The hash can be retrieved by hashing the original
                 // transaction.
@@ -1198,8 +1236,8 @@ impl TransactionsApi {
                                 "Simulation transaction resulted in a non-UserTransaction",
                                 AptosErrorCode::InternalError,
                                 &ledger_info,
-                            ))
-                        },
+                            ));
+                        }
                     }
                 }
                 BasicResponse::try_from_json((
@@ -1207,10 +1245,10 @@ impl TransactionsApi {
                     &ledger_info,
                     BasicResponseStatus::Ok,
                 ))
-            },
+            }
             AcceptType::Bcs => {
                 BasicResponse::try_from_bcs((simulated_txn, &ledger_info, BasicResponseStatus::Ok))
-            },
+            }
         }
     }
 
@@ -1248,10 +1286,10 @@ impl TransactionsApi {
                         .collect(),
                 ),
             )
-            .context("Invalid transaction to generate signing message")
-            .map_err(|err| {
-                BasicError::bad_request_with_code(err, AptosErrorCode::InvalidInput, &ledger_info)
-            })?,
+                .context("Invalid transaction to generate signing message")
+                .map_err(|err| {
+                    BasicError::bad_request_with_code(err, AptosErrorCode::InvalidInput, &ledger_info)
+                })?,
             None => raw_txn
                 .signing_message()
                 .context("Invalid transaction to generate signing message")

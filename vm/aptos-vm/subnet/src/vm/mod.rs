@@ -1,45 +1,69 @@
 use std::{collections::{HashMap, VecDeque}, io::{self, Error, ErrorKind}, sync::Arc, thread};
+use std::str::FromStr;
 use std::sync::atomic::AtomicBool;
+use std::sync::Mutex;
+use std::thread::sleep;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use futures::{
+    channel::{mpsc as futures_mpsc},
+};
 use avalanche_types::{
     choices, ids,
     subnet::{self, rpc::snow},
 };
+use avalanche_types::proto::google::protobuf::field_descriptor_proto::Type::Uint64;
 use avalanche_types::subnet::rpc::database::BoxedDatabase;
 use avalanche_types::subnet::rpc::database::manager::versioned_database::VersionedDatabase;
 use avalanche_types::subnet::rpc::snow::engine::common::http_handler;
 use chrono::{DateTime, Utc};
 use hex;
 use jsonrpc_core::IoHandler;
-use rand::SeedableRng;
-use tokio::sync::{mpsc::Sender, RwLock, RwLockWriteGuard};
-use aptos_crypto::hash::CryptoHash;
+use rand::{Rng, SeedableRng};
+use serde_json::json;
+use tokio::sync::{broadcast, mpsc, mpsc::Sender, RwLock, RwLockWriteGuard};
+use tonic::IntoRequest;
+use aptos_api::{Context, get_api_service, get_raw_api_service, RawApi};
+use aptos_api::accept_type::AcceptType;
+use aptos_api::response::{AptosResponseContent, BasicResponse, BasicResultWith404};
+use aptos_api::response::AptosResponseContent::Json;
+use aptos_api::transactions::SubmitTransactionPost;
+use aptos_api::transactions::SubmitTransactionPost::Bcs;
 
-use aptos_crypto::HashValue;
+use aptos_api_types::{TransactionOnChainData, ViewRequest};
+use aptos_config::config::NodeConfig;
+use aptos_crypto::{HashValue, ValidCryptoMaterialStringExt};
+use aptos_crypto::ed25519::Ed25519PublicKey;
+use aptos_crypto::hash::CryptoHash;
+use aptos_crypto::x25519::PublicKey;
 use aptos_db::AptosDB;
 use aptos_executor::block_executor::BlockExecutor;
 use aptos_executor::db_bootstrapper::{generate_waypoint, maybe_bootstrap};
 use aptos_executor_types::{BlockExecutorTrait, StateComputeResult};
+use aptos_mempool::{MempoolClientRequest, MempoolClientSender};
+use aptos_mempool::core_mempool::CoreMempool;
+use aptos_sdk::rest_client::aptos_api_types::{AsConverter, MAX_RECURSIVE_TYPES_ALLOWED};
 use aptos_sdk::transaction_builder::{aptos_stdlib, TransactionFactory};
 use aptos_sdk::types::{AccountKey, LocalAccount};
 use aptos_state_view::account_with_state_view::{AccountWithStateView, AsAccountWithStateView};
 use aptos_storage_interface::{DbReader, DbReaderWriter, DbWriter};
-use aptos_storage_interface::state_view::DbStateViewAtVersion;
+use aptos_storage_interface::state_view::{DbStateViewAtVersion, LatestDbStateCheckpointView};
 use aptos_temppath::TempPath;
+use aptos_types::access_path::Path;
 use aptos_types::account_address::AccountAddress;
-use aptos_types::account_config::aptos_test_root_address;
+use aptos_types::account_config::{AccountResource, aptos_test_root_address};
 use aptos_types::account_view::AccountView;
 use aptos_types::block_info::BlockInfo;
 use aptos_types::block_metadata::BlockMetadata;
 use aptos_types::chain_id::ChainId;
 use aptos_types::ledger_info::{generate_ledger_info_with_sig, LedgerInfo, LedgerInfoWithSignatures};
-use aptos_types::transaction::{Transaction, WriteSetPayload};
+use aptos_types::transaction::{SignedTransaction, Transaction, TransactionOutput, TransactionWithProof, WriteSetPayload};
 use aptos_types::transaction::Transaction::UserTransaction;
 use aptos_types::trusted_state::TrustedState;
 use aptos_types::validator_signer::ValidatorSigner;
 use aptos_types::waypoint::Waypoint;
 use aptos_vm::{AptosVM, VMExecutor};
+use aptos_vm::data_cache::IntoMoveResolver;
 use aptos_vm_genesis::{GENESIS_KEYPAIR, test_genesis_change_set_and_validators};
 
 use crate::{api, block::Block, state};
@@ -96,9 +120,7 @@ pub struct Vm {
 
     /// A queue of data that have not been put into a block and proposed yet.
     /// Mempool is not persistent, so just keep in memory via Vm.
-    pub mempool: Arc<RwLock<VecDeque<Vec<u8>>>>,
-
-    pub accounts: Arc<RwLock<Vec<Vec<u8>>>>,
+    pub mempool: Arc<RwLock<VecDeque<SignedTransaction>>>
 
 }
 
@@ -113,9 +135,7 @@ impl Vm {
         Self {
             state: Arc::new(RwLock::new(VmState::default())),
             app_sender: None,
-            mempool: Arc::new(RwLock::new(VecDeque::with_capacity(100))),
-            accounts: Arc::new(RwLock::new(Vec::new())),
-            round: Arc::new(RwLock::new(1)),
+            mempool: Arc::new(RwLock::new(VecDeque::with_capacity(100)))
         }
     }
 
@@ -139,16 +159,38 @@ impl Vm {
         }
     }
 
-    /// Proposes arbitrary data to mempool and notifies that a block is ready for builds.
-    /// Other VMs may optimize mempool with more complicated batching mechanisms.
-    pub async fn propose_block(&mut self, d: Vec<u8>) -> io::Result<()> {
-        let size = d.len();
-        log::info!("proposed {size} bytes of data for a block");
+    pub async fn facet_apt(&self, acc: Vec<u8>) -> Vec<u8> {
+        let to = AccountAddress::from_bytes(acc).unwrap();
+        let vm_state = self.state.read().await;
+        let db = vm_state.db.as_ref().unwrap();
+        let mut core_account = self.get_core_account(db).await;
+        let tx_factory = TransactionFactory::new(ChainId::test());
+        let tx_acc_mint = core_account
+            .sign_with_transaction_builder(
+                tx_factory.mint(to, 1000 * 100_000_000)
+            );
+        let hash = tx_acc_mint.clone().committed_hash().to_vec();
         let mut mempool = self.mempool.write().await;
-        mempool.push_back(d);
-
+        mempool.push_back(tx_acc_mint);
         self.notify_block_ready().await;
-        Ok(())
+        hash
+    }
+
+    pub async fn create_account(&self, key: &str) -> Vec<u8> {
+        let to = Ed25519PublicKey::from_encoded_string(key).unwrap();
+        let vm_state = self.state.read().await;
+        let db = vm_state.db.as_ref().unwrap();
+        let mut core_account = self.get_core_account(db).await;
+        let tx_factory = TransactionFactory::new(ChainId::test());
+        let tx_acc_mint = core_account
+            .sign_with_transaction_builder(
+                tx_factory.create_user_account(&to)
+            );
+        let hash = tx_acc_mint.clone().committed_hash().to_vec();
+        let mut mempool = self.mempool.write().await;
+        mempool.push_back(tx_acc_mint);
+        self.notify_block_ready().await;
+        hash
     }
 
     /// Sets the state of the Vm.
@@ -201,15 +243,46 @@ impl Vm {
         Err(Error::new(ErrorKind::NotFound, "state manager not found"))
     }
 
-    pub fn get_core_account() -> LocalAccount {
-        LocalAccount::new(
+    pub async fn get_core_account(&self, db: &DbReaderWriter) -> LocalAccount {
+        let core_account = LocalAccount::new(
             aptos_test_root_address(),
             AccountKey::from_private_key(GENESIS_KEYPAIR.0.clone()),
             0,
+        );
+        let addr = core_account.address();
+        let av = self.get_account_resource(db, addr.as_ref());
+        let sn = av.unwrap().sequence_number();
+        LocalAccount::new(
+            aptos_test_root_address(),
+            AccountKey::from_private_key(GENESIS_KEYPAIR.0.clone()),
+            sn,
         )
     }
 
-    async fn init_aptos(&self) {
+
+    pub fn get_account_balance(&self, db: &DbReaderWriter, acc: &[u8]) -> u64 {
+        let state_proof = db.reader.get_latest_ledger_info().unwrap();
+        let current_version = state_proof.ledger_info().version();
+        let db_state_view = db.reader.state_view_at_version(Some(current_version)).unwrap();
+        let account = AccountAddress::from_bytes(acc).unwrap();
+        let view = db_state_view.as_account_with_state_view(&account);
+        view
+            .get_coin_store_resource()
+            .unwrap()
+            .map(|b| b.coin())
+            .unwrap_or(0)
+    }
+
+    pub fn get_account_resource(&self, db: &DbReaderWriter, acc: &[u8]) -> Option<AccountResource> {
+        let state_proof = db.reader.get_latest_ledger_info().unwrap();
+        let current_version = state_proof.ledger_info().version();
+        let db_state_view = db.reader.state_view_at_version(Some(current_version)).unwrap();
+        let account = AccountAddress::from_bytes(acc).unwrap();
+        let view = db_state_view.as_account_with_state_view(&account);
+        view.get_account_resource().unwrap()
+    }
+
+    async fn init_aptos(&mut self) {
         let mut vm_state = self.state.write().await;
         let (genesis, validators) = test_genesis_change_set_and_validators(Some(1));
         let signer = ValidatorSigner::new(
@@ -226,118 +299,12 @@ impl Vm {
         maybe_bootstrap::<AptosVM>(&db.1, &genesis_txn, waypoint).unwrap();
         let executor = BlockExecutor::new(db.1.clone());
         vm_state.executor = Some(executor);
-        vm_state.db = Some(db.1);
+        vm_state.db = Some(db.1.clone());
         drop(vm_state);
     }
 }
 
 impl subnet::rpc::vm::Vm for Vm {}
-
-#[tonic::async_trait]
-impl snow::engine::common::vm::Vm for Vm {
-    async fn initialize(
-        &mut self,
-        ctx: Option<subnet::rpc::context::Context>,
-        db_manager: Box<dyn subnet::rpc::database::manager::Manager + Send + Sync>,
-        genesis_bytes: &[u8],
-        _upgrade_bytes: &[u8],
-        _config_bytes: &[u8],
-        to_engine: Sender<snow::engine::common::message::Message>,
-        _fxs: &[snow::engine::common::vm::Fx],
-        app_sender: Box<dyn snow::engine::common::appsender::AppSender + Send + Sync>,
-    ) -> io::Result<()> {
-        log::info!("initializing Vm");
-        let mut vm_state = self.state.write().await;
-        vm_state.ctx = ctx;
-        let current = db_manager.current().await?;
-        let state = state::State {
-            db: Arc::new(RwLock::new(current.clone().db)),
-            verified_blocks: Arc::new(RwLock::new(HashMap::new())),
-        };
-        vm_state.state = Some(state.clone());
-        vm_state.to_engine = Some(to_engine);
-        self.app_sender = Some(app_sender);
-        let genesis = "hello world";
-        let has_last_accepted = state.has_last_accepted_block().await?;
-        if has_last_accepted {
-            let last_accepted_blk_id = state.get_last_accepted_block_id().await?;
-            vm_state.preferred = last_accepted_blk_id;
-            log::info!("initialized Vm with last accepted block {last_accepted_blk_id}");
-        } else {
-            let mut genesis_block = Block::new(
-                ids::Id::empty(),
-                0,
-                0,
-                genesis.as_bytes().to_vec(),
-                choices::status::Status::default(),
-            ).unwrap();
-            genesis_block.set_state(state.clone());
-            genesis_block.accept().await?;
-
-            let genesis_blk_id = genesis_block.id();
-            vm_state.preferred = genesis_blk_id;
-            log::info!("initialized Vm with genesis block {genesis_blk_id}");
-        }
-
-        self.mempool = Arc::new(RwLock::new(VecDeque::with_capacity(100)));
-
-        log::info!("successfully initialized Vm");
-        Ok(())
-    }
-
-    async fn set_state(&self, snow_state: snow::State) -> io::Result<()> {
-        self.set_state(snow_state).await
-    }
-
-    /// Called when the node is shutting down.
-    async fn shutdown(&self) -> io::Result<()> {
-        // grpc servers are shutdown via broadcast channel
-        // if additional shutdown is required we can extend.
-        Ok(())
-    }
-
-    async fn version(&self) -> io::Result<String> {
-        Ok(String::from(VERSION))
-    }
-
-    async fn create_static_handlers(
-        &mut self,
-    ) -> io::Result<HashMap<String, snow::engine::common::http_handler::HttpHandler>> {
-        let svc = api::static_handlers::Service::new(self.clone());
-        let mut handler = jsonrpc_core::IoHandler::new();
-        handler.extend_with(api::static_handlers::Rpc::to_delegate(svc));
-
-        let http_handler = snow::engine::common::http_handler::HttpHandler::new_from_u8(0, handler)
-            .map_err(|_| Error::from(ErrorKind::InvalidData))?;
-
-        let mut handlers = HashMap::new();
-        handlers.insert("/static".to_string(), http_handler);
-        Ok(handlers)
-    }
-
-    async fn create_handlers(
-        &mut self,
-    ) -> io::Result<HashMap<String, snow::engine::common::http_handler::HttpHandler>> {
-        let svc = api::chain_handlers::Service::new(self.clone());
-        let mut handler = jsonrpc_core::IoHandler::new();
-        handler.extend_with(api::chain_handlers::Rpc::to_delegate(svc));
-
-        let http_handler = snow::engine::common::http_handler::HttpHandler::new_from_u8(0, handler)
-            .map_err(|_| Error::from(ErrorKind::InvalidData))?;
-        let mut handlers = HashMap::new();
-        handlers.insert("/rpc".to_string(), http_handler);
-        Ok(handlers)
-    }
-}
-
-
-fn get_account_balance(account_state_view: &AccountWithStateView) -> u64 {
-    account_state_view
-        .get_coin_store_resource()
-        .unwrap()
-        .map(|b| b.coin())
-        .unwrap_or(0)
-}
 
 #[tonic::async_trait]
 impl subnet::rpc::snowman::block::ChainVm for Vm {
@@ -350,13 +317,6 @@ impl subnet::rpc::snowman::block::ChainVm for Vm {
         if mempool.is_empty() {
             return Err(Error::new(ErrorKind::Other, "no pending block"));
         }
-        let round_1 = self.round.read().await;
-        let round = *round_1;
-        log::info!("current round {}",round);
-        if round == 1 {
-            self.init_aptos().await;
-        }
-        drop(round_1);
         let vm_state = self.state.read().await;
         if let Some(state) = &vm_state.state {
             let prnt_blk = state.get_block(&vm_state.preferred).await?;
@@ -366,37 +326,18 @@ impl subnet::rpc::snowman::block::ChainVm for Vm {
                 prnt_blk.id(),
                 prnt_blk.height() + 1,
                 unix_now,
-                first,
+                vec![],
                 choices::status::Status::Processing,
             )?;
             block_.set_state(state.clone());
             block_.verify().await?;
-            log::info!("successfully built block");
             let state = self.state.read().await;
             let executor = state.executor.as_ref().unwrap();
             let signer = state.signer.as_ref().unwrap();
             let db = state.db.as_ref().unwrap();
-            let mut accounts = self.accounts.write().await;
-
-
-            const B: u64 = 1_000_000_000;
-
-            let mut rng = ::rand::rngs::StdRng::from_entropy();
-            let mut account = LocalAccount::generate(&mut rng);
-            let acc_bytes = account.address().clone().to_vec();
-
-            let mut rng = ::rand::rngs::StdRng::from_entropy();
-            let account2 = LocalAccount::generate(&mut rng);
-            let acc_bytes2 = account2.address().clone().to_vec();
-
-            accounts.push(acc_bytes.clone());
-            accounts.push(acc_bytes2.clone());
-
-            log::info!("------acc_bytes---{}---- accounts {} ", hex::encode(acc_bytes), accounts.len().to_string());
-
-
             let latest_ledger_info = db.reader.get_latest_ledger_info().unwrap();
             let next_epoch = latest_ledger_info.ledger_info().next_block_epoch();
+            log::info!("------next_epoch---{}----",next_epoch );
             let now = SystemTime::now();
             let since_the_epoch = now.duration_since(UNIX_EPOCH).unwrap();
             let block_id = HashValue::random();
@@ -409,31 +350,19 @@ impl subnet::rpc::snowman::block::ChainVm for Vm {
                 vec![],
                 since_the_epoch.as_secs(),
             ));
+
             log::info!("------block_id---{}----",block_id );
-            let mut core_account = Vm::get_core_account();
-            let tx_factory = TransactionFactory::new(ChainId::test());
-            let tx_acc_create = core_account.sign_with_transaction_builder(
-                tx_factory.create_user_account(account.public_key()));
-            let tx_acc_mint = core_account
-                .sign_with_transaction_builder(tx_factory.mint(account.address(), 1_00 * B));
-
-            let tx_acc_create_2 = core_account.sign_with_transaction_builder(
-                tx_factory.create_user_account(account2.public_key()));
-            let tx_acc_transfer_2 = account
-                .sign_with_transaction_builder(tx_factory.transfer(account2.address(), 20 * B));
-
-            let block: Vec<_> = vec![
-                block_meta,
-                UserTransaction(tx_acc_create),
-                UserTransaction(tx_acc_mint),
-                Transaction::StateCheckpoint(HashValue::random()),
+            let mut txs = vec![
+                UserTransaction(first)
             ];
+            let mut block: Vec<_> = vec![];
+            block.push(block_meta);
+            block.append(&mut txs);
+            block.push(Transaction::StateCheckpoint(HashValue::random()));
             let parent_block_id = executor.committed_block_id();
-            log::info!(" parent_block_id  {} ",  parent_block_id);
             let output = executor
                 .execute_block((block_id, block.clone()), parent_block_id)
                 .unwrap();
-
             let ledger_info = LedgerInfo::new(
                 BlockInfo::new(
                     next_epoch,
@@ -447,75 +376,9 @@ impl subnet::rpc::snowman::block::ChainVm for Vm {
                 HashValue::zero(),
             );
             let li = generate_ledger_info_with_sig(&[signer.clone()], ledger_info);
-
-            executor.commit_blocks(vec![block_id], li).unwrap();
-            let latest_ledger_info = db.reader.get_latest_ledger_info().unwrap();
-            let next_epoch = latest_ledger_info.ledger_info().next_block_epoch();
-            let ts_2 = since_the_epoch.as_secs() + 1;
-            let block_id = HashValue::random();
-            let block_meta = Transaction::BlockMetadata(BlockMetadata::new(
-                block_id,
-                next_epoch,
-                0,
-                signer.author(),
-                vec![],
-                vec![],
-                ts_2,
-            ));
-            let block: Vec<_> = vec![
-                block_meta,
-                UserTransaction(tx_acc_create_2),
-                UserTransaction(tx_acc_transfer_2),
-                Transaction::StateCheckpoint(HashValue::random()),
-            ];
-            let parent_block_id = executor.committed_block_id();
-
-            log::info!(" parent_block_id  {} ",  parent_block_id);
-            let output = executor
-                .execute_block((block_id, block.clone()), parent_block_id).unwrap();
-            let ledger_info = LedgerInfo::new(
-                BlockInfo::new(
-                    next_epoch,
-                    0,
-                    block_id,
-                    output.root_hash(),
-                    output.version(),
-                    ts_2,
-                    output.epoch_state().clone(),
-                ),
-                HashValue::zero(),
-            );
-            let li = generate_ledger_info_with_sig(&[signer.clone()], ledger_info);
             executor.commit_blocks(vec![block_id], li).unwrap();
 
-
-            let state_proof = db.reader.get_latest_ledger_info().unwrap();
-            let current_version = state_proof.ledger_info().version();
-            log::info!(" current version  {} ",  current_version);
-
-            let block_info = db.reader.get_block_info_by_version(current_version).unwrap();
-            log::info!("block hash {}", block_info.2.hash().unwrap());
-            let db_state_view = db.reader.state_view_at_version(Some(current_version)).unwrap();
-            {
-                let acc_address = account.address();
-                let account_view = db_state_view.as_account_with_state_view(&acc_address);
-                let bal = get_account_balance(&account_view);
-                log::info!("{acc_address} balance is  {} ", bal);
-
-                let acc_address_2 = account2.address();
-                let account_view = db_state_view.as_account_with_state_view(&acc_address_2);
-                let bal = get_account_balance(&account_view);
-                log::info!("{acc_address_2} balance is  {} ", bal);
-            }
-
-            // for acc in accounts.clone() {
-            //     let account = AccountAddress::from_bytes(acc.clone()).unwrap();
-            //     let account_view = db_state_view.as_account_with_state_view(&account);
-            //     let bal = get_account_balance(&account_view);
-            //     log::info!(" this account {} balance is  {} ", hex::encode(acc), bal)
-            // }
-            let mut round_1 = self.round.write().await;
-            *round_1 = round + 2;
+            log::info!("successfully built block");
             return Ok(Box::new(block_));
         }
         Err(Error::new(
@@ -575,7 +438,9 @@ impl snow::engine::common::engine::NetworkAppHandler for Vm {
     }
 
     /// Currently, no app-specific messages, so returning Ok.
-    async fn app_gossip(&self, _node_id: &ids::node::Id, _msg: &[u8]) -> io::Result<()> {
+    async fn app_gossip(&self, _node_id: &ids::node::Id, msg: &[u8]) -> io::Result<()> {
+        let s = std::str::from_utf8(msg).unwrap().to_string();
+        log::info!("app_gossip----->{}", s);
         Ok(())
     }
 }
@@ -673,5 +538,103 @@ impl subnet::rpc::snowman::block::Parser for Vm {
         }
 
         Err(Error::new(ErrorKind::NotFound, "state manager not found"))
+    }
+}
+
+#[tonic::async_trait]
+impl snow::engine::common::vm::Vm for Vm {
+    async fn initialize(
+        &mut self,
+        ctx: Option<subnet::rpc::context::Context>,
+        db_manager: Box<dyn subnet::rpc::database::manager::Manager + Send + Sync>,
+        genesis_bytes: &[u8],
+        _upgrade_bytes: &[u8],
+        _config_bytes: &[u8],
+        to_engine: Sender<snow::engine::common::message::Message>,
+        _fxs: &[snow::engine::common::vm::Fx],
+        app_sender: Box<dyn snow::engine::common::appsender::AppSender + Send + Sync>,
+    ) -> io::Result<()> {
+        log::info!("initializing Vm");
+        let mut vm_state = self.state.write().await;
+        vm_state.ctx = ctx;
+        let current = db_manager.current().await?;
+        let state = state::State {
+            db: Arc::new(RwLock::new(current.clone().db)),
+            verified_blocks: Arc::new(RwLock::new(HashMap::new())),
+        };
+        vm_state.state = Some(state.clone());
+        vm_state.to_engine = Some(to_engine);
+        self.app_sender = Some(app_sender);
+        let genesis = "hello world";
+        let has_last_accepted = state.has_last_accepted_block().await?;
+        if has_last_accepted {
+            let last_accepted_blk_id = state.get_last_accepted_block_id().await?;
+            vm_state.preferred = last_accepted_blk_id;
+            log::info!("initialized Vm with last accepted block {last_accepted_blk_id}");
+        } else {
+            let mut genesis_block = Block::new(
+                ids::Id::empty(),
+                0,
+                0,
+                genesis.as_bytes().to_vec(),
+                choices::status::Status::default(),
+            ).unwrap();
+            genesis_block.set_state(state.clone());
+            genesis_block.accept().await?;
+
+            let genesis_blk_id = genesis_block.id();
+            vm_state.preferred = genesis_blk_id;
+            log::info!("initialized Vm with genesis block {genesis_blk_id}");
+        }
+
+        self.mempool = Arc::new(RwLock::new(VecDeque::with_capacity(100)));
+        drop(vm_state);
+        self.init_aptos().await;
+        log::info!("successfully initialized Vm");
+        Ok(())
+    }
+
+    async fn set_state(&self, snow_state: snow::State) -> io::Result<()> {
+        self.set_state(snow_state).await
+    }
+
+    /// Called when the node is shutting down.
+    async fn shutdown(&self) -> io::Result<()> {
+        // grpc servers are shutdown via broadcast channel
+        // if additional shutdown is required we can extend.
+        Ok(())
+    }
+
+    async fn version(&self) -> io::Result<String> {
+        Ok(String::from(VERSION))
+    }
+
+    async fn create_static_handlers(
+        &mut self,
+    ) -> io::Result<HashMap<String, snow::engine::common::http_handler::HttpHandler>> {
+        let svc = api::static_handlers::Service::new(self.clone());
+        let mut handler = jsonrpc_core::IoHandler::new();
+        handler.extend_with(api::static_handlers::Rpc::to_delegate(svc));
+
+        let http_handler = snow::engine::common::http_handler::HttpHandler::new_from_u8(0, handler)
+            .map_err(|_| Error::from(ErrorKind::InvalidData))?;
+
+        let mut handlers = HashMap::new();
+        handlers.insert("/static".to_string(), http_handler);
+        Ok(handlers)
+    }
+
+    async fn create_handlers(
+        &mut self,
+    ) -> io::Result<HashMap<String, snow::engine::common::http_handler::HttpHandler>> {
+        let svc = api::chain_handlers::Service::new(self.clone());
+        let mut handler = jsonrpc_core::IoHandler::new();
+        handler.extend_with(api::chain_handlers::Rpc::to_delegate(svc));
+
+        let http_handler = snow::engine::common::http_handler::HttpHandler::new_from_u8(0, handler)
+            .map_err(|_| Error::from(ErrorKind::InvalidData))?;
+        let mut handlers = HashMap::new();
+        handlers.insert("/rpc".to_string(), http_handler);
+        Ok(handlers)
     }
 }

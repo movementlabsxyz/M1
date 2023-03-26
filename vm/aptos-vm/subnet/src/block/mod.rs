@@ -5,12 +5,13 @@ use std::{
     io::{self, Error, ErrorKind},
 };
 
-use crate::state;
 use avalanche_types::{choices, codec::serde::hex_0x_bytes::Hex0xBytes, ids, subnet};
 use chrono::{Duration, Utc};
 use derivative::{self, Derivative};
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
+
+use crate::state;
 
 /// Represents a block, specific to [`Vm`](crate::vm::Vm).
 #[serde_as]
@@ -228,6 +229,7 @@ impl Block {
 
     /// Mark this [`Block`](Block) accepted and updates [`State`](crate::state::State) accordingly.
     pub async fn accept(&mut self) -> io::Result<()> {
+        log::info!("accept called");
         self.set_status(choices::status::Status::Accepted);
 
         // only decided blocks are persistent -- no reorg

@@ -2,6 +2,8 @@ use std::io;
 
 use avalanche_types::subnet;
 use tokio::sync::broadcast::{self, Receiver, Sender};
+use aptos_api_types::ViewRequest;
+use aptos_crypto::HashValue;
 
 use aptos_logger::{info, Level, Logger};
 
