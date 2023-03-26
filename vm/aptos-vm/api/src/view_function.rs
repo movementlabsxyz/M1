@@ -16,6 +16,7 @@ use poem_openapi::{param::Query, payload::Json, OpenApi};
 use std::sync::Arc;
 
 /// API for executing Move view function.
+#[derive(Clone)]
 pub struct ViewFunctionApi {
     pub context: Arc<Context>,
 }
@@ -29,10 +30,10 @@ impl ViewFunctionApi {
     /// The Aptos nodes prune account state history, via a configurable time window.
     /// If the requested ledger version has been pruned, the server responds with a 410.
     #[oai(
-        path = "/view",
-        method = "post",
-        operation_id = "view",
-        tag = "ApiTags::View"
+    path = "/view",
+    method = "post",
+    operation_id = "view",
+    tag = "ApiTags::View"
     )]
     async fn view_function(
         &self,
@@ -85,13 +86,13 @@ impl ViewFunctionApi {
             entry_func.args().to_owned(),
             self.context.node_config.api.max_gas_view_function,
         )
-        .map_err(|err| {
-            BasicErrorWith404::bad_request_with_code_no_info(err, AptosErrorCode::InvalidInput)
-        })?;
+            .map_err(|err| {
+                BasicErrorWith404::bad_request_with_code_no_info(err, AptosErrorCode::InvalidInput)
+            })?;
         match accept_type {
             AcceptType::Bcs => {
                 BasicResponse::try_from_bcs((return_vals, &ledger_info, BasicResponseStatus::Ok))
-            },
+            }
             AcceptType::Json => {
                 let return_types = resolver
                     .as_converter(self.context.db.clone())
@@ -127,7 +128,96 @@ impl ViewFunctionApi {
                     })?;
 
                 BasicResponse::try_from_json((move_vals, &ledger_info, BasicResponseStatus::Ok))
-            },
+            }
+        }
+    }
+
+    pub async fn view_function_raw(
+        &self,
+        accept_type: AcceptType,
+        request: ViewRequest,
+        ledger_version: Option<U64>,
+    ) -> BasicResultWith404<Vec<MoveValue>> {
+        let (ledger_info, requested_version) = self
+            .context
+            .get_latest_ledger_info_and_verify_lookup_version(
+                ledger_version.map(|inner| inner.0),
+            )?;
+
+        let resolver = self.context.move_resolver_poem(&ledger_info)?;
+
+        let entry_func = resolver
+            .as_converter(self.context.db.clone())
+            .convert_view_function(request)
+            .map_err(|err| {
+                BasicErrorWith404::bad_request_with_code(
+                    err,
+                    AptosErrorCode::InvalidInput,
+                    &ledger_info,
+                )
+            })?;
+        let state_view = self
+            .context
+            .state_view_at_version(requested_version)
+            .map_err(|err| {
+                BasicErrorWith404::bad_request_with_code(
+                    err,
+                    AptosErrorCode::InternalError,
+                    &ledger_info,
+                )
+            })?;
+
+        let return_vals = AptosVM::execute_view_function(
+            &state_view,
+            entry_func.module().clone(),
+            entry_func.function().to_owned(),
+            entry_func.ty_args().to_owned(),
+            entry_func.args().to_owned(),
+            self.context.node_config.api.max_gas_view_function,
+        )
+            .map_err(|err| {
+                BasicErrorWith404::bad_request_with_code_no_info(err, AptosErrorCode::InvalidInput)
+            })?;
+        match accept_type {
+            AcceptType::Bcs => {
+                BasicResponse::try_from_bcs((return_vals, &ledger_info, BasicResponseStatus::Ok))
+            }
+            AcceptType::Json => {
+                let return_types = resolver
+                    .as_converter(self.context.db.clone())
+                    .function_return_types(&entry_func)
+                    .and_then(|tys| {
+                        tys.into_iter()
+                            .map(TypeTag::try_from)
+                            .collect::<anyhow::Result<Vec<_>>>()
+                    })
+                    .map_err(|err| {
+                        BasicErrorWith404::bad_request_with_code(
+                            err,
+                            AptosErrorCode::InternalError,
+                            &ledger_info,
+                        )
+                    })?;
+
+                let move_vals = return_vals
+                    .into_iter()
+                    .zip(return_types.into_iter())
+                    .map(|(v, ty)| {
+                        resolver
+                            .as_converter(self.context.db.clone())
+                            .try_into_move_value(&ty, &v)
+                    })
+                    .collect::<anyhow::Result<Vec<_>>>()
+                    .map_err(|err| {
+                        BasicErrorWith404::bad_request_with_code(
+                            err,
+                            AptosErrorCode::InternalError,
+                            &ledger_info,
+                        )
+                    })?;
+
+                BasicResponse::try_from_json((move_vals, &ledger_info, BasicResponseStatus::Ok))
+            }
         }
     }
 }

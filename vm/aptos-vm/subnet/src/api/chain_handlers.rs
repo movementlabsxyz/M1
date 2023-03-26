@@ -1,45 +1,52 @@
 //! Implements chain/VM specific handlers.
 //! To be served via `[HOST]/ext/bc/[CHAIN ID]/rpc`.
 
+use std::io;
 use std::str::FromStr;
 
-use avalanche_types::ids;
+use avalanche_types::subnet::rpc::snowman::block::Getter;
 use jsonrpc_core::{BoxFuture, Error, ErrorCode, Result};
 use jsonrpc_derive::rpc;
 use serde::{Deserialize, Serialize};
-
+use avalanche_types::{choices, codec::serde::hex_0x_bytes::Hex0xBytes, ids, subnet};
+use aptos_sdk::rest_client::aptos_api_types::MAX_RECURSIVE_TYPES_ALLOWED;
+use aptos_sdk::rest_client::aptos_api_types::mime_types::BCS;
+use aptos_types::transaction::{SignedTransaction, Transaction, TransactionOutput, TransactionPayload};
+use serde_with::serde_as;
+use aptos_api::response::BasicResponse;
 use crate::{block::Block, vm};
 
 /// Defines RPCs specific to the chain.
 #[rpc]
 pub trait Rpc {
-    /// Pings the VM.
-    #[rpc(name = "ping", alias("timestampvm.ping"))]
-    fn ping(&self) -> BoxFuture<Result<crate::api::PingResponse>>;
 
-    /// Proposes the arbitrary data.
-    #[rpc(name = "proposeBlock", alias("timestampvm.proposeBlock"))]
-    fn propose_block(&self, args: ProposeBlockArgs) -> BoxFuture<Result<ProposeBlockResponse>>;
 
+    /// faucet token
+    #[rpc(name = "faucet", alias("aptosvm.faucet"))]
+    fn facet_apt(&self, args: AccountArgs) -> BoxFuture<Result<AccountStrRes>>;
+    /// faucet token
+    ///
+    #[rpc(name = "createAccount", alias("aptosvm.createAccount"))]
+    fn create_account(&self, args: AccountArgs) -> BoxFuture<Result<AccountStrRes>>;
     /// Fetches the last accepted block.
-    #[rpc(name = "lastAccepted", alias("timestampvm.lastAccepted"))]
+    ///
+    #[rpc(name = "lastAccepted", alias("aptosvm.lastAccepted"))]
     fn last_accepted(&self) -> BoxFuture<Result<LastAcceptedResponse>>;
 
     /// Fetches the block.
-    #[rpc(name = "getBlock", alias("timestampvm.getBlock"))]
+    #[rpc(name = "getBlock", alias("aptosvm.getBlock"))]
     fn get_block(&self, args: GetBlockArgs) -> BoxFuture<Result<GetBlockResponse>>;
+
+    /// get the account sequence number for submit transaction
+    #[rpc(name = "getSequenceNumber", alias("aptosvm.getSequenceNumber"))]
+    fn get_sequence_number(&self, args: AccountArgs) -> BoxFuture<Result<AccountNumberRes>>;
+
+    /// get the account sequence number for submit transaction
+    #[rpc(name = "getBalance", alias("aptosvm.getBalance"))]
+    fn get_balance(&self, args: AccountArgs) -> BoxFuture<Result<AccountNumberRes>>;
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct ProposeBlockArgs {
-    pub data: String,
-}
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct ProposeBlockResponse {
-    /// TODO: returns Id for later query, using hash + time?
-    pub success: bool,
-}
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct LastAcceptedResponse {
@@ -48,17 +55,32 @@ pub struct LastAcceptedResponse {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct GetBlockArgs {
-    /// TODO: use "ids::Id"
-    /// if we use "ids::Id", it fails with:
-    /// "Invalid params: invalid type: string \"g25v3qDyAaHfR7kBev8tLUHouSgN5BJuZjy1BYS1oiHd2vres\", expected a borrowed string."
     pub id: String,
 }
+
+
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct GetBlockResponse {
     pub block: Block,
     pub data: String,
 }
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct AccountArgs {
+    pub account: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct AccountNumberRes {
+    pub data: u64,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct AccountStrRes {
+    pub data: String,
+}
+
 
 /// Implements API services for the chain-specific handlers.
 pub struct Service {
@@ -72,20 +94,24 @@ impl Service {
 }
 
 impl Rpc for Service {
-    fn ping(&self) -> BoxFuture<Result<crate::api::PingResponse>> {
-        log::debug!("ping called");
-        Box::pin(async move { Ok(crate::api::PingResponse { success: true }) })
+
+
+    fn facet_apt(&self, args: AccountArgs) -> BoxFuture<Result<AccountStrRes>> {
+        log::debug!("facet_apt called");
+        let mut vm = self.vm.clone();
+        Box::pin(async move {
+            let acc = hex::decode(args.account).unwrap();
+            let hash = vm.facet_apt(acc).await;
+            Ok(AccountStrRes { data: hex::encode(hash) })
+        })
     }
 
-    fn propose_block(&self, args: ProposeBlockArgs) -> BoxFuture<Result<ProposeBlockResponse>> {
-        log::debug!("propose_block called");
+    fn create_account(&self, args: AccountArgs) -> BoxFuture<Result<AccountStrRes>> {
+        log::debug!("create_account called");
         let mut vm = self.vm.clone();
-
         Box::pin(async move {
-            vm.propose_block(args.data.into_bytes())
-                .await
-                .map_err(create_jsonrpc_error)?;
-            Ok(ProposeBlockResponse { success: true })
+            let hash = vm.create_account(args.account.as_str()).await;
+            Ok(AccountStrRes { data: hex::encode(hash) })
         })
     }
 
@@ -111,7 +137,6 @@ impl Rpc for Service {
             })
         })
     }
-
     fn get_block(&self, args: GetBlockArgs) -> BoxFuture<Result<GetBlockResponse>> {
         let blk_id = ids::Id::from_str(&args.id).unwrap();
         log::info!("get_block called for {}", blk_id);
@@ -136,7 +161,32 @@ impl Rpc for Service {
             })
         })
     }
+
+
+    fn get_sequence_number(&self, args: AccountArgs) -> BoxFuture<Result<AccountNumberRes>> {
+        let vm = self.vm.clone();
+        Box::pin(async move {
+            let reader = vm.state.read().await;
+            let db = reader.db.as_ref().unwrap();
+            let acc = hex::decode(args.account).unwrap();
+            let acc_source = vm.get_account_resource(&db, &acc);
+            let source = acc_source.unwrap();
+            return Ok(AccountNumberRes { data: source.sequence_number() });
+        })
+    }
+
+    fn get_balance(&self, args: AccountArgs) -> BoxFuture<Result<AccountNumberRes>> {
+        let vm = self.vm.clone();
+        Box::pin(async move {
+            let reader = vm.state.read().await;
+            let db = reader.db.as_ref().unwrap();
+            let acc = hex::decode(args.account).unwrap();
+            let acc_source = vm.get_account_balance(&db, &acc);
+            return Ok(AccountNumberRes { data: acc_source });
+        })
+    }
 }
+
 
 fn create_jsonrpc_error(e: std::io::Error) -> Error {
     let mut error = Error::new(ErrorCode::InternalError);
