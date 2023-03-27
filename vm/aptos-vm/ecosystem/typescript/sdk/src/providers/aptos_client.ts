@@ -733,6 +733,8 @@ export class AptosClient {
     // :!:>generateSignSubmitTransactionInner
     const rawTransaction = await this.generateRawTransaction(sender.address(), payload, extraArgs);
     const bcsTxn = AptosClient.generateBCSTransaction(sender, rawTransaction);
+    let hex = HexString.fromUint8Array(bcsTxn);
+    console.log("transaction hex ", hex)
     const pendingTransaction = await this.submitSignedBCSTransaction(bcsTxn);
     return pendingTransaction.hash;
     // <:!:generateSignSubmitTransactionInner

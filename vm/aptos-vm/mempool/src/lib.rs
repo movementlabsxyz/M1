@@ -1,4 +1,5 @@
 // Copyright © Aptos Foundation
+// Parts of the project are originally copyright © Meta Platforms, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
 #![forbid(unsafe_code)]
@@ -68,7 +69,7 @@ pub use shared_mempool::{
 #[cfg(any(test, feature = "fuzzing"))]
 pub use tests::{fuzzing, mocks};
 
-mod core_mempool;
+pub mod core_mempool;
 pub mod counters;
 mod logging;
 mod shared_mempool;
