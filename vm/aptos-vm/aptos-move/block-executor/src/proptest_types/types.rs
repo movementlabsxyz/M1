@@ -1,4 +1,5 @@
 // Copyright © Aptos Foundation
+// Parts of the project are originally copyright © Meta Platforms, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
@@ -53,7 +54,9 @@ where
     /// Gets the state value for a given state key.
     fn get_state_value(&self, _: &K) -> anyhow::Result<Option<StateValue>> {
         // When aggregator value has to be resolved from storage, pretend it is 100.
-        Ok(Some(StateValue::new(serialize(&STORAGE_AGGREGATOR_VALUE))))
+        Ok(Some(StateValue::new_legacy(serialize(
+            &STORAGE_AGGREGATOR_VALUE,
+        ))))
     }
 
     fn id(&self) -> StateViewId {
@@ -153,6 +156,10 @@ impl<V: Into<Vec<u8>> + Debug + Clone + Eq + Send + Sync + Arbitrary> Transactio
         } else {
             None
         }
+    }
+
+    fn as_state_value(&self) -> Option<StateValue> {
+        self.extract_raw_bytes().map(StateValue::new_legacy)
     }
 }
 
@@ -382,7 +389,7 @@ impl<V: Into<Vec<u8>> + Arbitrary + Clone + Debug + Eq + Sync + Send> Transactio
 
 impl<K, V> TransactionType for Transaction<K, V>
 where
-    K: PartialOrd + Ord + Send + Sync + Clone + Hash + Eq + ModulePath + 'static,
+    K: PartialOrd + Ord + Send + Sync + Clone + Hash + Eq + ModulePath + Debug + 'static,
     V: Debug + Send + Sync + Debug + Clone + TransactionWrite + 'static,
 {
     type Key = K;
@@ -404,7 +411,7 @@ impl<K, V> Task<K, V> {
 
 impl<K, V> ExecutorTask for Task<K, V>
 where
-    K: PartialOrd + Ord + Send + Sync + Clone + Hash + Eq + ModulePath + 'static,
+    K: PartialOrd + Ord + Send + Sync + Clone + Hash + Eq + ModulePath + Debug + 'static,
     V: Send + Sync + Debug + Clone + TransactionWrite + 'static,
 {
     type Argument = ();
@@ -460,7 +467,7 @@ pub struct Output<K, V>(Vec<(K, V)>, Vec<(K, DeltaOp)>, Vec<Option<Vec<u8>>>);
 
 impl<K, V> TransactionOutput for Output<K, V>
 where
-    K: PartialOrd + Ord + Send + Sync + Clone + Hash + Eq + ModulePath + 'static,
+    K: PartialOrd + Ord + Send + Sync + Clone + Hash + Eq + ModulePath + Debug + 'static,
     V: Send + Sync + Debug + Clone + TransactionWrite + 'static,
 {
     type Txn = Transaction<K, V>;

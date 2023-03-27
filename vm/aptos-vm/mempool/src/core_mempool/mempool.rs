@@ -1,4 +1,5 @@
 // Copyright © Aptos Foundation
+// Parts of the project are originally copyright © Meta Platforms, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
 //! Mempool is used to track transactions which have been submitted but not yet
@@ -19,7 +20,6 @@ use aptos_crypto::HashValue;
 use aptos_logger::prelude::*;
 use aptos_types::{
     account_address::AccountAddress,
-    account_config::AccountSequenceInfo,
     mempool_status::{MempoolStatus, MempoolStatusCode},
     transaction::SignedTransaction,
 };
@@ -27,7 +27,6 @@ use std::{
     collections::HashSet,
     time::{Duration, SystemTime},
 };
-
 pub struct Mempool {
     // Stores the metadata of all transactions in mempool (of all states).
     transactions: TransactionStore,
@@ -111,14 +110,13 @@ impl Mempool {
 
     /// Used to add a transaction to the Mempool.
     /// Performs basic validation: checks account's sequence number.
-    pub(crate) fn add_txn(
+    pub fn add_txn(
         &mut self,
         txn: SignedTransaction,
         ranking_score: u64,
-        sequence_info: AccountSequenceInfo,
+        db_sequence_number: u64,
         timeline_state: TimelineState,
     ) -> MempoolStatus {
-        let db_sequence_number = sequence_info.min_seq();
         trace!(
             LogSchema::new(LogEntry::AddTxn)
                 .txns(TxnsLog::new_txn(txn.sender(), txn.sequence_number())),
@@ -143,7 +141,7 @@ impl Mempool {
             expiration_time,
             ranking_score,
             timeline_state,
-            AccountSequenceInfo::Sequential(db_sequence_number),
+            db_sequence_number,
             now,
         );
 
@@ -162,7 +160,7 @@ impl Mempool {
     /// `seen_txns` - transactions that were sent to Consensus but were not committed yet,
     ///  mempool should filter out such transactions.
     #[allow(clippy::explicit_counter_loop)]
-    pub(crate) fn get_batch(
+    pub fn get_batch(
         &self,
         max_txns: u64,
         max_bytes: u64,

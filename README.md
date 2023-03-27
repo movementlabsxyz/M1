@@ -256,22 +256,61 @@ type Auth interface {
 signature verification.
 
 ## Running the `Movement VM`
-### Integration Test
-The `Movement VM` integration test will run through a series of complex on-chain
-interactions and ensure the outcome of those interactions is expected.
 
-```bash
-./scripts/tests.integration.sh
+1. set up avalanch subnet env, you can refer to 
+[avalanche-network-runner](https://github.com/ava-labs/avalanche-network-runner#network-runner-rpc-server-timestampvm-example) and [timestampvm-rs](https://github.com/ava-labs/timestampvm-rs)
+
+2. clone this repo and build subnet binary
+```
+cd movement-subnet/vm/aptos-vm/subnet
+cargo build 
+```
+3 start network and install subnet. move this subnet binary to /home/ubuntu/aavx-ruuner/plugins and create file name genesis.json
+
+```
+# start runner
+avalanche-network-runner server --log-level debug --port=":8080" --grpc-gateway-port=":8081"
+
+# install subnet
+curl -X POST -k http://localhost:8081/v1/control/start -d '{"execPath":"'${AVALANCHEGO_EXEC_PATH}'","numNodes":5,"logLevel":"INFO","pluginDir":"/home/ubuntu/aavx-ruuner/plugins","blockchainSpecs":[{"vmName":"subnet","genesis":"/home/ubuntu/aavx-ruuner/genesis.json","blockchain_alias":"timestamp"}]}'
+
 ```
 
-### Local Network
-The `Movement VM` spins up 5 AvalancheGo nodes and logs how they can be accessed.
-This is commonly used for local experimentation.
-
-```bash
-./scripts/run.sh
+4 create account and fancet 
 ```
+# create account
+curl -X POST --data '{
+  "jsonrpc": "2.0",
+  "id"     : 1,
+  "method" : "aptosvm.createAccount",
+  "params" : [{"account":"0x61c66dea4265716facb3484ac5e2f366cf6c6e52e58120626f3434babb375eb1"}]
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/bc/241UUZZ1gqpynKomM7DPJP4sm91XT8zwi3ttexHMFs8DznzVDs/rpc
 
+
+{"jsonrpc":"2.0","result":{"data":"99ddf6ae010fc534e848b5fdf9d3cb5d49407de99db36415c022e6e110e4b121"},"id":1}
+
+
+# faucet aptos token
+curl -X POST --data '{
+  "jsonrpc": "2.0",
+  "id"     : 1,
+  "method" : "aptosvm.faucet",
+  "params" : [{"account":"7e95b0c90bf89fab82a8f98fbf8062f7bed3ca721aaa2d91dbb712a5b7e8ea6a"}]
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/bc/241UUZZ1gqpynKomM7DPJP4sm91XT8zwi3ttexHMFs8DznzVDs/rpc
+
+{"jsonrpc":"2.0","result":{"data":"3b1d120f5cb3c2ab25062541193b2e72dbbb4f2dafca0020c9375a68c33a918d"},"id":1}
+
+# check balance
+curl -X POST --data '{
+  "jsonrpc": "2.0",
+  "id"     : 1,
+  "method" : "aptosvm.getBalance",
+  "params" : [{"account":"7e95b0c90bf89fab82a8f98fbf8062f7bed3ca721aaa2d91dbb712a5b7e8ea6a"}]
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/bc/241UUZZ1gqpynKomM7DPJP4sm91XT8zwi3ttexHMFs8DznzVDs/rpc
+
+{"jsonrpc":"2.0","result":{"data":100000000000},"id":1}
+
+```
 ## Future Work
 * Create `Movement VM` genesis file
 * Implementation of `Controller`
