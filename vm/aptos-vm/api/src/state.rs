@@ -35,6 +35,7 @@ use poem_openapi::{
 use std::{convert::TryInto, sync::Arc};
 
 /// API for retrieving individual state
+#[derive(Clone)]
 pub struct StateApi {
     pub context: Arc<Context>,
 }
@@ -49,10 +50,10 @@ impl StateApi {
     /// The Aptos nodes prune account state history, via a configurable time window.
     /// If the requested ledger version has been pruned, the server responds with a 410.
     #[oai(
-        path = "/accounts/:address/resource/:resource_type",
-        method = "get",
-        operation_id = "get_account_resource",
-        tag = "ApiTags::Accounts"
+    path = "/accounts/:address/resource/:resource_type",
+    method = "get",
+    operation_id = "get_account_resource",
+    tag = "ApiTags::Accounts"
     )]
     async fn get_account_resource(
         &self,
@@ -83,7 +84,29 @@ impl StateApi {
             ledger_version.0.map(|inner| inner.0),
         )
     }
-
+    pub async fn get_account_resource_raw(
+        &self,
+        accept_type: AcceptType,
+        address: Address,
+        resource_type: MoveStructTag,
+        ledger_version: Option<U64>,
+    ) -> BasicResultWith404<MoveResource> {
+        resource_type
+            .verify(0)
+            .context("'resource_type' invalid")
+            .map_err(|err| {
+                BasicErrorWith404::bad_request_with_code_no_info(err, AptosErrorCode::InvalidInput)
+            })?;
+        fail_point_poem("endpoint_get_account_resource")?;
+        self.context
+            .check_api_output_enabled("Get account resource", &accept_type)?;
+        self.resource(
+            &accept_type,
+            address,
+            resource_type,
+            ledger_version.map(|inner| inner.0),
+        )
+    }
     /// Get account module
     ///
     /// Retrieves an individual module from a given account and at a specific ledger version. If the
@@ -92,10 +115,10 @@ impl StateApi {
     /// The Aptos nodes prune account state history, via a configurable time window.
     /// If the requested ledger version has been pruned, the server responds with a 410.
     #[oai(
-        path = "/accounts/:address/module/:module_name",
-        method = "get",
-        operation_id = "get_account_module",
-        tag = "ApiTags::Accounts"
+    path = "/accounts/:address/module/:module_name",
+    method = "get",
+    operation_id = "get_account_module",
+    tag = "ApiTags::Accounts"
     )]
     async fn get_account_module(
         &self,
@@ -133,10 +156,10 @@ impl StateApi {
     /// The Aptos nodes prune account state history, via a configurable time window.
     /// If the requested ledger version has been pruned, the server responds with a 410.
     #[oai(
-        path = "/tables/:table_handle/item",
-        method = "post",
-        operation_id = "get_table_item",
-        tag = "ApiTags::Tables"
+    path = "/tables/:table_handle/item",
+    method = "post",
+    operation_id = "get_table_item",
+    tag = "ApiTags::Tables"
     )]
     async fn get_table_item(
         &self,
@@ -179,10 +202,10 @@ impl StateApi {
     /// The Aptos nodes prune account state history, via a configurable time window.
     /// If the requested ledger version has been pruned, the server responds with a 410.
     #[oai(
-        path = "/tables/:table_handle/raw_item",
-        method = "post",
-        operation_id = "get_raw_table_item",
-        tag = "ApiTags::Tables"
+    path = "/tables/:table_handle/raw_item",
+    method = "post",
+    operation_id = "get_raw_table_item",
+    tag = "ApiTags::Tables"
     )]
     async fn get_raw_table_item(
         &self,
@@ -262,10 +285,10 @@ impl StateApi {
                     })?;
 
                 BasicResponse::try_from_json((resource, &ledger_info, BasicResponseStatus::Ok))
-            },
+            }
             AcceptType::Bcs => {
                 BasicResponse::try_from_encoded((bytes, &ledger_info, BasicResponseStatus::Ok))
-            },
+            }
         }
     }
 
@@ -314,10 +337,10 @@ impl StateApi {
                     })?;
 
                 BasicResponse::try_from_json((module, &ledger_info, BasicResponseStatus::Ok))
-            },
+            }
             AcceptType::Bcs => {
                 BasicResponse::try_from_encoded((bytes, &ledger_info, BasicResponseStatus::Ok))
-            },
+            }
         }
     }
 
@@ -405,10 +428,10 @@ impl StateApi {
                     })?;
 
                 BasicResponse::try_from_json((move_value, &ledger_info, BasicResponseStatus::Ok))
-            },
+            }
             AcceptType::Bcs => {
                 BasicResponse::try_from_encoded((bytes, &ledger_info, BasicResponseStatus::Ok))
-            },
+            }
         }
     }
 
@@ -458,7 +481,7 @@ impl StateApi {
             AcceptType::Json => Err(api_disabled("Get raw table item by json")),
             AcceptType::Bcs => {
                 BasicResponse::try_from_encoded((bytes, &ledger_info, BasicResponseStatus::Ok))
-            },
+            }
         }
     }
 }

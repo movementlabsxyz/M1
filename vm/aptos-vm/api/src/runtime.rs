@@ -52,13 +52,13 @@ pub fn bootstrap(
 
 pub type RawApi = (
     TransactionsApi,
-    ViewFunctionApi
-    //  AccountsApi,
-    // BasicApi,
-    // BlocksApi,
-    // EventsApi,
-    // IndexApi,
-    // StateApi,
+    ViewFunctionApi,
+    IndexApi,
+    AccountsApi,
+    StateApi,
+// BasicApi,
+// BlocksApi,
+// EventsApi,
 );
 
 pub fn get_raw_api_service(
@@ -68,10 +68,18 @@ pub fn get_raw_api_service(
         TransactionsApi {
             context: context.clone(),
         },
-        ViewFunctionApi { context },
-        // AccountsApi {
-        //     context: context.clone(),
-        // },
+        ViewFunctionApi {
+            context: context.clone()
+        },
+        IndexApi {
+            context: context.clone(),
+        },
+        AccountsApi {
+            context: context.clone(),
+        },
+        StateApi {
+            context: context.clone(),
+        },
         // BasicApi {
         //     context: context.clone(),
         // },
@@ -81,12 +89,7 @@ pub fn get_raw_api_service(
         // EventsApi {
         //     context: context.clone(),
         // },
-        // IndexApi {
-        //     context: context.clone(),
-        // },
-        // StateApi {
-        //     context: context.clone(),
-        // },
+
     );
     a
 }
