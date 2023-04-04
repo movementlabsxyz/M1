@@ -280,6 +280,24 @@ impl TransactionsApi {
         self.list_by_account(&accept_type, page, address.0)
     }
 
+    pub async fn get_accounts_transactions_raw(
+        &self,
+        accept_type: AcceptType,
+        address: Address,
+        start: Option<U64>,
+        limit: Option<u16>,
+    ) -> BasicResultWith404<Vec<Transaction>> {
+        fail_point_poem("endpoint_get_accounts_transactions")?;
+        self.context
+            .check_api_output_enabled("Get account transactions", &accept_type)?;
+        let page = Page::new(
+            start.map(|v| v.0),
+            limit,
+            self.context.max_transactions_page_size(),
+        );
+        self.list_by_account(&accept_type, page, address)
+    }
+
     /// Submit transaction
     ///
     /// This endpoint accepts transaction submissions in two formats.
@@ -306,6 +324,31 @@ impl TransactionsApi {
     tag = "ApiTags::Transactions"
     )]
     async fn submit_transaction(
+        &self,
+        accept_type: AcceptType,
+        data: SubmitTransactionPost,
+    ) -> SubmitTransactionResult<PendingTransaction> {
+        data.verify()
+            .context("Submitted transaction invalid'")
+            .map_err(|err| {
+                SubmitTransactionError::bad_request_with_code_no_info(
+                    err,
+                    AptosErrorCode::InvalidInput,
+                )
+            })?;
+        fail_point_poem("endpoint_submit_transaction")?;
+        self.context
+            .check_api_output_enabled("Submit transaction", &accept_type)?;
+        if !self.context.node_config.api.transaction_submission_enabled {
+            return Err(api_disabled("Submit transaction"));
+        }
+        let ledger_info = self.context.get_latest_ledger_info()?;
+        let signed_transaction = self.get_signed_transaction(&ledger_info, data)?;
+        self.create(&accept_type, &ledger_info, signed_transaction)
+            .await
+    }
+
+    pub async fn submit_transaction_raw(
         &self,
         accept_type: AcceptType,
         data: SubmitTransactionPost,
@@ -538,6 +581,126 @@ impl TransactionsApi {
             .await
     }
 
+
+    pub async fn simulate_transaction_raw(
+        &self,
+        accept_type: AcceptType,
+        estimate_max_gas_amount: Option<bool>,
+        estimate_gas_unit_price: Option<bool>,
+        estimate_prioritized_gas_unit_price: Option<bool>,
+        data: SubmitTransactionPost,
+    ) -> SimulateTransactionResult<Vec<UserTransaction>> {
+        data.verify()
+            .context("Simulated transaction invalid")
+            .map_err(|err| {
+                SubmitTransactionError::bad_request_with_code_no_info(
+                    err,
+                    AptosErrorCode::InvalidInput,
+                )
+            })?;
+        fail_point_poem("endpoint_simulate_transaction")?;
+        self.context
+            .check_api_output_enabled("Simulate transaction", &accept_type)?;
+        if !self.context.node_config.api.transaction_simulation_enabled {
+            return Err(api_disabled("Simulate transaction"));
+        }
+        let ledger_info = self.context.get_latest_ledger_info()?;
+        let mut signed_transaction = self.get_signed_transaction(&ledger_info, data)?;
+
+        let estimated_gas_unit_price = match (
+            estimate_gas_unit_price.unwrap_or_default(),
+            estimate_prioritized_gas_unit_price.unwrap_or_default(),
+        ) {
+            (_, true) => {
+                let gas_estimation = self.context.estimate_gas_price(&ledger_info)?;
+                // The prioritized gas estimate should always be set, but if it's not use the gas estimate
+                Some(
+                    gas_estimation
+                        .prioritized_gas_estimate
+                        .unwrap_or(gas_estimation.gas_estimate),
+                )
+            }
+            (true, false) => Some(self.context.estimate_gas_price(&ledger_info)?.gas_estimate),
+            (false, false) => None,
+        };
+
+        // If estimate max gas amount is provided, we will just make it the maximum value
+        let estimated_max_gas_amount = if estimate_max_gas_amount.unwrap_or_default() {
+            // Retrieve max possible gas units
+            let (_, gas_params) = self.context.get_gas_schedule(&ledger_info)?;
+            let min_number_of_gas_units = u64::from(gas_params.txn.min_transaction_gas_units)
+                / u64::from(gas_params.txn.gas_unit_scaling_factor);
+            let max_number_of_gas_units = u64::from(gas_params.txn.maximum_number_of_gas_units);
+
+            // Retrieve account balance to determine max gas available
+            let account_state = self
+                .context
+                .get_account_state(
+                    signed_transaction.sender(),
+                    ledger_info.version(),
+                    &ledger_info,
+                )?
+                .ok_or_else(|| {
+                    SubmitTransactionError::bad_request_with_code(
+                        "Account not found",
+                        AptosErrorCode::InvalidInput,
+                        &ledger_info,
+                    )
+                })?;
+            let coin_store: CoinStoreResource = account_state
+                .get_coin_store_resource()
+                .and_then(|inner| {
+                    inner.ok_or_else(|| {
+                        anyhow!(
+                            "No coin store found for account {}",
+                            signed_transaction.sender()
+                        )
+                    })
+                })
+                .map_err(|err| {
+                    SubmitTransactionError::internal_with_code(
+                        format!("Failed to get coin store resource {}", err),
+                        AptosErrorCode::InternalError,
+                        &ledger_info,
+                    )
+                })?;
+
+            let gas_unit_price =
+                estimated_gas_unit_price.unwrap_or_else(|| signed_transaction.gas_unit_price());
+
+            // With 0 gas price, we set it to max gas units, since we can't divide by 0
+            let max_account_gas_units = if gas_unit_price == 0 {
+                coin_store.coin()
+            } else {
+                coin_store.coin() / gas_unit_price
+            };
+
+            // To give better error messaging, we should not go below the minimum number of gas units
+            let max_account_gas_units =
+                std::cmp::max(min_number_of_gas_units, max_account_gas_units);
+
+            // Minimum of the max account and the max total needs to be used for estimation
+            Some(std::cmp::min(
+                max_account_gas_units,
+                max_number_of_gas_units,
+            ))
+        } else {
+            None
+        };
+
+        // If there is an estimation of either, replace the values
+        if estimated_max_gas_amount.is_some() || estimated_gas_unit_price.is_some() {
+            signed_transaction = override_gas_parameters(
+                &signed_transaction,
+                estimated_max_gas_amount,
+                estimated_gas_unit_price,
+            );
+        }
+
+        self.simulate(&accept_type, ledger_info, signed_transaction)
+            .await
+    }
+
     /// Encode submission
     ///
     /// This endpoint accepts an EncodeSubmissionRequest, which internally is a
@@ -599,6 +762,32 @@ impl TransactionsApi {
     tag = "ApiTags::Transactions"
     )]
     async fn estimate_gas_price(&self, accept_type: AcceptType) -> BasicResult<GasEstimation> {
+        fail_point_poem("endpoint_encode_submission")?;
+        self.context
+            .check_api_output_enabled("Estimate gas price", &accept_type)?;
+        let latest_ledger_info = self.context.get_latest_ledger_info()?;
+        let gas_estimation = self.context.estimate_gas_price(&latest_ledger_info)?;
+
+        match accept_type {
+            AcceptType::Json => BasicResponse::try_from_json((
+                gas_estimation,
+                &latest_ledger_info,
+                BasicResponseStatus::Ok,
+            )),
+            AcceptType::Bcs => {
+                let gas_estimation_bcs = GasEstimationBcs {
+                    gas_estimate: gas_estimation.gas_estimate,
+                };
+                BasicResponse::try_from_bcs((
+                    gas_estimation_bcs,
+                    &latest_ledger_info,
+                    BasicResponseStatus::Ok,
+                ))
+            }
+        }
+    }
+
+   pub async fn estimate_gas_price_raw(&self, accept_type: AcceptType) -> BasicResult<GasEstimation> {
         fail_point_poem("endpoint_encode_submission")?;
         self.context
             .check_api_output_enabled("Estimate gas price", &accept_type)?;
@@ -836,7 +1025,7 @@ impl TransactionsApi {
     }
 
     /// Parses a single signed transaction
-   pub fn get_signed_transaction(
+    pub fn get_signed_transaction(
         &self,
         ledger_info: &LedgerInfo,
         data: SubmitTransactionPost,

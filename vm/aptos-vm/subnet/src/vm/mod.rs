@@ -1,13 +1,11 @@
 use std::{collections::{HashMap, VecDeque}, io::{self, Error, ErrorKind}, sync::Arc, thread};
+use std::collections::HashSet;
 use std::str::FromStr;
 use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
 use std::thread::sleep;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use futures::{
-    channel::{mpsc as futures_mpsc},
-};
 use avalanche_types::{
     choices, ids,
     subnet::{self, rpc::snow},
@@ -17,20 +15,21 @@ use avalanche_types::subnet::rpc::database::BoxedDatabase;
 use avalanche_types::subnet::rpc::database::manager::versioned_database::VersionedDatabase;
 use avalanche_types::subnet::rpc::snow::engine::common::http_handler;
 use chrono::{DateTime, Utc};
+use futures::{channel::mpsc as futures_mpsc, StreamExt};
 use hex;
 use jsonrpc_core::IoHandler;
 use rand::{Rng, SeedableRng};
 use serde_json::json;
 use tokio::sync::{broadcast, mpsc, mpsc::Sender, RwLock, RwLockWriteGuard};
 use tonic::IntoRequest;
+
 use aptos_api::{Context, get_api_service, get_raw_api_service, RawApi};
 use aptos_api::accept_type::AcceptType;
 use aptos_api::response::{AptosResponseContent, BasicResponse, BasicResultWith404};
 use aptos_api::response::AptosResponseContent::Json;
-use aptos_api::transactions::SubmitTransactionPost;
+use aptos_api::transactions::{SubmitTransactionPost, SubmitTransactionResponse};
 use aptos_api::transactions::SubmitTransactionPost::Bcs;
-
-use aptos_api_types::{TransactionOnChainData, ViewRequest};
+use aptos_api_types::{Address, MoveStructTag, TransactionOnChainData, ViewRequest};
 use aptos_config::config::NodeConfig;
 use aptos_crypto::{HashValue, ValidCryptoMaterialStringExt};
 use aptos_crypto::ed25519::Ed25519PublicKey;
@@ -40,7 +39,7 @@ use aptos_db::AptosDB;
 use aptos_executor::block_executor::BlockExecutor;
 use aptos_executor::db_bootstrapper::{generate_waypoint, maybe_bootstrap};
 use aptos_executor_types::{BlockExecutorTrait, StateComputeResult};
-use aptos_mempool::{MempoolClientRequest, MempoolClientSender};
+use aptos_mempool::{MempoolClientRequest, MempoolClientSender, SubmissionStatus};
 use aptos_mempool::core_mempool::CoreMempool;
 use aptos_sdk::rest_client::aptos_api_types::{AsConverter, MAX_RECURSIVE_TYPES_ALLOWED};
 use aptos_sdk::transaction_builder::{aptos_stdlib, TransactionFactory};
@@ -57,7 +56,9 @@ use aptos_types::block_info::BlockInfo;
 use aptos_types::block_metadata::BlockMetadata;
 use aptos_types::chain_id::ChainId;
 use aptos_types::ledger_info::{generate_ledger_info_with_sig, LedgerInfo, LedgerInfoWithSignatures};
+use aptos_types::mempool_status::{MempoolStatus, MempoolStatusCode};
 use aptos_types::transaction::{SignedTransaction, Transaction, TransactionOutput, TransactionWithProof, WriteSetPayload};
+use aptos_types::transaction::ExecutionStatus::Success;
 use aptos_types::transaction::Transaction::UserTransaction;
 use aptos_types::trusted_state::TrustedState;
 use aptos_types::validator_signer::ValidatorSigner;
@@ -69,9 +70,6 @@ use aptos_vm_genesis::{GENESIS_KEYPAIR, test_genesis_change_set_and_validators};
 use crate::{api, block::Block, state};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-
-/// Limits how much data a user can propose.
-pub const PROPOSE_LIMIT_BYTES: usize = 1024 * 1024;
 
 /// Represents VM-specific states.
 /// Defined in a separate struct, for interior mutability in [`Vm`](Vm).
@@ -120,8 +118,15 @@ pub struct Vm {
 
     /// A queue of data that have not been put into a block and proposed yet.
     /// Mempool is not persistent, so just keep in memory via Vm.
-    pub mempool: Arc<RwLock<VecDeque<SignedTransaction>>>
+    pub mempool: Arc<RwLock<VecDeque<SignedTransaction>>>,
 
+    pub accounts: Arc<RwLock<Vec<Vec<u8>>>>,
+
+    pub api_service: Option<RawApi>,
+
+    pub api_context: Option<Context>,
+
+    pub core_mempool: Option<Arc<RwLock<CoreMempool>>>,
 }
 
 impl Default for Vm {
@@ -135,7 +140,12 @@ impl Vm {
         Self {
             state: Arc::new(RwLock::new(VmState::default())),
             app_sender: None,
-            mempool: Arc::new(RwLock::new(VecDeque::with_capacity(100)))
+            mempool: Arc::new(RwLock::new(VecDeque::with_capacity(100))),
+            accounts: Arc::new(RwLock::new(Vec::new())),
+            round: Arc::new(RwLock::new(1)),
+            api_service: None,
+            api_context: None,
+            core_mempool: None,
         }
     }
 
@@ -157,6 +167,255 @@ impl Vm {
         } else {
             log::error!("consensus engine channel failed to initialized");
         }
+    }
+
+    pub async fn get_accounts_transactions(&self, account: &str) -> String {
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.3.get_account_resources_raw(AcceptType::Json,
+                                                  Address::from_str(account).unwrap()).await.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", String::from("hello"))
+                    }
+                }
+            }
+        };
+        ret
+    }
+
+    pub async fn get_account_resources(&self, account: &str) -> String {
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.3.get_account_resources_raw(AcceptType::Json,
+                                                  Address::from_str(account).unwrap()).await.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", String::from("hello"))
+                    }
+                }
+            }
+        };
+        ret
+    }
+
+    pub async fn get_account(&self, account: &str) -> String {
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.3.get_account_raw(AcceptType::Json,
+                                        Address::from_str(account).unwrap(), None).await.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", String::from("hello"))
+                    }
+                }
+            }
+        };
+        ret
+    }
+
+    pub async fn get_account_resources_state(&self, account: &str, resource: &str) -> String {
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.4.get_account_resource_raw(AcceptType::Json,
+                                                 Address::from_str(account).unwrap(),
+                                                 MoveStructTag::from_str(resource).unwrap(), None).await.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", String::from("hello"))
+                    }
+                }
+            }
+        };
+        ret
+    }
+
+    pub async fn get_account_modules(&self, account: &str) -> String {
+        let api = self.api_service.as_ref().unwrap();
+        let address = Address::from_str(account).unwrap();
+        log::info!("-----get_account_modules---{}----",address);
+        let ret = api.3.get_account_modules_raw(AcceptType::Json,
+                                                address,
+                                                None,
+                                                None,
+                                                None).await.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", String::from("hello"))
+                    }
+                }
+            }
+        };
+        log::info!("-----get_account_modules-length--{}----",ret.clone().len());
+        ret
+    }
+
+    pub async fn get_ledger_info(&self) -> String {
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.2.get_ledger_info_raw(AcceptType::Json).await.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", String::from("hello"))
+                    }
+                }
+            }
+        };
+        ret
+    }
+
+    pub async fn view_function(&self, req: &str) -> String {
+        let api = self.api_service.as_ref().unwrap();
+        let req = serde_json::from_str::<ViewRequest>(req).unwrap();
+        let ret = api.1.view_function_raw(AcceptType::Json, req, None).await;
+        let ret = ret.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", String::from("hello"))
+                    }
+                }
+            }
+        };
+        ret
+    }
+    pub async fn get_transaction_by_hash(&self, h: &str) -> String {
+        let h1 = HashValue::from_hex(h).unwrap();
+        let hash = aptos_api_types::hash::HashValue::from(h1);
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.0.get_transaction_by_hash_raw(AcceptType::Json,
+                                                    hash).await;
+        let ret = ret.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", String::from("hello"))
+                    }
+                }
+            }
+        };
+        ret
+    }
+
+    pub async fn submit_transaction(&self, data: Vec<u8>) -> Vec<u8> {
+        let mut mempool = self.mempool.write().await;
+        log::info!("submit_transaction length {}",{data.len()});
+        let service = self.api_service.as_ref().unwrap();
+        let context = self.api_context.as_ref().unwrap();
+        let info = context.get_latest_ledger_info_wrapped().unwrap();
+        let signed_transaction = service.0.get_signed_transaction(
+            &info, Bcs(aptos_api::bcs_payload::Bcs(data))).unwrap();
+        let hash = signed_transaction.clone().committed_hash().to_vec();
+        mempool.push_back(signed_transaction);
+        self.notify_block_ready().await;
+        hash
+    }
+
+    pub async fn submit_transaction2(&self, data: Vec<u8>) -> String {
+        log::info!("submit_transaction length {}",{data.len()});
+        let service = self.api_service.as_ref().unwrap();
+        let payload = Bcs(aptos_api::bcs_payload::Bcs(data.clone()));
+        let ret = service.0.submit_transaction_raw(AcceptType::Json,
+                                                   payload).await;
+        let ret = ret.unwrap();
+        let ret = match ret {
+            SubmitTransactionResponse::Accepted(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", String::from("hello"))
+                    }
+                }
+            }
+            _ => {
+                format!("{}", String::from("not found"))
+            }
+        };
+        let mut mempool = self.mempool.write().await;
+        let signed_transaction: SignedTransaction =
+            bcs::from_bytes_with_limit(&data,
+                                       MAX_RECURSIVE_TYPES_ALLOWED as usize).unwrap();
+        mempool.push_back(signed_transaction);
+        self.notify_block_ready().await;
+        ret
+    }
+
+    pub async fn simulate_transaction(&self, data: Vec<u8>) -> String {
+        let service = self.api_service.as_ref().unwrap();
+        let ret = service.0.simulate_transaction_raw(
+            AcceptType::Json,
+            Some(true),
+            Some(false),
+            Some(true), Bcs(aptos_api::bcs_payload::Bcs(data))).await;
+        let ret = ret.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", String::from("hello"))
+                    }
+                }
+            }
+        };
+        ret
+    }
+
+    pub async fn estimate_gas_price(&self) -> String {
+        let service = self.api_service.as_ref().unwrap();
+        let ret = service.0.estimate_gas_price_raw(
+            AcceptType::Json).await;
+        let ret = ret.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", String::from("hello"))
+                    }
+                }
+            }
+        };
+        ret
     }
 
     pub async fn facet_apt(&self, acc: Vec<u8>) -> Vec<u8> {
@@ -250,7 +509,7 @@ impl Vm {
             0,
         );
         let addr = core_account.address();
-        let av = self.get_account_resource(db, addr.as_ref());
+        let av = self.get_account_resource_me(db, addr.as_ref());
         let sn = av.unwrap().sequence_number();
         LocalAccount::new(
             aptos_test_root_address(),
@@ -273,7 +532,7 @@ impl Vm {
             .unwrap_or(0)
     }
 
-    pub fn get_account_resource(&self, db: &DbReaderWriter, acc: &[u8]) -> Option<AccountResource> {
+    pub fn get_account_resource_me(&self, db: &DbReaderWriter, acc: &[u8]) -> Option<AccountResource> {
         let state_proof = db.reader.get_latest_ledger_info().unwrap();
         let current_version = state_proof.ledger_info().version();
         let db_state_view = db.reader.state_view_at_version(Some(current_version)).unwrap();
@@ -300,7 +559,34 @@ impl Vm {
         let executor = BlockExecutor::new(db.1.clone());
         vm_state.executor = Some(executor);
         vm_state.db = Some(db.1.clone());
+        let (mempool_client_sender,
+            mut mempool_client_receiver) = futures_mpsc::channel::<MempoolClientRequest>(10);
+        let sender = MempoolClientSender::from(mempool_client_sender);
+        let node_config = NodeConfig::default();
+        let context = Context::new(ChainId::test(),
+                                   db.1.reader.clone(),
+                                   sender, node_config.clone());
+        self.api_context = Some(context.clone());
+        let service = get_raw_api_service(Arc::new(context));
+        self.api_service = Some(service);
+        self.core_mempool = Some(Arc::new(RwLock::new(CoreMempool::new(&node_config))));
         drop(vm_state);
+        tokio::task::spawn(async move {
+            while let Some(request) = mempool_client_receiver.next().await {
+                log::info!("-----mempool_client_receiver-SubmitTransaction--");
+                match request {
+                    MempoolClientRequest::SubmitTransaction(t, callback) => {
+                        let ms = MempoolStatus::new(MempoolStatusCode::Accepted);
+                        let status: SubmissionStatus = (ms, None);
+                        callback.send(
+                            Ok(status)
+                        ).unwrap();
+                        log::info!("--SubmitTransaction--");
+                    }
+                    MempoolClientRequest::GetTransactionByHash(_, _) => {}
+                }
+            }
+        });
     }
 }
 
@@ -355,6 +641,13 @@ impl subnet::rpc::snowman::block::ChainVm for Vm {
             let mut txs = vec![
                 UserTransaction(first)
             ];
+            // let a = db.reader.latest_state_checkpoint_view().map(|state_view| state_view.into_move_resolver()).unwrap();
+            // let v = a.as_converter(db.reader.clone());
+            // for t in txs.clone().into_iter() {
+            //     let sign_t = t.as_signed_user_txn().unwrap();
+            //     let pt = v.try_into_pending_transaction_poem(sign_t.clone()).unwrap();
+            //     println!("--------pending transaction---------{}-", pt.hash);
+            // }
             let mut block: Vec<_> = vec![];
             block.push(block_meta);
             block.append(&mut txs);
@@ -377,7 +670,6 @@ impl subnet::rpc::snowman::block::ChainVm for Vm {
             );
             let li = generate_ledger_info_with_sig(&[signer.clone()], ledger_info);
             executor.commit_blocks(vec![block_id], li).unwrap();
-
             log::info!("successfully built block");
             return Ok(Box::new(block_));
         }
