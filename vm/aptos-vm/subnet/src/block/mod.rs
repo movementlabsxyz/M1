@@ -5,7 +5,7 @@ use std::{
     io::{self, Error, ErrorKind},
 };
 
-use avalanche_types::{choices, codec::serde::hex_0x_bytes::Hex0xBytes, ids, subnet};
+use avalanche_types::{choices, ids, subnet};
 use chrono::{Duration, Utc};
 use derivative::{self, Derivative};
 use serde::{Deserialize, Serialize};
@@ -44,28 +44,7 @@ pub struct Block {
     state: state::State,
 }
 
-impl Default for Block {
-    fn default() -> Self {
-        Self::default()
-    }
-}
-
 impl Block {
-    pub fn default() -> Self {
-        Self {
-            parent_id: ids::Id::empty(),
-            height: 0,
-            timestamp: 0,
-            data: Vec::new(),
-
-            status: choices::status::Status::default(),
-            bytes: Vec::new(),
-            id: ids::Id::empty(),
-
-            state: state::State::default(),
-        }
-    }
-
     pub fn new(
         parent_id: ids::Id,
         height: u64,
@@ -78,7 +57,10 @@ impl Block {
             height,
             timestamp,
             data,
-            ..Default::default()
+            status: choices::status::Status::default(),
+            bytes: Vec::new(),
+            id: ids::Id::empty(),
+            state: state::State::default(),
         };
 
         b.status = status;
@@ -229,14 +211,17 @@ impl Block {
 
     /// Mark this [`Block`](Block) accepted and updates [`State`](crate::state::State) accordingly.
     pub async fn accept(&mut self) -> io::Result<()> {
-        log::info!("accept called");
         self.set_status(choices::status::Status::Accepted);
-
         // only decided blocks are persistent -- no reorg
         self.state.write_block(&self.clone()).await?;
         self.state.set_last_accepted_block(&self.id()).await?;
 
         self.state.remove_verified(&self.id()).await;
+
+        if let Some(vm_) = self.state.handler.as_ref() {
+            let handler = vm_.read().await;
+            handler.inner_build_block(self.data.clone()).await;
+        }
         Ok(())
     }
 
@@ -267,10 +252,6 @@ impl fmt::Display for Block {
 impl subnet::rpc::consensus::snowman::Block for Block {
     async fn bytes(&self) -> &[u8] {
         return self.bytes.as_ref();
-    }
-
-    async fn to_bytes(&self) -> io::Result<Vec<u8>> {
-        self.to_slice()
     }
 
     async fn height(&self) -> u64 {
@@ -310,19 +291,3 @@ impl subnet::rpc::consensus::snowman::Decidable for Block {
     }
 }
 
-#[tonic::async_trait]
-impl subnet::rpc::consensus::snowman::Initializer for Block {
-    async fn init(&mut self, bytes: &[u8], status: choices::status::Status) -> io::Result<()> {
-        *self = Block::from_slice(bytes)?;
-        self.status = status;
-
-        Ok(())
-    }
-}
-
-#[tonic::async_trait]
-impl subnet::rpc::consensus::snowman::StatusWriter for Block {
-    async fn set_status(&mut self, status: choices::status::Status) {
-        self.set_status(status)
-    }
-}
