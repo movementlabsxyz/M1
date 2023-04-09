@@ -6,10 +6,12 @@ use std::{
     sync::Arc,
 };
 
-use crate::block::Block;
 use avalanche_types::{choices, ids, subnet};
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
+
+use crate::block::Block;
+use crate::vm::AptosHandler;
 
 /// Manages block and chain states for this Vm, both in-memory and persistent.
 #[derive(Clone)]
@@ -19,6 +21,8 @@ pub struct State {
     /// Maps block Id to Block.
     /// Each element is verified but not yet accepted/rejected (e.g., preferred).
     pub verified_blocks: Arc<RwLock<HashMap<ids::Id, Block>>>,
+    // pub vm: Option<Arc<RwLock<Vm>>>,
+    pub handler :Option<Arc<RwLock<AptosHandler>>>
 }
 
 impl Default for State {
@@ -26,6 +30,7 @@ impl Default for State {
         Self {
             db: Arc::new(RwLock::new(subnet::rpc::database::memdb::Database::new())),
             verified_blocks: Arc::new(RwLock::new(HashMap::new())),
+            handler:None
         }
     }
 }
@@ -87,6 +92,10 @@ impl State {
                     format!("failed to put last accepted block: {:?}", e),
                 )
             })
+    }
+
+    pub fn set_handler(&mut self, handler: Arc<RwLock<AptosHandler>>) {
+        self.handler = Some(handler);
     }
 
     /// Returns "true" if there's a last accepted block found.

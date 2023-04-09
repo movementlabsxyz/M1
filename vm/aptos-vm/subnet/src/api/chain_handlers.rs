@@ -1,20 +1,23 @@
 //! Implements chain/VM specific handlers.
 //! To be served via `[HOST]/ext/bc/[CHAIN ID]/rpc`.
 
+
 use std::io;
+use std::marker::PhantomData;
 use std::str::FromStr;
 
-use avalanche_types::subnet::rpc::snowman::block::Getter;
-use jsonrpc_core::{BoxFuture, Error, ErrorCode, Result};
+use avalanche_types::ids;
+use avalanche_types::proto::http::Element;
+use avalanche_types::subnet::rpc::http::handle::Handle;
+use bytes::Bytes;
+use jsonrpc_core::{BoxFuture, Error, ErrorCode, IoHandler, Result};
 use jsonrpc_derive::rpc;
 use serde::{Deserialize, Serialize};
-use avalanche_types::{choices, codec::serde::hex_0x_bytes::Hex0xBytes, ids, subnet};
-use aptos_sdk::rest_client::aptos_api_types::MAX_RECURSIVE_TYPES_ALLOWED;
-use aptos_sdk::rest_client::aptos_api_types::mime_types::BCS;
-use aptos_types::transaction::{SignedTransaction, Transaction, TransactionOutput, TransactionPayload};
 use serde_with::serde_as;
-use aptos_api::response::BasicResponse;
-use crate::{block::Block, vm};
+
+use crate::block::Block;
+use crate::api::de_request;
+use crate::vm::Vm;
 
 /// Defines RPCs specific to the chain.
 #[rpc]
@@ -48,12 +51,6 @@ pub trait Rpc {
     /// Fetches the block.
     #[rpc(name = "getTransactionByHash", alias("aptosvm.getTransactionByHash"))]
     fn get_transaction_by_hash(&self, args: GetBlockArgs) -> BoxFuture<Result<GetTransactionRes>>;
-
-    #[rpc(name = "getSequenceNumber", alias("aptosvm.getSequenceNumber"))]
-    fn get_sequence_number(&self, args: AccountArgs) -> BoxFuture<Result<AccountNumberRes>>;
-
-    #[rpc(name = "getBalance", alias("aptosvm.getBalance"))]
-    fn get_balance(&self, args: AccountArgs) -> BoxFuture<Result<AccountNumberRes>>;
 
     #[rpc(name = "viewFunction", alias("aptosvm.viewFunction"))]
     fn view_function(&self, args: ViewFunctionArgs) -> BoxFuture<Result<SubmitTransactionArgs>>;
@@ -142,23 +139,26 @@ pub struct AccountStrRes {
 }
 
 
-/// Implements API services for the chain-specific handlers.
-pub struct Service {
-    pub vm: vm::Vm,
+#[derive(Clone)]
+pub struct ChainService {
+    pub vm: Vm,
 }
 
-impl Service {
-    pub fn new(vm: vm::Vm) -> Self {
+impl ChainService {
+    pub fn new(vm: Vm) -> Self {
         Self { vm }
     }
 }
 
-impl Rpc for Service {
+
+impl Rpc for ChainService
+
+{
     fn submit_transaction(&self, args: SubmitTransactionArgs) -> BoxFuture<Result<SubmitTransactionRes>> {
         log::debug!("submit_transaction called");
         let vm = self.vm.clone();
         Box::pin(async move {
-            let r = vm.submit_transaction2(hex::decode(args.data).unwrap()).await;
+            let r = vm.submit_transaction(hex::decode(args.data).unwrap()).await;
             Ok(SubmitTransactionRes { data: r })
         })
     }
@@ -185,8 +185,8 @@ impl Rpc for Service {
         let vm = self.vm.clone();
         Box::pin(async move {
             let acc = hex::decode(args.account).unwrap();
-            let hash = vm.facet_apt(acc).await;
-            Ok(AccountStrRes { data: hex::encode(hash) })
+            let ret = vm.facet_apt(acc).await;
+            Ok(AccountStrRes { data: ret })
         })
     }
 
@@ -194,8 +194,8 @@ impl Rpc for Service {
         log::debug!("create_account called");
         let vm = self.vm.clone();
         Box::pin(async move {
-            let hash = vm.create_account(args.account.as_str()).await;
-            Ok(AccountStrRes { data: hex::encode(hash) })
+            let ret = vm.create_account(args.account.as_str()).await;
+            Ok(AccountStrRes { data: ret })
         })
     }
 
@@ -249,39 +249,17 @@ impl Rpc for Service {
     fn get_transaction_by_hash(&self, args: GetBlockArgs) -> BoxFuture<Result<GetTransactionRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let h = args.id.as_str();
-            log::info!("hash by {}",h.clone());
-            let ret = vm.get_transaction_by_hash(h).await;
+            let hash = args.id.as_str();
+            log::info!("get hash by {}",hash.clone());
+            let ret = vm.get_transaction_by_hash(hash).await;
             return Ok(GetTransactionRes { data: ret });
-        })
-    }
-
-    fn get_sequence_number(&self, args: AccountArgs) -> BoxFuture<Result<AccountNumberRes>> {
-        let vm = self.vm.clone();
-        Box::pin(async move {
-            let reader = vm.state.read().await;
-            let db = reader.db.as_ref().unwrap();
-            let acc = hex::decode(args.account).unwrap();
-            let acc_source = vm.get_account_resource_me(&db, &acc);
-            let source = acc_source.unwrap();
-            return Ok(AccountNumberRes { data: source.sequence_number() });
-        })
-    }
-
-    fn get_balance(&self, args: AccountArgs) -> BoxFuture<Result<AccountNumberRes>> {
-        let vm = self.vm.clone();
-        Box::pin(async move {
-            let reader = vm.state.read().await;
-            let db = reader.db.as_ref().unwrap();
-            let acc = hex::decode(args.account).unwrap();
-            let acc_source = vm.get_account_balance(&db, &acc);
-            return Ok(AccountNumberRes { data: acc_source });
         })
     }
 
     fn view_function(&self, args: ViewFunctionArgs) -> BoxFuture<Result<SubmitTransactionArgs>> {
         let vm = self.vm.clone();
         Box::pin(async move {
+            log::info!("view_function called {}",args.data.clone());
             let ret = vm.view_function(args.data.as_str()).await;
             return Ok(SubmitTransactionArgs { data: ret });
         })
@@ -334,6 +312,43 @@ impl Rpc for Service {
             let ret = vm.get_accounts_transactions(args.account.as_str()).await;
             return Ok(ViewFunctionArgs { data: ret });
         })
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ChainHandler<T> {
+    pub handler: IoHandler,
+    _marker: PhantomData<T>,
+}
+
+#[tonic::async_trait]
+impl<T> Handle for ChainHandler<T>
+    where
+        T: Rpc + Send + Sync + Clone + 'static,
+{
+    async fn request(
+        &self,
+        req: &Bytes,
+        _headers: &[Element],
+    ) -> std::io::Result<(Bytes, Vec<Element>)> {
+        match self.handler.handle_request(&de_request(req)?).await {
+            Some(resp) => Ok((Bytes::from(resp), Vec::new())),
+            None => Err(io::Error::new(
+                io::ErrorKind::Other,
+                "failed to handle request",
+            )),
+        }
+    }
+}
+
+impl<T: Rpc> ChainHandler<T> {
+    pub fn new(service: T) -> Self {
+        let mut handler = jsonrpc_core::IoHandler::new();
+        handler.extend_with(Rpc::to_delegate(service));
+        Self {
+            handler,
+            _marker: PhantomData,
+        }
     }
 }
 
