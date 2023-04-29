@@ -106,6 +106,11 @@ const config = {
                 docId: "whats-new-in-docs",
               },
               {
+                label: "Latest Releases",
+                type: "doc",
+                docId: "releases/index",
+              },
+              {
                 label: "Read the Aptos White Paper",
                 type: "doc",
                 docId: "aptos-white-paper/index",
@@ -185,6 +190,16 @@ const config = {
                 docId: "guides/move-guides/move-structure",
               },
               {
+                label: "Move Scripts",
+                type: "doc",
+                docId: "guides/move-guides/move-scripts",
+              },
+              {
+                label: "Bytecode for Dependencies",
+                type: "doc",
+                docId: "guides/move-guides/bytecode-dependencies",
+              },
+              {
                 label: "How Base Gas Works",
                 type: "doc",
                 docId: "concepts/base-gas",
@@ -198,11 +213,6 @@ const config = {
                 label: "Your First Move Module",
                 type: "doc",
                 docId: "tutorials/first-move-module",
-              },
-              {
-                label: "Upgrade Move Code",
-                type: "doc",
-                docId: "guides/move-guides/upgrading-move-code",
               },
               {
                 label: "Aptos Move Book",
@@ -274,7 +284,7 @@ const config = {
                 docId: "nodes/validator-node/index",
               },
               {
-                label: "Run a FullNode",
+                label: "Run a Fullnode",
                 type: "doc",
                 docId: "nodes/full-node/index",
               },
@@ -435,6 +445,10 @@ const config = {
       "@docusaurus/plugin-client-redirects",
       {
         redirects: [
+          {
+            to: "/guides/move-guides/book/package-upgrades",
+            from: "/guides/move-guides/upgrading-move-code",
+          },
           {
             to: "/nodes/full-node/public-fullnode",
             from: "/nodes/full-node/fullnode-for-devnet",

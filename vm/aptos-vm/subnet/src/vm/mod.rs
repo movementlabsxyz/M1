@@ -28,7 +28,7 @@ use aptos_api::accept_type::AcceptType;
 use aptos_api::response::{AptosResponseContent, BasicResponse};
 use aptos_api::transactions::SubmitTransactionPost::Bcs;
 use aptos_api::transactions::SubmitTransactionResponse;
-use aptos_api_types::{Address, MoveStructTag, ViewRequest};
+use aptos_api_types::{Address, MoveStructTag, U64, ViewRequest};
 use aptos_config::config::NodeConfig;
 use aptos_crypto::{HashValue, ValidCryptoMaterialStringExt};
 use aptos_crypto::ed25519::Ed25519PublicKey;
@@ -213,6 +213,44 @@ impl Vm {
             .unwrap_or_else(|e| log::warn!("dropping message to consensus engine: {}", e));
     }
 
+    pub async fn get_transactions(&self, start: Option<U64>, limit: Option<u16>) -> String {
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.0.get_transactions_raw(AcceptType::Json, start, limit).await;
+        let ret = ret.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+        };
+        ret
+    }
+
+    pub async fn get_block_by_height(&self, height: u64, with_transactions: Option<bool>) -> String {
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.5.get_block_by_height_raw(AcceptType::Json, height, with_transactions).await;
+        let ret = ret.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+        };
+        ret
+    }
+
     pub async fn get_accounts_transactions(&self, account: &str) -> String {
         let api = self.api_service.as_ref().unwrap();
         let ret = api.3.get_account_resources_raw(AcceptType::Json,
@@ -350,12 +388,33 @@ impl Vm {
         };
         ret
     }
+
     pub async fn get_transaction_by_hash(&self, h: &str) -> String {
         let h1 = HashValue::from_hex(h).unwrap();
         let hash = aptos_api_types::hash::HashValue::from(h1);
         let api = self.api_service.as_ref().unwrap();
         let ret = api.0.get_transaction_by_hash_raw(AcceptType::Json,
                                                     hash).await;
+        let ret = ret.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+        };
+        ret
+    }
+
+    pub async fn get_transaction_by_version(&self, version: U64) -> String {
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.0.get_transaction_by_version_raw(AcceptType::Json,
+                                                       version).await;
         let ret = ret.unwrap();
         let ret = match ret {
             BasicResponse::Ok(c, ..) => {
@@ -615,7 +674,7 @@ impl ChainVm for Vm
             let unix_now = Utc::now().timestamp() as u64;
 
             let core_pool = self.core_mempool.as_ref().unwrap().read().await;
-            let tx_arr = core_pool.get_batch(1000, 1024000, HashSet::new());
+            let tx_arr = core_pool.get_batch(1000, 1024000, true, HashSet::new());
             log::info!("----from core pool tx-------{}------",tx_arr.clone().len());
             let executor = self.executor.as_ref().unwrap().read().await;
             let signer = self.signer.as_ref().unwrap();
