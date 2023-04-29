@@ -16,6 +16,8 @@ use poem_openapi::{
 use std::sync::Arc;
 
 /// API for block transactions and information
+///
+#[derive(Clone)]
 pub struct BlocksApi {
     pub context: Arc<Context>,
 }
@@ -55,6 +57,22 @@ impl BlocksApi {
             accept_type,
             block_height.0,
             with_transactions.0.unwrap_or_default(),
+        )
+    }
+
+    pub async fn get_block_by_height_raw(
+        &self,
+        accept_type: AcceptType,
+        block_height: u64,
+        with_transactions: Option<bool>,
+    ) -> BasicResultWith404<Block> {
+        fail_point_poem("endpoint_get_block_by_height")?;
+        self.context
+            .check_api_output_enabled("Get block by height", &accept_type)?;
+        self.get_by_height(
+            accept_type,
+            block_height,
+            with_transactions.unwrap_or_default(),
         )
     }
 

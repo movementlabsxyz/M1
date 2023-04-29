@@ -30,7 +30,7 @@ on account to have access to this.
 
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="create_signer.md#0x1_create_signer">create_signer</a>(addr: <b>address</b>): <a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a>
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="create_signer.md#0x1_create_signer">create_signer</a>(addr: <b>address</b>): <a href="..\../aptos-stdlib\../move-stdlib\doc\signer.md#0x1_signer">signer</a>
 </code></pre>
 
 
@@ -39,7 +39,7 @@ on account to have access to this.
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>native</b> <b>fun</b> <a href="create_signer.md#0x1_create_signer">create_signer</a>(addr: <b>address</b>): <a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a>;
+<pre><code><b>public</b>(<b>friend</b>) <b>native</b> <b>fun</b> <a href="create_signer.md#0x1_create_signer">create_signer</a>(addr: <b>address</b>): <a href="..\../aptos-stdlib\../move-stdlib\doc\signer.md#0x1_signer">signer</a>;
 </code></pre>
 
 
@@ -63,7 +63,7 @@ on account to have access to this.
 ### Function `create_signer`
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="create_signer.md#0x1_create_signer">create_signer</a>(addr: <b>address</b>): <a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a>
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="create_signer.md#0x1_create_signer">create_signer</a>(addr: <b>address</b>): <a href="..\../aptos-stdlib\../move-stdlib\doc\signer.md#0x1_signer">signer</a>
 </code></pre>
 
 
@@ -72,8 +72,8 @@ Convert address to singer and return.
 
 <pre><code><b>pragma</b> opaque;
 <b>aborts_if</b> [abstract] <b>false</b>;
-<b>ensures</b> [abstract] <a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer_address_of">signer::address_of</a>(result) == addr;
+<b>ensures</b> [abstract] <a href="..\../aptos-stdlib\../move-stdlib\doc\signer.md#0x1_signer_address_of">signer::address_of</a>(result) == addr;
 </code></pre>
 
 
-[move-book]: https://move-language.github.io/move/introduction.html
+[move-book]: https://aptos.dev/guides/move-guides/book/SUMMARY

@@ -34,7 +34,7 @@ Extends Table and provides functions such as length and the ability to be destro
     -  [Function `contains`](#@Specification_1_contains)
 
 
-<pre><code><b>use</b> <a href="../../move-stdlib/doc/error.md#0x1_error">0x1::error</a>;
+<pre><code><b>use</b> <a href="..\../move-stdlib\doc\error.md#0x1_error">0x1::error</a>;
 <b>use</b> <a href="table.md#0x1_table">0x1::table</a>;
 </code></pre>
 
@@ -151,7 +151,7 @@ Destroy a table. The table must be empty to succeed.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="table_with_length.md#0x1_table_with_length_destroy_empty">destroy_empty</a>&lt;K: <b>copy</b> + drop, V&gt;(<a href="table.md#0x1_table">table</a>: <a href="table_with_length.md#0x1_table_with_length_TableWithLength">TableWithLength</a>&lt;K, V&gt;) {
-    <b>assert</b>!(<a href="table.md#0x1_table">table</a>.length == 0, <a href="../../move-stdlib/doc/error.md#0x1_error_invalid_state">error::invalid_state</a>(<a href="table_with_length.md#0x1_table_with_length_ENOT_EMPTY">ENOT_EMPTY</a>));
+    <b>assert</b>!(<a href="table.md#0x1_table">table</a>.length == 0, <a href="..\../move-stdlib\doc\error.md#0x1_error_invalid_state">error::invalid_state</a>(<a href="table_with_length.md#0x1_table_with_length_ENOT_EMPTY">ENOT_EMPTY</a>));
     <b>let</b> <a href="table_with_length.md#0x1_table_with_length_TableWithLength">TableWithLength</a> { inner, length: _ } = <a href="table.md#0x1_table">table</a>;
     <a href="table.md#0x1_table_destroy">table::destroy</a>(inner)
 }
@@ -450,6 +450,7 @@ Returns true iff <code><a href="table.md#0x1_table">table</a></code> contains an
     map_del_must_exist = remove,
     map_borrow = borrow,
     map_borrow_mut = borrow_mut,
+    map_borrow_mut_with_default = borrow_mut_with_default,
     map_spec_get = spec_get,
     map_spec_set = spec_set,
     map_spec_del = spec_remove,
@@ -582,8 +583,8 @@ Returns true iff <code><a href="table.md#0x1_table">table</a></code> contains an
 
 
 
-<pre><code><b>pragma</b> opaque, verify=<b>false</b>;
-<b>aborts_if</b> <b>false</b>;
+<pre><code><b>aborts_if</b> <b>false</b>;
+<b>pragma</b> intrinsic;
 </code></pre>
 
 
@@ -680,4 +681,4 @@ Returns true iff <code><a href="table.md#0x1_table">table</a></code> contains an
 </code></pre>
 
 
-[move-book]: https://move-language.github.io/move/introduction.html
+[move-book]: https://aptos.dev/guides/move-guides/book/SUMMARY

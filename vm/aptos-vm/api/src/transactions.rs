@@ -11,9 +11,10 @@ use crate::{
     generate_error_response, generate_success_response,
     page::Page,
     response::{
-        api_disabled, transaction_not_found_by_hash, transaction_not_found_by_version,
-        BadRequestError, BasicError, BasicErrorWith404, BasicResponse, BasicResponseStatus,
-        BasicResult, BasicResultWith404, InsufficientStorageError, InternalError,
+        api_disabled, api_forbidden, transaction_not_found_by_hash,
+        transaction_not_found_by_version, BadRequestError, BasicError, BasicErrorWith404,
+        BasicResponse, BasicResponseStatus, BasicResult, BasicResultWith404,
+        InsufficientStorageError, InternalError,
     },
     ApiTags,
 };
@@ -171,6 +172,23 @@ impl TransactionsApi {
         self.list(&accept_type, page)
     }
 
+    pub async fn get_transactions_raw(
+        &self,
+        accept_type: AcceptType,
+        start: Option<U64>,
+        limit: Option<u16>,
+    ) -> BasicResultWith404<Vec<Transaction>> {
+        fail_point_poem("endpoint_get_transactions")?;
+        self.context
+            .check_api_output_enabled("Get transactions", &accept_type)?;
+        let page = Page::new(
+            start.map(|v| v.0),
+            limit,
+            self.context.max_transactions_page_size(),
+        );
+        self.list(&accept_type, page)
+    }
+
     /// Get transaction by hash
     ///
     /// Look up a transaction by its hash. This is the same hash that is returned
@@ -238,6 +256,18 @@ impl TransactionsApi {
         self.context
             .check_api_output_enabled("Get transactions by version", &accept_type)?;
         self.get_transaction_by_version_inner(&accept_type, txn_version.0)
+            .await
+    }
+
+    pub async fn get_transaction_by_version_raw(
+        &self,
+        accept_type: AcceptType,
+        txn_version: U64,
+    ) -> BasicResultWith404<Transaction> {
+        fail_point_poem("endpoint_transaction_by_version")?;
+        self.context
+            .check_api_output_enabled("Get transactions by version", &accept_type)?;
+        self.get_transaction_by_version_inner(&accept_type, txn_version)
             .await
     }
 
@@ -337,11 +367,11 @@ impl TransactionsApi {
                 )
             })?;
         fail_point_poem("endpoint_submit_transaction")?;
-        self.context
-            .check_api_output_enabled("Submit transaction", &accept_type)?;
         if !self.context.node_config.api.transaction_submission_enabled {
             return Err(api_disabled("Submit transaction"));
         }
+        self.context
+            .check_api_output_enabled("Submit transaction", &accept_type)?;
         let ledger_info = self.context.get_latest_ledger_info()?;
         let signed_transaction = self.get_signed_transaction(&ledger_info, data)?;
         self.create(&accept_type, &ledger_info, signed_transaction)
@@ -415,11 +445,11 @@ impl TransactionsApi {
                 )
             })?;
         fail_point_poem("endpoint_submit_batch_transactions")?;
-        self.context
-            .check_api_output_enabled("Submit batch transactions", &accept_type)?;
         if !self.context.node_config.api.transaction_submission_enabled {
             return Err(api_disabled("Submit batch transaction"));
         }
+        self.context
+            .check_api_output_enabled("Submit batch transactions", &accept_type)?;
         let ledger_info = self.context.get_latest_ledger_info()?;
         let signed_transactions_batch = self.get_signed_transactions_batch(&ledger_info, data)?;
         if self.context.max_submit_transaction_batch_size() < signed_transactions_batch.len() {
@@ -479,11 +509,11 @@ impl TransactionsApi {
                 )
             })?;
         fail_point_poem("endpoint_simulate_transaction")?;
-        self.context
-            .check_api_output_enabled("Simulate transaction", &accept_type)?;
         if !self.context.node_config.api.transaction_simulation_enabled {
             return Err(api_disabled("Simulate transaction"));
         }
+        self.context
+            .check_api_output_enabled("Simulate transaction", &accept_type)?;
         let ledger_info = self.context.get_latest_ledger_info()?;
         let mut signed_transaction = self.get_signed_transaction(&ledger_info, data)?;
 
@@ -739,11 +769,14 @@ impl TransactionsApi {
                 BasicError::bad_request_with_code_no_info(err, AptosErrorCode::InvalidInput)
             })?;
         fail_point_poem("endpoint_encode_submission")?;
+        if !self.context.node_config.api.encode_submission_enabled {
+            return Err(api_forbidden(
+                "Encode submission",
+                "Only JSON is supported as an AcceptType.",
+            ));
+        }
         self.context
             .check_api_output_enabled("Encode submission", &accept_type)?;
-        if !self.context.node_config.api.encode_submission_enabled {
-            return Err(api_disabled("Encode submission"));
-        }
         self.get_signing_message(&accept_type, data.0)
     }
 
@@ -787,7 +820,7 @@ impl TransactionsApi {
         }
     }
 
-   pub async fn estimate_gas_price_raw(&self, accept_type: AcceptType) -> BasicResult<GasEstimation> {
+    pub async fn estimate_gas_price_raw(&self, accept_type: AcceptType) -> BasicResult<GasEstimation> {
         fail_point_poem("endpoint_encode_submission")?;
         self.context
             .check_api_output_enabled("Estimate gas price", &accept_type)?;

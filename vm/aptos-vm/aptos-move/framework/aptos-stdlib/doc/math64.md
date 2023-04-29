@@ -23,8 +23,8 @@ Standard math utilities missing in the Move Language.
     -  [Function `pow`](#@Specification_1_pow)
 
 
-<pre><code><b>use</b> <a href="../../move-stdlib/doc/error.md#0x1_error">0x1::error</a>;
-<b>use</b> <a href="../../move-stdlib/doc/fixed_point32.md#0x1_fixed_point32">0x1::fixed_point32</a>;
+<pre><code><b>use</b> <a href="..\../move-stdlib\doc\error.md#0x1_error">0x1::error</a>;
+<b>use</b> <a href="..\../move-stdlib\doc\fixed_point32.md#0x1_fixed_point32">0x1::fixed_point32</a>;
 </code></pre>
 
 
@@ -236,7 +236,7 @@ Returns floor(lg2(x))
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="math64.md#0x1_math64_log2">log2</a>(x: u64): <a href="../../move-stdlib/doc/fixed_point32.md#0x1_fixed_point32_FixedPoint32">fixed_point32::FixedPoint32</a>
+<pre><code><b>public</b> <b>fun</b> <a href="math64.md#0x1_math64_log2">log2</a>(x: u64): <a href="..\../move-stdlib\doc\fixed_point32.md#0x1_fixed_point32_FixedPoint32">fixed_point32::FixedPoint32</a>
 </code></pre>
 
 
@@ -264,7 +264,7 @@ Returns floor(lg2(x))
         <b>if</b> (y &gt;= (2 &lt;&lt; 32)) { frac = frac + delta; y = y &gt;&gt; 1; };
         delta = delta &gt;&gt; 1;
     };
-    <a href="../../move-stdlib/doc/fixed_point32.md#0x1_fixed_point32_create_from_raw_value">fixed_point32::create_from_raw_value</a> (((integer_part <b>as</b> u64) &lt;&lt; 32) + frac)
+    <a href="..\../move-stdlib\doc\fixed_point32.md#0x1_fixed_point32_create_from_raw_value">fixed_point32::create_from_raw_value</a> (((integer_part <b>as</b> u64) &lt;&lt; 32) + frac)
 }
 </code></pre>
 
@@ -294,10 +294,10 @@ Returns square root of x, precisely floor(sqrt(x))
     // the half-open interval [2^(n/2), 2^((n+1)/2)&gt;. For even n we can write this <b>as</b> [2^(n/2), <a href="math64.md#0x1_math64_sqrt">sqrt</a>(2) 2^(n/2)&gt;
     // for odd n [2^((n+1)/2)/<a href="math64.md#0x1_math64_sqrt">sqrt</a>(2), 2^((n+1)/2&gt;. For even n the left end point is integer for odd the right
     // end point is integer. If we <b>choose</b> <b>as</b> our first approximation the integer end point we have <b>as</b> maximum
-    // relative <a href="../../move-stdlib/doc/error.md#0x1_error">error</a> either (<a href="math64.md#0x1_math64_sqrt">sqrt</a>(2) - 1) or (1 - 1/<a href="math64.md#0x1_math64_sqrt">sqrt</a>(2)) both are smaller then 1/2.
+    // relative <a href="..\../move-stdlib\doc\error.md#0x1_error">error</a> either (<a href="math64.md#0x1_math64_sqrt">sqrt</a>(2) - 1) or (1 - 1/<a href="math64.md#0x1_math64_sqrt">sqrt</a>(2)) both are smaller then 1/2.
     <b>let</b> res = 1 &lt;&lt; ((<a href="math64.md#0x1_math64_floor_log2">floor_log2</a>(x) + 1) &gt;&gt; 1);
     // We <b>use</b> standard newton-rhapson iteration <b>to</b> improve the initial approximation.
-    // The <a href="../../move-stdlib/doc/error.md#0x1_error">error</a> term evolves <b>as</b> delta_i+1 = delta_i^2 / 2 (quadratic convergence).
+    // The <a href="..\../move-stdlib\doc\error.md#0x1_error">error</a> term evolves <b>as</b> delta_i+1 = delta_i^2 / 2 (quadratic convergence).
     // It turns out that after 4 iterations the delta is smaller than 2^-32 and thus below the treshold.
     res = (res + x / res) &gt;&gt; 1;
     res = (res + x / res) &gt;&gt; 1;
@@ -435,4 +435,4 @@ to the most correct value up to last digit
 </code></pre>
 
 
-[move-book]: https://move-language.github.io/move/introduction.html
+[move-book]: https://aptos.dev/guides/move-guides/book/SUMMARY
