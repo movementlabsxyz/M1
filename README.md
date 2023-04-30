@@ -276,7 +276,7 @@ curl -X POST -k http://localhost:8081/v1/control/start -d '{"execPath":"'${AVALA
 
 ```
 
-4 create account and fancet 
+4 create account and faucet 
 ```
 # create account
 curl -X POST --data '{
