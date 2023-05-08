@@ -192,7 +192,6 @@ impl Rpc for ChainService {
     }
 
     fn facet_apt(&self, args: AccountArgs) -> BoxFuture<Result<AccountStrRes>> {
-        log::debug!("facet_apt called");
         let vm = self.vm.clone();
         Box::pin(async move {
             let acc = hex::decode(args.account).unwrap();
@@ -202,7 +201,6 @@ impl Rpc for ChainService {
     }
 
     fn create_account(&self, args: AccountArgs) -> BoxFuture<Result<AccountStrRes>> {
-        log::debug!("create_account called");
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.create_account(args.account.as_str()).await;
@@ -211,7 +209,6 @@ impl Rpc for ChainService {
     }
 
     fn last_accepted(&self) -> BoxFuture<Result<LastAcceptedResponse>> {
-        log::debug!("last accepted method called");
         let vm = self.vm.clone();
 
         Box::pin(async move {
@@ -235,7 +232,6 @@ impl Rpc for ChainService {
 
     fn get_block(&self, args: GetBlockArgs) -> BoxFuture<Result<GetBlockResponse>> {
         let blk_id = ids::Id::from_str(&args.id).unwrap();
-        log::info!("get_block called for {}", blk_id);
 
         let vm = self.vm.clone();
 

@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
 use crate::block::Block;
-use crate::vm::AptosHandler;
+use crate::vm::{ Vm};
 
 /// Manages block and chain states for this Vm, both in-memory and persistent.
 #[derive(Clone)]
@@ -22,7 +22,7 @@ pub struct State {
     /// Each element is verified but not yet accepted/rejected (e.g., preferred).
     pub verified_blocks: Arc<RwLock<HashMap<ids::Id, Block>>>,
     // pub vm: Option<Arc<RwLock<Vm>>>,
-    pub handler :Option<Arc<RwLock<AptosHandler>>>
+    pub vm: Option<Arc<RwLock<Vm>>>,
 }
 
 impl Default for State {
@@ -30,7 +30,7 @@ impl Default for State {
         Self {
             db: Arc::new(RwLock::new(subnet::rpc::database::memdb::Database::new())),
             verified_blocks: Arc::new(RwLock::new(HashMap::new())),
-            handler:None
+            vm: None,
         }
     }
 }
@@ -94,8 +94,8 @@ impl State {
             })
     }
 
-    pub fn set_handler(&mut self, handler: Arc<RwLock<AptosHandler>>) {
-        self.handler = Some(handler);
+    pub fn set_vm(&mut self, vm:Vm) {
+        self.vm = Some(Arc::new(RwLock::new(vm)));
     }
 
     /// Returns "true" if there's a last accepted block found.
@@ -127,8 +127,6 @@ impl State {
     /// Adds a block to "verified_blocks".
     pub async fn add_verified(&mut self, block: &Block) {
         let blk_id = block.id();
-        log::info!("verified added {blk_id}");
-
         let mut verified_blocks = self.verified_blocks.write().await;
         verified_blocks.insert(blk_id, block.clone());
     }
@@ -170,7 +168,6 @@ impl State {
         if let Some(b) = verified_blocks.get(blk_id) {
             return Ok(b.clone());
         }
-
         let db = self.db.read().await;
 
         let blk_status_bytes = db.get(&block_with_status_key(blk_id)).await?;

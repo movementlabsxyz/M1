@@ -168,7 +168,6 @@ impl Block {
             log::debug!("block {} already verified", self.id);
             return Ok(());
         }
-
         let prnt_blk = self.state.get_block(&self.parent_id).await?;
 
         // ensure the height of the block is immediately following its parent
@@ -218,9 +217,9 @@ impl Block {
 
         self.state.remove_verified(&self.id()).await;
 
-        if let Some(vm_) = self.state.handler.as_ref() {
-            let handler = vm_.read().await;
-            handler.inner_build_block(self.data.clone()).await;
+        if let Some(vm_) = self.state.vm.as_ref() {
+            let vm = vm_.read().await;
+            vm.inner_build_block(self.data.clone(), false).await.unwrap();
         }
         Ok(())
     }
