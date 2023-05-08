@@ -1,8 +1,6 @@
 use std::{collections::HashMap, fs, io::{self, Error, ErrorKind}, sync::Arc};
 use std::collections::HashSet;
 use std::str::FromStr;
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use avalanche_types::{
     choices, ids,
     subnet::{self, rpc::snow},
@@ -50,7 +48,7 @@ use aptos_types::account_view::AccountView;
 use aptos_types::block_info::BlockInfo;
 use aptos_types::block_metadata::BlockMetadata;
 use aptos_types::chain_id::ChainId;
-use aptos_types::ledger_info::{generate_ledger_info_with_sig, LedgerInfo};
+use aptos_types::ledger_info::{generate_ledger_info_with_sig, LedgerInfo, LedgerInfoWithSignatures};
 use aptos_types::mempool_status::{MempoolStatus, MempoolStatusCode};
 use aptos_types::transaction::{SignedTransaction, Transaction, WriteSetPayload};
 use aptos_types::transaction::Transaction::UserTransaction;
@@ -63,64 +61,18 @@ use crate::api::chain_handlers::{ChainHandler, ChainService};
 use crate::api::static_handlers::{StaticHandler, StaticService};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+const MOVE_DB_DIR: &str = "aptos-chain-data";
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AptosData(
-    pub Vec<u8>,
-    pub HashValue,
+    pub Vec<u8>, // block info
+    pub HashValue, // block id
     pub HashValue,
     pub u64,
     pub u64,
+    pub Vec<u8>,// leger info
 );
 
-pub struct AptosHandler {
-    pub core_mempool: Arc<RwLock<CoreMempool>>,
-
-    pub signer: ValidatorSigner,
-
-    pub executor: Arc<RwLock<BlockExecutor<AptosVM, Transaction>>>,
-}
-
-impl AptosHandler {
-    pub async fn inner_build_block(&self, data: Vec<u8>) {
-        let executor = self.executor.read().await;
-        let aptos_data = serde_json::from_slice::<AptosData>(&data).unwrap();
-        let block_tx = serde_json::from_slice::<Vec<Transaction>>(&aptos_data.0).unwrap();
-        let block_id = aptos_data.1;
-        let parent_block_id = aptos_data.2;
-        let next_epoch = aptos_data.3;
-        let ts = aptos_data.4;
-        let output = executor
-            .execute_block((block_id, block_tx.clone()), parent_block_id)
-            .unwrap();
-        let ledger_info = LedgerInfo::new(
-            BlockInfo::new(
-                next_epoch,
-                0,
-                block_id,
-                output.root_hash(),
-                output.version(),
-                ts,
-                output.epoch_state().clone(),
-            ),
-            HashValue::zero(),
-        );
-        let li = generate_ledger_info_with_sig(&[self.signer.clone()], ledger_info);
-        executor.commit_blocks(vec![block_id], li).unwrap();
-        for t in block_tx.iter() {
-            match t {
-                Transaction::UserTransaction(t) => {
-                    let sender = t.sender();
-                    let sequence_number = t.sequence_number();
-                    let mut core_pool = self.core_mempool.as_ref().write().await;
-                    // empty aptos memory pool , otherwise this account sequence number will not update
-                    core_pool.commit_transaction(&AccountAddress::from(sender), sequence_number);
-                }
-                _ => {}
-            }
-        }
-    }
-}
 
 /// Represents VM-specific states.
 /// Defined in a separate struct, for interior mutability in [`Vm`](Vm).
@@ -170,6 +122,7 @@ pub struct Vm {
     pub signer: Option<ValidatorSigner>,
 
     pub executor: Option<Arc<RwLock<BlockExecutor<AptosVM, Transaction>>>>,
+
 }
 
 
@@ -199,18 +152,6 @@ impl Vm {
     pub async fn is_bootstrapped(&self) -> bool {
         let vm_state = self.state.read().await;
         vm_state.bootstrapped
-    }
-
-    /// Signals the consensus engine that a new block is ready to be created.
-    pub async fn notify_block_ready(&self) {
-        let to_engine = self.to_engine.as_ref().unwrap();
-        let to_engine = to_engine.read().await;
-        let sender = self.app_sender.as_ref().unwrap();
-        sender.send_app_gossip(Vec::from("hello world")).await.unwrap();
-        to_engine
-            .send(PendingTxs)
-            .await
-            .unwrap_or_else(|e| log::warn!("dropping message to consensus engine: {}", e));
     }
 
     pub async fn get_transactions(&self, start: Option<U64>, limit: Option<u16>) -> String {
@@ -453,17 +394,28 @@ impl Vm {
         let signed_transaction: SignedTransaction =
             bcs::from_bytes_with_limit(&data,
                                        MAX_RECURSIVE_TYPES_ALLOWED as usize).unwrap();
-        self.notify_block_ready2(signed_transaction).await;
+        let sender = self.app_sender.as_ref().unwrap();
+        sender.send_app_gossip(serde_json::to_vec(&signed_transaction.clone()).unwrap()).await.unwrap();
+        self.add_pool(signed_transaction).await;
+        self.notify_block_ready().await;
         ret
     }
 
-    async fn notify_block_ready2(&self, signed_transaction: SignedTransaction) {
+    async fn add_pool(&self, signed_transaction: SignedTransaction) {
         let mut core_pool = self.core_mempool.as_ref().unwrap().write().await;
         core_pool.add_txn(signed_transaction.clone(),
                           0,
                           signed_transaction.clone().sequence_number(),
                           TimelineState::NonQualified);
-        self.notify_block_ready().await;
+    }
+
+    async fn notify_block_ready(&self) {
+        let to_engine = self.to_engine.as_ref().unwrap();
+        let to_engine = to_engine.read().await;
+        to_engine
+            .send(PendingTxs)
+            .await
+            .unwrap_or_else(|e| log::warn!("dropping message to consensus engine: {}", e));
     }
 
     pub async fn simulate_transaction(&self, data: Vec<u8>) -> String {
@@ -597,7 +549,70 @@ impl Vm {
             sn,
         )
     }
+    pub async fn inner_build_block(&self, data: Vec<u8>, is_miner: bool) -> io::Result<Vec<u8>> {
+        let executor = self.executor.as_ref().unwrap().read().await;
+        let aptos_data = serde_json::from_slice::<AptosData>(&data).unwrap();
+        let block_tx = serde_json::from_slice::<Vec<Transaction>>(&aptos_data.0).unwrap();
+        let block_meta = block_tx.get(0).unwrap().try_as_block_metadata().unwrap();
+        let block_id_now = block_meta.id();
+        let block_id = aptos_data.1;
 
+        if block_id_now.ne(&block_id) {
+            return Err(Error::new(
+                ErrorKind::Interrupted,
+                "block format error",
+            ));
+        }
+        let parent_block_id = aptos_data.2;
+        let parent_block_id_now = executor.committed_block_id();
+        if parent_block_id.ne(&parent_block_id_now) {
+            return Err(Error::new(
+                ErrorKind::Interrupted,
+                "block error,maybe not sync ",
+            ));
+        }
+        println!("------------inner_build_block------parent-{}-new--{}-----", parent_block_id, block_id);
+        let next_epoch = aptos_data.3;
+        let ts = aptos_data.4;
+        let output = executor
+            .execute_block((block_id, block_tx.clone()), parent_block_id)
+            .unwrap();
+        let ledger_info = LedgerInfo::new(
+            BlockInfo::new(
+                next_epoch,
+                0,
+                block_id,
+                output.root_hash(),
+                output.version(),
+                ts,
+                output.epoch_state().clone(),
+            ),
+            HashValue::zero(),
+        );
+        let li;
+        if is_miner {
+            li = generate_ledger_info_with_sig(&[self.signer.as_ref().unwrap().clone()], ledger_info);
+        } else {
+            li = serde_json::from_slice::<LedgerInfoWithSignatures>(&aptos_data.5).unwrap();
+        }
+        executor.commit_blocks(vec![block_id], li.clone()).unwrap();
+        for t in block_tx.iter() {
+            match t {
+                UserTransaction(t) => {
+                    let sender = t.sender();
+                    let sequence_number = t.sequence_number();
+                    let mut core_pool = self.core_mempool.as_ref().unwrap().write().await;
+                    core_pool.commit_transaction(&AccountAddress::from(sender), sequence_number);
+                }
+                _ => {}
+            }
+        }
+        if is_miner {
+            Ok(serde_json::to_vec(&li).unwrap())
+        } else {
+            Ok(vec![])
+        }
+    }
     async fn init_aptos(&mut self) {
         let vm_state = self.state.write().await;
         let (genesis, validators) = test_genesis_change_set_and_validators(Some(1));
@@ -608,7 +623,10 @@ impl Vm {
         let db_path = vm_state.ctx.as_ref().unwrap().node_id.to_vec();
         self.signer = Some(signer.clone());
         let genesis_txn = Transaction::GenesisTransaction(WriteSetPayload::Direct(genesis));
-        let p = format!("/home/ubuntu/aptos-chain-data/{}", hex::encode(db_path).as_str());
+        let p = format!("{}/{}/{}",
+                        dirs::home_dir().unwrap().to_str().unwrap(),
+                        MOVE_DB_DIR,
+                        hex::encode(db_path).as_str());
         let db;
         if !fs::metadata(p.clone().as_str()).is_ok() {
             fs::create_dir_all(p.as_str()).unwrap();
@@ -635,26 +653,21 @@ impl Vm {
         let service = get_raw_api_service(Arc::new(context));
         self.api_service = Some(service);
         self.core_mempool = Some(Arc::new(RwLock::new(CoreMempool::new(&node_config))));
-        // let to_sender = Arc::clone(self.to_engine.as_ref().unwrap());
         tokio::task::spawn(async move {
             while let Some(request) = mempool_client_receiver.next().await {
-                // let sender = to_sender.read().await;
                 match request {
                     MempoolClientRequest::SubmitTransaction(_t, callback) => {
-                        // accept
+                        // accept all the transaction
                         let ms = MempoolStatus::new(MempoolStatusCode::Accepted);
                         let status: SubmissionStatus = (ms, None);
                         callback.send(
                             Ok(status)
                         ).unwrap();
-                        //sender.send(PendingTxs).await.unwrap();
                     }
                     MempoolClientRequest::GetTransactionByHash(_, _) => {}
                 }
-                // drop(sender);
             }
         });
-        drop(vm_state);
     }
 }
 
@@ -664,25 +677,22 @@ impl ChainVm for Vm
 {
     type Block = Block;
 
-    /// Builds a block from mempool data.
     async fn build_block(
         &self,
     ) -> io::Result<<Self as ChainVm>::Block> {
         let vm_state = self.state.read().await;
         if let Some(state_b) = vm_state.state.as_ref() {
-            let prnt_blk = state_b.get_block(&vm_state.preferred).await?;
+            let prnt_blk = state_b.get_block(&vm_state.preferred).await.unwrap();
             let unix_now = Utc::now().timestamp() as u64;
-
             let core_pool = self.core_mempool.as_ref().unwrap().read().await;
             let tx_arr = core_pool.get_batch(1000, 1024000, true, HashSet::new());
-            log::info!("----from core pool tx-------{}------",tx_arr.clone().len());
+            println!("----build_block pool tx count-------{}------", tx_arr.clone().len());
+            drop(core_pool);
             let executor = self.executor.as_ref().unwrap().read().await;
             let signer = self.signer.as_ref().unwrap();
             let db = self.db.as_ref().unwrap().read().await;
             let latest_ledger_info = db.reader.get_latest_ledger_info().unwrap();
             let next_epoch = latest_ledger_info.ledger_info().next_block_epoch();
-            let now = SystemTime::now();
-            let since_the_epoch = now.duration_since(UNIX_EPOCH).unwrap();
             let block_id = HashValue::random();
             let block_meta = Transaction::BlockMetadata(BlockMetadata::new(
                 block_id,
@@ -691,7 +701,7 @@ impl ChainVm for Vm
                 signer.author(),
                 vec![],
                 vec![],
-                since_the_epoch.as_secs(),
+                unix_now,
             ));
             let mut txs = vec![];
             for tx in tx_arr.iter() {
@@ -703,23 +713,25 @@ impl ChainVm for Vm
             block_tx.push(Transaction::StateCheckpoint(HashValue::random()));
             let parent_block_id = executor.committed_block_id();
             let block_tx_bytes = serde_json::to_vec(&block_tx).unwrap();
-            let data = AptosData(block_tx_bytes, block_id.clone(), parent_block_id, next_epoch, since_the_epoch.as_secs());
+            let mut data = AptosData(block_tx_bytes,
+                                     block_id.clone(),
+                                     parent_block_id,
+                                     next_epoch,
+                                     unix_now, vec![]);
+
+            data.5 = self.inner_build_block(
+                serde_json::to_vec(&data.clone()).unwrap(),
+                true).await.unwrap();
             let mut block_ = Block::new(
                 prnt_blk.id(),
                 prnt_blk.height() + 1,
                 unix_now,
                 serde_json::to_vec(&data).unwrap(),
                 choices::status::Status::Processing,
-            )?;
-            let mut new_state = state_b.clone();
-            let handler = AptosHandler {
-                core_mempool: self.core_mempool.as_ref().unwrap().clone(),
-                signer: self.signer.as_ref().unwrap().clone(),
-                executor: self.executor.as_ref().unwrap().clone(),
-            };
-            new_state.set_handler(Arc::new(RwLock::new(handler)));
-            block_.set_state(new_state);
-            block_.verify().await?;
+            ).unwrap();
+            block_.set_state(state_b.clone());
+            println!("--------vm---build_block----new--{}---parent-{}-----------", block_.id(), block_.parent_id());
+            block_.verify().await.unwrap();
             return Ok(block_);
         }
         Err(Error::new(
@@ -779,10 +791,16 @@ impl NetworkAppHandler for Vm
         Ok(())
     }
 
-    /// Currently, no app-specific messages, so returning Ok.
     async fn app_gossip(&self, _node_id: &ids::node::Id, msg: &[u8]) -> io::Result<()> {
-        let s = std::str::from_utf8(msg).unwrap().to_string();
-        log::info!("app_gossip----->{}", s);
+        match serde_json::from_slice::<SignedTransaction>(msg) {
+            Ok(s) => {
+                println!("-------------app_gossip new tx--ok--------------");
+                self.add_pool(s).await;
+            }
+            Err(_) => {
+                println!("-------------app_gossip new tx--fail--------------");
+            }
+        }
         Ok(())
     }
 }
@@ -867,7 +885,6 @@ impl Getter for Vm
 
 #[tonic::async_trait]
 impl Parser for Vm
-
 {
     type Block = Block;
     async fn parse_block(
@@ -879,18 +896,15 @@ impl Parser for Vm
             let mut new_block = Block::from_slice(bytes)?;
             new_block.set_status(choices::status::Status::Processing);
             let mut new_state = state.clone();
-            let handler = AptosHandler {
-                core_mempool: self.core_mempool.as_ref().unwrap().clone(),
-                signer: self.signer.as_ref().unwrap().clone(),
-                executor: self.executor.as_ref().unwrap().clone(),
-            };
-            new_state.set_handler(Arc::new(RwLock::new(handler)));
+            new_state.set_vm(self.clone());
             new_block.set_state(new_state);
             return match state.get_block(&new_block.id()).await {
                 Ok(prev) => {
                     Ok(prev)
                 }
-                Err(_) => Ok(new_block),
+                Err(_) => {
+                    Ok(new_block)
+                }
             };
         }
 
@@ -924,7 +938,7 @@ impl CommonVm for Vm
         let state = state::State {
             db: Arc::new(RwLock::new(current.clone().db)),
             verified_blocks: Arc::new(RwLock::new(HashMap::new())),
-            handler: None,
+            vm: None,
         };
         vm_state.state = Some(state.clone());
         self.to_engine = Some(Arc::new(RwLock::new(to_engine)));
@@ -940,7 +954,12 @@ impl CommonVm for Vm
             vm_state.preferred = last_accepted_blk_id;
         } else {
             let genesis_bytes = genesis.as_bytes().to_vec();
-            let data = AptosData(genesis_bytes.clone(), HashValue::zero(), HashValue::zero(), 0, 0);
+            let data = AptosData(genesis_bytes.clone(),
+                                 HashValue::zero(),
+                                 HashValue::zero(),
+                                 0,
+                                 0,
+                                 vec![]);
             let mut genesis_block = Block::new(
                 ids::Id::empty(),
                 0,
@@ -964,8 +983,6 @@ impl CommonVm for Vm
 
     /// Called when the node is shutting down.
     async fn shutdown(&self) -> io::Result<()> {
-        // grpc servers are shutdown via broadcast channel
-        // if additional shutdown is required we can extend.
         Ok(())
     }
 
