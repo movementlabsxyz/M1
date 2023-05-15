@@ -497,8 +497,9 @@ impl Vm {
             }
 
             snow::State::StateSyncing => {
+                vm_state.bootstrapped = false;
                 log::info!("set_state: state syncing");
-                Err(Error::new(ErrorKind::Other, "state sync is not supported"))
+                Ok(())
             }
 
             // called by the bootstrapper to signal bootstrapping has started.
@@ -685,7 +686,10 @@ impl ChainVm for Vm
             let prnt_blk = state_b.get_block(&vm_state.preferred).await.unwrap();
             let unix_now = Utc::now().timestamp() as u64;
             let core_pool = self.core_mempool.as_ref().unwrap().read().await;
-            let tx_arr = core_pool.get_batch(1000, 1024000, true, HashSet::new());
+            let tx_arr = core_pool.get_batch(1000,
+                                             1024000,
+                                             true,
+                                             true,vec![]);
             println!("----build_block pool tx count-------{}------", tx_arr.clone().len());
             drop(core_pool);
             let executor = self.executor.as_ref().unwrap().read().await;

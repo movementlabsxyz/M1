@@ -61,10 +61,10 @@ module token_objects::hero {
 
     fun init_module(account: &signer) {
         let collection = string::utf8(b"Hero Quest!");
-        collection::create_untracked_collection(
+        collection::create_unlimited_collection(
             account,
             string::utf8(b"collection description"),
-            *&collection,
+            collection,
             option::none(),
             string::utf8(b"collection uri"),
         );
@@ -82,9 +82,9 @@ module token_objects::hero {
         uri: String,
     ): ConstructorRef acquires OnChainConfig {
         let on_chain_config = borrow_global<OnChainConfig>(signer::address_of(creator));
-        token::create(
+        token::create_named_token(
             creator,
-            *&on_chain_config.collection,
+            on_chain_config.collection,
             description,
             name,
             option::none(),
