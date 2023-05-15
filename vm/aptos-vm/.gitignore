@@ -117,3 +117,11 @@ aptos-move/aptos-vm-profiling/**/*.txt
 metadata-cache
 /local/
 run_*
+/aptos-move/framework/aptos-framework/doc/
+/aptos-move/framework/aptos-framework/doc_template/
+/aptos-move/framework/aptos-stdlib/doc/
+/aptos-move/framework/aptos-stdlib/doc_template/
+/aptos-move/framework/aptos-token/doc/
+/aptos-move/framework/aptos-token/doc_template/
+/aptos-move/framework/aptos-token-objects/doc/
+/aptos-move/framework/move-stdlib/doc/
