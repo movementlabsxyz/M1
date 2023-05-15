@@ -215,6 +215,11 @@ impl<'env> Evaluator<'env> {
             ExpData::Invalid(_) => unreachable!(),
             // should not appear in this context
             ExpData::Lambda(..) | ExpData::Block(..) => unreachable!(),
+            ExpData::Return(..)
+            | ExpData::Sequence(..)
+            | ExpData::Loop(..)
+            | ExpData::Assign(..)
+            | ExpData::LoopCont(..) => panic!("imperative expressions not supported"),
         };
 
         if debug_expression {
@@ -1249,9 +1254,9 @@ impl<'env> Evaluator<'env> {
         args: &[Exp],
         global_state: &mut GlobalState,
     ) -> EvalResult<BaseValue> {
-        let (vars, stmt) = match decl.body.as_ref().unwrap().as_ref() {
-            ExpData::Block(_, vars, stmt) => (vars, stmt),
-            _ => unreachable!(),
+        let (vars, stmt) = match &decl.body.as_ref().unwrap().as_ref() {
+            ExpData::Block(_, vars, exp) => (vars.clone(), exp.clone()),
+            _ => (vec![], decl.body.as_ref().unwrap().clone()),
         };
 
         let env = self.target.global_env();
@@ -1284,7 +1289,7 @@ impl<'env> Evaluator<'env> {
             self.local_state,
             global_state,
         );
-        evaluator.evaluate(stmt)
+        evaluator.evaluate(&stmt)
     }
 
     //

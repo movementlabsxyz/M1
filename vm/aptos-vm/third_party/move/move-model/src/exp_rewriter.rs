@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    ast::{Exp, ExpData, LocalVarDecl, MemoryLabel, Operation, TempIndex, Value},
+    ast::{Exp, ExpData, LocalVarDecl, MemoryLabel, Operation, Pattern, TempIndex, Value},
     model::{GlobalEnv, ModuleId, NodeId, SpecVarId},
     symbol::Symbol,
     ty::Type,
@@ -138,6 +138,9 @@ pub trait ExpRewriterFunctions {
         None
     }
     fn rewrite_block(&mut self, id: NodeId, vars: &[LocalVarDecl], body: &Exp) -> Option<Exp> {
+        None
+    }
+    fn rewrite_pattern(&mut self, pat: &Pattern) -> Option<Pattern> {
         None
     }
     fn rewrite_quant(
@@ -314,9 +317,62 @@ pub trait ExpRewriterFunctions {
                     exp
                 }
             },
+            Sequence(id, es) => {
+                let (id_changed, new_id) = self.internal_rewrite_id(id);
+                let changed_vec = self.internal_rewrite_vec(es);
+                if id_changed || changed_vec.is_some() {
+                    Sequence(new_id, changed_vec.unwrap_or_else(|| es.clone())).into_exp()
+                } else {
+                    exp
+                }
+            },
+            Loop(id, body) => {
+                let (id_changed, new_id) = self.internal_rewrite_id(id);
+                let (body_changed, new_body) = self.internal_rewrite_exp(body);
+                if id_changed || body_changed {
+                    Loop(new_id, new_body).into_exp()
+                } else {
+                    exp
+                }
+            },
+            LoopCont(id, do_cont) => {
+                let (id_changed, new_id) = self.internal_rewrite_id(id);
+                if id_changed {
+                    LoopCont(new_id, *do_cont).into_exp()
+                } else {
+                    exp
+                }
+            },
+            Return(id, val) => {
+                let (id_changed, new_id) = self.internal_rewrite_id(id);
+                let (val_changed, new_val) = self.internal_rewrite_exp(val);
+                if id_changed || val_changed {
+                    Return(new_id, new_val).into_exp()
+                } else {
+                    exp
+                }
+            },
+            Assign(id, lhs, rhs) => {
+                let (id_changed, new_id) = self.internal_rewrite_id(id);
+                let (lhs_changed, new_lhs) = self.internal_rewrite_pattern(lhs);
+                let (rhs_changed, new_rhs) = self.internal_rewrite_exp(rhs);
+                if id_changed || lhs_changed || rhs_changed {
+                    Assign(new_id, new_lhs, new_rhs).into_exp()
+                } else {
+                    exp
+                }
+            },
             // This can happen since we are calling the rewriter during type checking, and
             // we may have encountered an error which is represented as an Invalid expression.
             Invalid(id) => Invalid(*id).into_exp(),
+        }
+    }
+
+    fn internal_rewrite_pattern(&mut self, pat: &Pattern) -> (bool, Pattern) {
+        if let Some(new_pat) = self.rewrite_pattern(pat) {
+            (true, new_pat)
+        } else {
+            (false, pat.clone())
         }
     }
 

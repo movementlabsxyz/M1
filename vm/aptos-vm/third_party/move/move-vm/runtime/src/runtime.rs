@@ -34,7 +34,6 @@ use move_vm_types::{
     values::{Locals, Reference, VMValueCast, Value},
 };
 use std::{borrow::Borrow, collections::BTreeSet, sync::Arc};
-use tracing::warn;
 
 /// An instantiation of the MoveVM.
 pub(crate) struct VMRuntime {
@@ -89,8 +88,12 @@ impl VMRuntime {
         {
             Ok(modules) => modules,
             Err(err) => {
-                warn!("[VM] module deserialization failed {:?}", err);
-                return Err(err.finish(Location::Undefined));
+                return Err(err
+                    .append_message_with_separator(
+                        '\n',
+                        "[VM] module deserialization failed".to_string(),
+                    )
+                    .finish(Location::Undefined));
             },
         };
 
@@ -208,21 +211,19 @@ impl VMRuntime {
         let layout = match self.loader.type_to_type_layout(ty) {
             Ok(layout) => layout,
             Err(_err) => {
-                warn!("[VM] failed to get layout from type");
                 return Err(PartialVMError::new(
                     StatusCode::INVALID_PARAM_TYPE_FOR_DESERIALIZATION,
-                ));
+                )
+                .with_message("[VM] failed to get layout from type".to_string()));
             },
         };
 
         match Value::simple_deserialize(arg.borrow(), &layout) {
             Some(val) => Ok(val),
-            None => {
-                warn!("[VM] failed to deserialize argument");
-                Err(PartialVMError::new(
-                    StatusCode::FAILED_TO_DESERIALIZE_ARGUMENT,
-                ))
-            },
+            None => Err(
+                PartialVMError::new(StatusCode::FAILED_TO_DESERIALIZE_ARGUMENT)
+                    .with_message("[VM] failed to deserialize argument".to_string()),
+            ),
         }
     }
 
@@ -253,7 +254,13 @@ impl VMRuntime {
             .enumerate()
             .map(|(idx, (arg_ty, arg_bytes))| match &arg_ty {
                 Type::MutableReference(inner_t) | Type::Reference(inner_t) => {
-                    dummy_locals.store_loc(idx, self.deserialize_value(inner_t, arg_bytes)?)?;
+                    dummy_locals.store_loc(
+                        idx,
+                        self.deserialize_value(inner_t, arg_bytes)?,
+                        self.loader
+                            .vm_config()
+                            .enable_invariant_violation_check_in_swap_loc,
+                    )?;
                     dummy_locals.borrow_loc(idx)
                 },
                 _ => self.deserialize_value(&arg_ty, arg_bytes),
@@ -367,7 +374,12 @@ impl VMRuntime {
             .into_iter()
             .map(|(idx, ty)| {
                 // serialize return values first in the case that a value points into this local
-                let local_val = dummy_locals.move_loc(idx)?;
+                let local_val = dummy_locals.move_loc(
+                    idx,
+                    self.loader
+                        .vm_config()
+                        .enable_invariant_violation_check_in_swap_loc,
+                )?;
                 let (bytes, layout) = self.serialize_return_value(&ty, local_val)?;
                 Ok((idx as LocalIndex, bytes, layout))
             })

@@ -690,6 +690,11 @@ impl<'env> SpecTranslator<'env> {
                 emit!(self.writer, ")");
             },
             ExpData::Invalid(_) => panic!("unexpected error expression"),
+            ExpData::Return(..)
+            | ExpData::Sequence(..)
+            | ExpData::Loop(..)
+            | ExpData::Assign(..)
+            | ExpData::LoopCont(..) => panic!("imperative expressions not supported"),
         }
     }
 
