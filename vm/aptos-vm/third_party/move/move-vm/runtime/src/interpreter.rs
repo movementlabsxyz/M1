@@ -31,7 +31,6 @@ use move_vm_types::{
     views::TypeView,
 };
 use std::{cmp::min, collections::VecDeque, fmt::Write, sync::Arc};
-use tracing::error;
 
 macro_rules! debug_write {
     ($($toks: tt)*) => {
@@ -123,7 +122,13 @@ impl Interpreter {
         let mut locals = Locals::new(function.local_count());
         for (i, value) in args.into_iter().enumerate() {
             locals
-                .store_loc(i, value)
+                .store_loc(
+                    i,
+                    value,
+                    loader
+                        .vm_config()
+                        .enable_invariant_violation_check_in_swap_loc,
+                )
                 .map_err(|e| self.set_location(e))?;
         }
 
@@ -276,7 +281,13 @@ impl Interpreter {
         let arg_count = func.arg_count();
         let is_generic = !ty_args.is_empty();
         for i in 0..arg_count {
-            locals.store_loc(arg_count - i - 1, self.operand_stack.pop()?)?;
+            locals.store_loc(
+                arg_count - i - 1,
+                self.operand_stack.pop()?,
+                loader
+                    .vm_config()
+                    .enable_invariant_violation_check_in_swap_loc,
+            )?;
 
             if self.paranoid_type_checks {
                 let ty = self.operand_stack.pop_ty()?;
@@ -551,13 +562,7 @@ impl Interpreter {
                 }
                 Ok(gv)
             },
-            Err(e) => {
-                error!(
-                    "[VM] error loading resource at ({}, {:?}): {:?} from data store",
-                    addr, ty, e
-                );
-                Err(e)
-            },
+            Err(e) => Err(e),
         }
     }
 
@@ -674,7 +679,6 @@ impl Interpreter {
     fn maybe_core_dump(&self, mut err: VMError, current_frame: &Frame) -> VMError {
         // a verification error cannot happen at runtime so change it into an invariant violation.
         if err.status_type() == StatusType::Verification {
-            error!("Verification error during runtime: {:?}", err);
             let new_err = PartialVMError::new(StatusCode::VERIFICATION_ERROR);
             let new_err = match err.message() {
                 None => new_err,
@@ -683,12 +687,15 @@ impl Interpreter {
             err = new_err.finish(err.location().clone())
         }
         if err.status_type() == StatusType::InvariantViolation {
+            let location = err.location().clone();
             let state = self.internal_state_str(current_frame);
-
-            error!(
-                "Error: {:?}\nCORE DUMP: >>>>>>>>>>>>\n{}\n<<<<<<<<<<<<\n",
-                err, state,
-            );
+            err = err
+                .to_partial()
+                .append_message_with_separator(
+                    '\n',
+                    format!("CORE DUMP: >>>>>>>>>>>>\n{}\n<<<<<<<<<<<<\n", state),
+                )
+                .finish(location);
         }
         err
     }
@@ -1795,7 +1802,13 @@ impl Frame {
                         interpreter.operand_stack.push(local)?;
                     },
                     Bytecode::MoveLoc(idx) => {
-                        let local = self.locals.move_loc(*idx as usize)?;
+                        let local = self.locals.move_loc(
+                            *idx as usize,
+                            resolver
+                                .loader()
+                                .vm_config()
+                                .enable_invariant_violation_check_in_swap_loc,
+                        )?;
                         gas_meter.charge_move_loc(&local)?;
 
                         interpreter.operand_stack.push(local)?;
@@ -1803,7 +1816,14 @@ impl Frame {
                     Bytecode::StLoc(idx) => {
                         let value_to_store = interpreter.operand_stack.pop()?;
                         gas_meter.charge_store_loc(&value_to_store)?;
-                        self.locals.store_loc(*idx as usize, value_to_store)?;
+                        self.locals.store_loc(
+                            *idx as usize,
+                            value_to_store,
+                            resolver
+                                .loader()
+                                .vm_config()
+                                .enable_invariant_violation_check_in_swap_loc,
+                        )?;
                     },
                     Bytecode::Call(idx) => {
                         return Ok(ExitCode::Call(*idx));

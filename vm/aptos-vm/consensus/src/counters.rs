@@ -11,6 +11,13 @@ use aptos_metrics_core::{
 };
 use once_cell::sync::Lazy;
 
+/// Transaction commit was successful
+pub const TXN_COMMIT_SUCCESS_LABEL: &str = "success";
+/// Transaction commit failed (will not be retried)
+pub const TXN_COMMIT_FAILED_LABEL: &str = "failed";
+/// Transaction commit was unsuccessful, but will be retried
+pub const TXN_COMMIT_RETRY_LABEL: &str = "retry";
+
 //////////////////////
 // HEALTH COUNTERS
 //////////////////////
@@ -200,6 +207,39 @@ pub static WAIT_FOR_FULL_BLOCKS_TRIGGERED: Lazy<Histogram> = Lazy::new(|| {
         "aptos_wait_for_full_blocks_triggered",
         "Counts when waiting for full blocks is triggered",
     )
+});
+
+/// Counts when chain_health backoff is triggered
+pub static PIPELINE_BACKPRESSURE_ON_PROPOSAL_TRIGGERED: Lazy<Histogram> = Lazy::new(|| {
+    register_avg_counter(
+        "aptos_pipeline_backpressure_on_proposal_triggered",
+        "Counts when chain_health backoff is triggered",
+    )
+});
+
+/// number of rounds pending when creating proposal
+pub static CONSENSUS_PROPOSAL_PENDING_ROUNDS: Lazy<Histogram> = Lazy::new(|| {
+    register_avg_counter(
+        "aptos_consensus_proposal_pending_rounds",
+        "number of rounds pending when creating proposal",
+    )
+});
+
+/// duration pending when creating proposal
+pub static CONSENSUS_PROPOSAL_PENDING_DURATION: Lazy<Histogram> = Lazy::new(|| {
+    register_avg_counter(
+        "aptos_consensus_proposal_pending_duration",
+        "duration pending when creating proposal",
+    )
+});
+
+/// Amount of time (in seconds) proposal is delayed due to backpressure/backoff
+pub static PROPOSER_DELAY_PROPOSAL: Lazy<Gauge> = Lazy::new(|| {
+    register_gauge!(
+        "aptos_proposer_delay_proposal",
+        "Amount of time (in seconds) proposal is delayed due to backpressure/backoff",
+    )
+    .unwrap()
 });
 
 /// How many pending blocks are there, when we make a proposal
