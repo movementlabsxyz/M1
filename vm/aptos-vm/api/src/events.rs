@@ -26,6 +26,7 @@ use poem_openapi::{
 };
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct EventsApi {
     pub context: Arc<Context>,
 }
@@ -39,10 +40,10 @@ impl EventsApi {
     /// to the given account. This API returns events corresponding to that
     /// that event type.
     #[oai(
-        path = "/accounts/:address/events/:creation_number",
-        method = "get",
-        operation_id = "get_events_by_creation_number",
-        tag = "ApiTags::Events"
+    path = "/accounts/:address/events/:creation_number",
+    method = "get",
+    operation_id = "get_events_by_creation_number",
+    tag = "ApiTags::Events"
     )]
     async fn get_events_by_creation_number(
         &self,
@@ -80,7 +81,35 @@ impl EventsApi {
             account.latest_ledger_info,
             accept_type,
             page,
-            EventKey::new(creation_number.0 .0, address.0.into()),
+            EventKey::new(creation_number.0.0, address.0.into()),
+        )
+    }
+
+    pub async fn get_events_by_creation_number_raw(
+        &self,
+        accept_type: AcceptType,
+        address: Address,
+        creation_number: U64,
+        start: Option<U64>,
+        limit: Option<u16>,
+    ) -> BasicResultWith404<Vec<VersionedEvent>> {
+        fail_point_poem("endpoint_get_events_by_event_key")?;
+        self.context
+            .check_api_output_enabled("Get events by event key", &accept_type)?;
+        let page = Page::new(
+            start.map(|v| v.0),
+            limit,
+            self.context.max_events_page_size(),
+        );
+
+        // Ensure that account exists
+        let account = Account::new(self.context.clone(), address, None, None, None)?;
+        account.verify_account_or_object_resource()?;
+        self.list(
+            account.latest_ledger_info,
+            accept_type,
+            page,
+            EventKey::new(creation_number.0, address.into()),
         )
     }
 
@@ -90,10 +119,10 @@ impl EventsApi {
     /// to build a key that can globally identify an event types. It then uses this
     /// key to return events emitted to the given account matching that event type.
     #[oai(
-        path = "/accounts/:address/events/:event_handle/:field_name",
-        method = "get",
-        operation_id = "get_events_by_event_handle",
-        tag = "ApiTags::Events"
+    path = "/accounts/:address/events/:event_handle/:field_name",
+    method = "get",
+    operation_id = "get_events_by_event_handle",
+    tag = "ApiTags::Events"
     )]
     async fn get_events_by_event_handle(
         &self,
@@ -138,6 +167,39 @@ impl EventsApi {
         );
         let account = Account::new(self.context.clone(), address.0, None, None, None)?;
         let key = account.find_event_key(event_handle.0, field_name.0.into())?;
+        self.list(account.latest_ledger_info, accept_type, page, key)
+    }
+
+    pub async fn get_events_by_event_handle_raw(
+        &self,
+        accept_type: AcceptType,
+        address: Address,
+        event_handle: MoveStructTag,
+        field_name: IdentifierWrapper,
+        start: Option<U64>,
+        limit: Option<u16>,
+    ) -> BasicResultWith404<Vec<VersionedEvent>> {
+        event_handle
+            .verify(0)
+            .context("'event_handle' invalid")
+            .map_err(|err| {
+                BasicErrorWith404::bad_request_with_code_no_info(err, AptosErrorCode::InvalidInput)
+            })?;
+        verify_field_identifier(field_name.as_str())
+            .context("'field_name' invalid")
+            .map_err(|err| {
+                BasicErrorWith404::bad_request_with_code_no_info(err, AptosErrorCode::InvalidInput)
+            })?;
+        fail_point_poem("endpoint_get_events_by_event_handle")?;
+        self.context
+            .check_api_output_enabled("Get events by event handle", &accept_type)?;
+        let page = Page::new(
+            start.map(|v| v.0),
+            limit,
+            self.context.max_events_page_size(),
+        );
+        let account = Account::new(self.context.clone(), address, None, None, None)?;
+        let key = account.find_event_key(event_handle, field_name.into())?;
         self.list(account.latest_ledger_info, accept_type, page, key)
     }
 }
@@ -185,10 +247,10 @@ impl EventsApi {
                     })?;
 
                 BasicResponse::try_from_json((events, &latest_ledger_info, BasicResponseStatus::Ok))
-            },
+            }
             AcceptType::Bcs => {
                 BasicResponse::try_from_bcs((events, &latest_ledger_info, BasicResponseStatus::Ok))
-            },
+            }
         }
     }
 }

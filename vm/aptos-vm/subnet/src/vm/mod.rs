@@ -1,5 +1,4 @@
 use std::{collections::HashMap, fs, io::{self, Error, ErrorKind}, sync::Arc};
-use std::collections::HashSet;
 use std::str::FromStr;
 use avalanche_types::{
     choices, ids,
@@ -24,9 +23,8 @@ use tokio::sync::{mpsc::Sender, RwLock};
 use aptos_api::{Context, get_raw_api_service, RawApi};
 use aptos_api::accept_type::AcceptType;
 use aptos_api::response::{AptosResponseContent, BasicResponse};
-use aptos_api::transactions::SubmitTransactionPost::Bcs;
-use aptos_api::transactions::SubmitTransactionResponse;
-use aptos_api_types::{Address, MoveStructTag, U64, ViewRequest};
+use aptos_api::transactions::{SubmitTransactionPost, SubmitTransactionResponse, SubmitTransactionsBatchPost, SubmitTransactionsBatchResponse};
+use aptos_api_types::{Address, EncodeSubmissionRequest, IdentifierWrapper, MoveStructTag, RawTableItemRequest, StateKeyWrapper, TableItemRequest, U64, ViewRequest};
 use aptos_config::config::NodeConfig;
 use aptos_crypto::{HashValue, ValidCryptoMaterialStringExt};
 use aptos_crypto::ed25519::Ed25519PublicKey;
@@ -57,7 +55,7 @@ use aptos_vm::AptosVM;
 use aptos_vm_genesis::{GENESIS_KEYPAIR, test_genesis_change_set_and_validators};
 
 use crate::{block::Block, state};
-use crate::api::chain_handlers::{ChainHandler, ChainService};
+use crate::api::chain_handlers::{AccountStateArgs, ChainHandler, ChainService, RpcEventHandleReq, RpcEventNumReq, RpcReq, RpcRes, RpcTableReq};
 use crate::api::static_handlers::{StaticHandler, StaticService};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -72,6 +70,18 @@ pub struct AptosData(
     pub u64,
     pub Vec<u8>,// leger info
 );
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct AptosHeader {
+    chain_id: u8,
+    ledger_version: u64,
+    ledger_oldest_version: u64,
+    ledger_timestamp_usec: u64,
+    epoch: u64,
+    block_height: u64,
+    oldest_block_height: u64,
+    cursor: Option<String>,
+}
 
 
 /// Represents VM-specific states.
@@ -154,12 +164,23 @@ impl Vm {
         vm_state.bootstrapped
     }
 
-    pub async fn get_transactions(&self, start: Option<U64>, limit: Option<u16>) -> String {
+    pub async fn get_transactions(&self, start: Option<U64>, limit: Option<u16>) -> RpcRes {
         let api = self.api_service.as_ref().unwrap();
         let ret = api.0.get_transactions_raw(AcceptType::Json, start, limit).await;
         let ret = ret.unwrap();
+        let header;
         let ret = match ret {
-            BasicResponse::Ok(c, ..) => {
+            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
                 match c {
                     AptosResponseContent::Json(json) => {
                         serde_json::to_string(&json.0).unwrap()
@@ -170,15 +191,26 @@ impl Vm {
                 }
             }
         };
-        ret
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn get_block_by_height(&self, height: u64, with_transactions: Option<bool>) -> String {
+    pub async fn get_block_by_height(&self, height: u64, with_transactions: Option<bool>) -> RpcRes {
         let api = self.api_service.as_ref().unwrap();
         let ret = api.5.get_block_by_height_raw(AcceptType::Json, height, with_transactions).await;
         let ret = ret.unwrap();
+        let header;
         let ret = match ret {
-            BasicResponse::Ok(c, ..) => {
+            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
                 match c {
                     AptosResponseContent::Json(json) => {
                         serde_json::to_string(&json.0).unwrap()
@@ -189,15 +221,26 @@ impl Vm {
                 }
             }
         };
-        ret
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn get_accounts_transactions(&self, account: &str) -> String {
+    pub async fn get_block_by_version(&self, version: u64, with_transactions: Option<bool>) -> RpcRes {
         let api = self.api_service.as_ref().unwrap();
-        let ret = api.3.get_account_resources_raw(AcceptType::Json,
-                                                  Address::from_str(account).unwrap()).await.unwrap();
+        let ret = api.5.get_block_by_version_raw(AcceptType::Json, version, with_transactions).await;
+        let ret = ret.unwrap();
+        let header;
         let ret = match ret {
-            BasicResponse::Ok(c, ..) => {
+            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
                 match c {
                     AptosResponseContent::Json(json) => {
                         serde_json::to_string(&json.0).unwrap()
@@ -208,15 +251,36 @@ impl Vm {
                 }
             }
         };
-        ret
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn get_account_resources(&self, account: &str) -> String {
+    pub async fn get_accounts_transactions(&self, args: RpcReq) -> RpcRes {
+        let account = args.data.as_str();
         let api = self.api_service.as_ref().unwrap();
-        let ret = api.3.get_account_resources_raw(AcceptType::Json,
-                                                  Address::from_str(account).unwrap()).await.unwrap();
+        let start = match args.start {
+            None => None,
+            Some(_) => Some(StateKeyWrapper::from_str(args.start.unwrap().as_str()).unwrap())
+        };
+        let ret = api.3.get_account_resources_raw(
+            AcceptType::Json,
+            Address::from_str(account).unwrap(),
+            args.ledger_version,
+            start,
+            args.limit,
+        ).await.unwrap();
+        let header;
         let ret = match ret {
-            BasicResponse::Ok(c, ..) => {
+            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
                 match c {
                     AptosResponseContent::Json(json) => {
                         serde_json::to_string(&json.0).unwrap()
@@ -227,15 +291,67 @@ impl Vm {
                 }
             }
         };
-        ret
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn get_account(&self, account: &str) -> String {
+    pub async fn get_account_resources(&self, args: RpcReq) -> RpcRes {
+        let account = args.data.as_str();
+        let api = self.api_service.as_ref().unwrap();
+        let start = match args.start {
+            None => None,
+            Some(_) => Some(StateKeyWrapper::from_str(args.start.unwrap().as_str()).unwrap())
+        };
+        let ret = api.3.get_account_resources_raw(
+            AcceptType::Json,
+            Address::from_str(account).unwrap(),
+            args.ledger_version,
+            start,
+            args.limit,
+        ).await.unwrap();
+        let header;
+        let ret = match ret {
+            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+        };
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
+    }
+
+    pub async fn get_account(&self, args: RpcReq) -> RpcRes {
+        let account = args.data.as_str();
         let api = self.api_service.as_ref().unwrap();
         let ret = api.3.get_account_raw(AcceptType::Json,
-                                        Address::from_str(account).unwrap(), None).await.unwrap();
+                                        Address::from_str(account).unwrap(), args.ledger_version).await.unwrap();
+        let header;
         let ret = match ret {
-            BasicResponse::Ok(c, ..) => {
+            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
                 match c {
                     AptosResponseContent::Json(json) => {
                         serde_json::to_string(&json.0).unwrap()
@@ -246,16 +362,64 @@ impl Vm {
                 }
             }
         };
-        ret
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
+    }
+    pub async fn get_account_modules_state(&self, args: AccountStateArgs) -> RpcRes {
+        let account = args.account.as_str();
+        let module_name = args.resource.as_str();
+        let module_name = IdentifierWrapper::from_str(module_name).unwrap();
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.4.get_account_module_raw(
+            AcceptType::Json,
+            Address::from_str(account).unwrap(),
+            module_name, args.ledger_version).await.unwrap();
+        let header;
+        let ret = match ret {
+            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+        };
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn get_account_resources_state(&self, account: &str, resource: &str) -> String {
+    pub async fn get_account_resources_state(&self, args: AccountStateArgs) -> RpcRes {
+        let account = args.account.as_str();
+        let resource = args.resource.as_str();
         let api = self.api_service.as_ref().unwrap();
         let ret = api.4.get_account_resource_raw(AcceptType::Json,
                                                  Address::from_str(account).unwrap(),
-                                                 MoveStructTag::from_str(resource).unwrap(), None).await.unwrap();
+                                                 MoveStructTag::from_str(resource).unwrap(),
+                                                 args.ledger_version).await.unwrap();
+        let header;
         let ret = match ret {
-            BasicResponse::Ok(c, ..) => {
+            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
                 match c {
                     AptosResponseContent::Json(json) => {
                         serde_json::to_string(&json.0).unwrap()
@@ -266,19 +430,35 @@ impl Vm {
                 }
             }
         };
-        ret
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn get_account_modules(&self, account: &str) -> String {
+    pub async fn get_account_modules(&self, args: RpcReq) -> RpcRes {
+        let account = args.data.as_str();
+        let start = match args.start {
+            None => None,
+            Some(_) => Some(StateKeyWrapper::from_str(args.start.unwrap().as_str()).unwrap())
+        };
         let api = self.api_service.as_ref().unwrap();
         let address = Address::from_str(account).unwrap();
         let ret = api.3.get_account_modules_raw(AcceptType::Json,
                                                 address,
-                                                None,
-                                                None,
-                                                None).await.unwrap();
+                                                args.ledger_version,
+                                                start,
+                                                args.limit).await.unwrap();
+        let header;
         let ret = match ret {
-            BasicResponse::Ok(c, ..) => {
+            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
                 match c {
                     AptosResponseContent::Json(json) => {
                         serde_json::to_string(&json.0).unwrap()
@@ -289,14 +469,25 @@ impl Vm {
                 }
             }
         };
-        ret
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn get_ledger_info(&self) -> String {
+    pub async fn get_ledger_info(&self) -> RpcRes {
         let api = self.api_service.as_ref().unwrap();
         let ret = api.2.get_ledger_info_raw(AcceptType::Json).await.unwrap();
+        let header;
         let ret = match ret {
-            BasicResponse::Ok(c, ..) => {
+            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
                 match c {
                     AptosResponseContent::Json(json) => {
                         serde_json::to_string(&json.0).unwrap()
@@ -307,16 +498,31 @@ impl Vm {
                 }
             }
         };
-        ret
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn view_function(&self, req: &str) -> String {
+    pub async fn view_function(&self, req: &str, ver: Option<U64>) -> RpcRes {
         let api = self.api_service.as_ref().unwrap();
         let req = serde_json::from_str::<ViewRequest>(req).unwrap();
-        let ret = api.1.view_function_raw(AcceptType::Json, req, None).await;
+        let ret = api.1.view_function_raw(
+            AcceptType::Json,
+            req,
+            ver,
+        ).await;
         let ret = ret.unwrap();
+        let header;
         let ret = match ret {
-            BasicResponse::Ok(c, ..) => {
+            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
                 match c {
                     AptosResponseContent::Json(json) => {
                         serde_json::to_string(&json.0).unwrap()
@@ -327,18 +533,29 @@ impl Vm {
                 }
             }
         };
-        ret
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn get_transaction_by_hash(&self, h: &str) -> String {
+    pub async fn get_transaction_by_hash(&self, h: &str) -> RpcRes {
         let h1 = HashValue::from_hex(h).unwrap();
         let hash = aptos_api_types::hash::HashValue::from(h1);
         let api = self.api_service.as_ref().unwrap();
         let ret = api.0.get_transaction_by_hash_raw(AcceptType::Json,
                                                     hash).await;
         let ret = ret.unwrap();
+        let header;
         let ret = match ret {
-            BasicResponse::Ok(c, ..) => {
+            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
                 match c {
                     AptosResponseContent::Json(json) => {
                         serde_json::to_string(&json.0).unwrap()
@@ -349,16 +566,27 @@ impl Vm {
                 }
             }
         };
-        ret
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn get_transaction_by_version(&self, version: U64) -> String {
+    pub async fn get_transaction_by_version(&self, version: U64) -> RpcRes {
         let api = self.api_service.as_ref().unwrap();
         let ret = api.0.get_transaction_by_version_raw(AcceptType::Json,
                                                        version).await;
         let ret = ret.unwrap();
+        let header;
         let ret = match ret {
-            BasicResponse::Ok(c, ..) => {
+            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
                 match c {
                     AptosResponseContent::Json(json) => {
                         serde_json::to_string(&json.0).unwrap()
@@ -369,18 +597,61 @@ impl Vm {
                 }
             }
         };
-        ret
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn submit_transaction(&self, data: Vec<u8>) -> String {
+    pub async fn encode_submission(&self, data: &str) -> RpcRes {
+        let service = self.api_service.as_ref().unwrap();
+        let payload = serde_json::from_str::<EncodeSubmissionRequest>(data).unwrap();
+        let ret =
+            service.0.encode_submission_raw(AcceptType::Json, payload).await;
+        let ret = ret.unwrap();
+        let header;
+        let ret = match ret {
+            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+        };
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
+    }
+
+    pub async fn submit_transaction(&self, data: Vec<u8>) -> RpcRes {
         log::info!("submit_transaction length {}",{data.len()});
         let service = self.api_service.as_ref().unwrap();
-        let payload = Bcs(aptos_api::bcs_payload::Bcs(data.clone()));
-        let ret = service.0.submit_transaction_raw(AcceptType::Json,
-                                                   payload).await;
+        let payload = SubmitTransactionPost::Bcs(aptos_api::bcs_payload::Bcs(data.clone()));
+        let ret =
+            service.0.submit_transaction_raw(AcceptType::Json, payload).await;
         let ret = ret.unwrap();
+        let header;
         let ret = match ret {
-            SubmitTransactionResponse::Accepted(c, ..) => {
+            SubmitTransactionResponse::Accepted(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
                 match c {
                     AptosResponseContent::Json(json) => {
                         serde_json::to_string(&json.0).unwrap()
@@ -398,7 +669,221 @@ impl Vm {
         sender.send_app_gossip(serde_json::to_vec(&signed_transaction.clone()).unwrap()).await.unwrap();
         self.add_pool(signed_transaction).await;
         self.notify_block_ready().await;
-        ret
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
+    }
+
+    pub async fn submit_transaction_batch(&self, data: Vec<u8>) -> RpcRes {
+        log::info!("submit_transaction_batch length {}",{data.len()});
+        let service = self.api_service.as_ref().unwrap();
+        let payload = SubmitTransactionsBatchPost::Bcs(aptos_api::bcs_payload::Bcs(data.clone()));
+        let ret = service.0.submit_transactions_batch_raw(AcceptType::Json,
+                                                          payload).await;
+        let ret = ret.unwrap();
+        let mut failed_index = vec![];
+        let header;
+        let ret = match ret {
+            SubmitTransactionsBatchResponse::Accepted(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+            SubmitTransactionsBatchResponse::AcceptedPartial(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        for x in &json.transaction_failures {
+                            failed_index.push(x.transaction_index.clone());
+                        }
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+        };
+        let signed_transactions: Vec<SignedTransaction> =
+            bcs::from_bytes(&data).unwrap();
+        let sender = self.app_sender.as_ref().unwrap();
+        let mut exist_count = 0;
+        for (i, signed_transaction) in signed_transactions.iter().enumerate() {
+            if !failed_index.contains(&i) {
+                sender.send_app_gossip(serde_json::to_vec(signed_transaction).unwrap()).await.unwrap();
+                self.add_pool(signed_transaction.clone()).await;
+            } else {
+                exist_count += 1;
+            }
+        }
+        if exist_count > 0 {
+            self.notify_block_ready().await;
+        }
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
+    }
+    pub async fn get_table_item(&self, args: RpcTableReq) -> RpcRes {
+        let account = args.query;
+        let body = args.body;
+        let payload = serde_json::from_str::<TableItemRequest>(body.as_str()).unwrap();
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.4.get_table_item_raw(
+            AcceptType::Json,
+            Address::from_str(account.as_str()).unwrap(),
+            payload,
+            args.ledger_version).await;
+        let ret = ret.unwrap();
+        let header;
+        let ret = match ret {
+            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+        };
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
+    }
+
+    pub async fn get_raw_table_item(&self, args: RpcTableReq) -> RpcRes {
+        let account = args.query;
+        let body = args.body;
+        let payload = serde_json::from_str::<RawTableItemRequest>(body.as_str()).unwrap();
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.4.get_raw_table_item_raw(
+            AcceptType::Json,
+            Address::from_str(account.as_str()).unwrap(),
+            payload,
+            args.ledger_version).await;
+        let ret = ret.unwrap();
+        let header;
+        let ret = match ret {
+            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+        };
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
+    }
+
+    pub async fn get_events_by_creation_number(&self, args: RpcEventNumReq) -> RpcRes {
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.6.get_events_by_creation_number_raw(
+            AcceptType::Json,
+            Address::from_str(args.address.as_str()).unwrap(),
+            args.creation_number,
+            args.start, args.limit).await;
+        let ret = ret.unwrap();
+        let header;
+        let ret = match ret {
+            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+        };
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
+    }
+    pub async fn get_events_by_event_handle(&self, args: RpcEventHandleReq) -> RpcRes {
+        let event_handle = MoveStructTag::from_str(args.event_handle.as_str()).unwrap();
+        let field_name = IdentifierWrapper::from_str(args.field_name.as_str()).unwrap();
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.6.get_events_by_event_handle_raw(
+            AcceptType::Json,
+            Address::from_str(args.address.as_str()).unwrap(),
+            event_handle,
+            field_name, args.start, args.limit).await;
+        let ret = ret.unwrap();
+        let header;
+        let ret = match ret {
+            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+        };
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
     async fn add_pool(&self, signed_transaction: SignedTransaction) {
@@ -418,16 +903,28 @@ impl Vm {
             .unwrap_or_else(|e| log::warn!("dropping message to consensus engine: {}", e));
     }
 
-    pub async fn simulate_transaction(&self, data: Vec<u8>) -> String {
+    pub async fn simulate_transaction(&self, data: Vec<u8>) -> RpcRes {
         let service = self.api_service.as_ref().unwrap();
         let ret = service.0.simulate_transaction_raw(
             AcceptType::Json,
             Some(true),
             Some(false),
-            Some(true), Bcs(aptos_api::bcs_payload::Bcs(data))).await;
+            Some(true),
+            SubmitTransactionPost::Bcs(aptos_api::bcs_payload::Bcs(data))).await;
         let ret = ret.unwrap();
+        let header;
         let ret = match ret {
-            BasicResponse::Ok(c, ..) => {
+            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
                 match c {
                     AptosResponseContent::Json(json) => {
                         serde_json::to_string(&json.0).unwrap()
@@ -438,16 +935,27 @@ impl Vm {
                 }
             }
         };
-        ret
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn estimate_gas_price(&self) -> String {
+    pub async fn estimate_gas_price(&self) -> RpcRes {
         let service = self.api_service.as_ref().unwrap();
         let ret = service.0.estimate_gas_price_raw(
             AcceptType::Json).await;
         let ret = ret.unwrap();
+        let header;
         let ret = match ret {
-            BasicResponse::Ok(c, ..) => {
+            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                header = AptosHeader {
+                    chain_id: a,
+                    ledger_version: b,
+                    ledger_oldest_version: d,
+                    ledger_timestamp_usec: e,
+                    epoch: f,
+                    block_height: g,
+                    oldest_block_height: h,
+                    cursor: k,
+                };
                 match c {
                     AptosResponseContent::Json(json) => {
                         serde_json::to_string(&json.0).unwrap()
@@ -458,10 +966,10 @@ impl Vm {
                 }
             }
         };
-        ret
+        RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn facet_apt(&self, acc: Vec<u8>) -> String {
+    pub async fn facet_apt(&self, acc: Vec<u8>) -> RpcRes {
         let to = AccountAddress::from_bytes(acc).unwrap();
         let db = self.db.as_ref().unwrap().read().await;
         let mut core_account = self.get_core_account(&db).await;
@@ -473,7 +981,7 @@ impl Vm {
         return self.submit_transaction(bcs::to_bytes(&tx_acc_mint).unwrap()).await;
     }
 
-    pub async fn create_account(&self, key: &str) -> String {
+    pub async fn create_account(&self, key: &str) -> RpcRes {
         let to = Ed25519PublicKey::from_encoded_string(key).unwrap();
         let db = self.db.as_ref().unwrap().read().await;
         let mut core_account = self.get_core_account(&db).await;
@@ -597,12 +1105,12 @@ impl Vm {
             li = serde_json::from_slice::<LedgerInfoWithSignatures>(&aptos_data.5).unwrap();
         }
         executor.commit_blocks(vec![block_id], li.clone()).unwrap();
+        let mut core_pool = self.core_mempool.as_ref().unwrap().write().await;
         for t in block_tx.iter() {
             match t {
                 UserTransaction(t) => {
                     let sender = t.sender();
                     let sequence_number = t.sequence_number();
-                    let mut core_pool = self.core_mempool.as_ref().unwrap().write().await;
                     core_pool.commit_transaction(&AccountAddress::from(sender), sequence_number);
                 }
                 _ => {}
@@ -639,6 +1147,8 @@ impl Vm {
             db = DbReaderWriter::wrap(
                 AptosDB::new_for_test(p.as_str()));
         }
+        // BLOCK-STM
+        // AptosVM::set_concurrency_level_once(2);
         self.db = Some(Arc::new(RwLock::new(db.1.clone())));
         let executor = BlockExecutor::new(db.1.clone());
         self.executor = Some(Arc::new(RwLock::new(executor)));
@@ -672,7 +1182,6 @@ impl Vm {
     }
 }
 
-
 #[tonic::async_trait]
 impl ChainVm for Vm
 {
@@ -687,9 +1196,9 @@ impl ChainVm for Vm
             let unix_now = Utc::now().timestamp() as u64;
             let core_pool = self.core_mempool.as_ref().unwrap().read().await;
             let tx_arr = core_pool.get_batch(1000,
-                                             1024000,
+                                             1024 * 1000,
                                              true,
-                                             true,vec![]);
+                                             true, vec![]);
             println!("----build_block pool tx count-------{}------", tx_arr.clone().len());
             drop(core_pool);
             let executor = self.executor.as_ref().unwrap().read().await;
@@ -734,7 +1243,7 @@ impl ChainVm for Vm
                 choices::status::Status::Processing,
             ).unwrap();
             block_.set_state(state_b.clone());
-            println!("--------vm---build_block----new--{}---parent-{}-----------", block_.id(), block_.parent_id());
+            println!("--------vm---build_block------{}---", block_.id());
             block_.verify().await.unwrap();
             return Ok(block_);
         }
@@ -798,12 +1307,9 @@ impl NetworkAppHandler for Vm
     async fn app_gossip(&self, _node_id: &ids::node::Id, msg: &[u8]) -> io::Result<()> {
         match serde_json::from_slice::<SignedTransaction>(msg) {
             Ok(s) => {
-                println!("-------------app_gossip new tx--ok--------------");
                 self.add_pool(s).await;
             }
-            Err(_) => {
-                println!("-------------app_gossip new tx--fail--------------");
-            }
+            Err(_) => {}
         }
         Ok(())
     }
@@ -859,7 +1365,6 @@ impl Connector for Vm
         Ok(())
     }
 }
-
 
 #[tonic::async_trait]
 impl Checkable for Vm

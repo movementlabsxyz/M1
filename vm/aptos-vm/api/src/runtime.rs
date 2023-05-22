@@ -59,8 +59,8 @@ pub type RawApi = (
     AccountsApi,
     StateApi,
     BlocksApi,
+    EventsApi,
 // BasicApi,
-// EventsApi,
 );
 
 pub fn get_raw_api_service(
@@ -85,10 +85,10 @@ pub fn get_raw_api_service(
         BlocksApi {
             context: context.clone(),
         },
+        EventsApi {
+            context: context.clone(),
+        },
         // BasicApi {
-        //     context: context.clone(),
-        // },
-        // EventsApi {
         //     context: context.clone(),
         // },
     );
