@@ -147,6 +147,9 @@ impl AccountsApi {
         &self,
         accept_type: AcceptType,
         address: Address,
+        ledger_version: Option<U64>,
+        start: Option<StateKeyWrapper>,
+        limit: Option<u16>,
     ) -> BasicResultWith404<Vec<MoveResource>> {
         fail_point_poem("endpoint_get_account_resources")?;
         self.context
@@ -154,8 +157,8 @@ impl AccountsApi {
         let account = Account::new(
             self.context.clone(),
             address,
-            None,
-            None, None,
+            ledger_version,
+            start.map(StateKey::from), limit,
         )?;
         account.resources(&accept_type)
     }

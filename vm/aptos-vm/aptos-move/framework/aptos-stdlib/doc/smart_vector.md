@@ -29,11 +29,11 @@
 
 
 <pre><code><b>use</b> <a href="big_vector.md#0x1_big_vector">0x1::big_vector</a>;
-<b>use</b> <a href="../../move-stdlib/doc/error.md#0x1_error">0x1::error</a>;
+<b>use</b> <a href="..\../move-stdlib\doc\error.md#0x1_error">0x1::error</a>;
 <b>use</b> <a href="math64.md#0x1_math64">0x1::math64</a>;
-<b>use</b> <a href="../../move-stdlib/doc/option.md#0x1_option">0x1::option</a>;
+<b>use</b> <a href="..\../move-stdlib\doc\option.md#0x1_option">0x1::option</a>;
 <b>use</b> <a href="type_info.md#0x1_type_info">0x1::type_info</a>;
-<b>use</b> <a href="../../move-stdlib/doc/vector.md#0x1_vector">0x1::vector</a>;
+<b>use</b> <a href="..\../move-stdlib\doc\vector.md#0x1_vector">0x1::vector</a>;
 </code></pre>
 
 
@@ -58,25 +58,25 @@ so small that inline_vec vector can hold all the data.
 
 <dl>
 <dt>
-<code>inline_vec: <a href="../../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;T&gt;</code>
+<code>inline_vec: <a href="..\../move-stdlib\doc\vector.md#0x1_vector">vector</a>&lt;T&gt;</code>
 </dt>
 <dd>
 
 </dd>
 <dt>
-<code>big_vec: <a href="../../move-stdlib/doc/option.md#0x1_option_Option">option::Option</a>&lt;<a href="big_vector.md#0x1_big_vector_BigVector">big_vector::BigVector</a>&lt;T&gt;&gt;</code>
+<code>big_vec: <a href="..\../move-stdlib\doc\option.md#0x1_option_Option">option::Option</a>&lt;<a href="big_vector.md#0x1_big_vector_BigVector">big_vector::BigVector</a>&lt;T&gt;&gt;</code>
 </dt>
 <dd>
 
 </dd>
 <dt>
-<code>inline_capacity: <a href="../../move-stdlib/doc/option.md#0x1_option_Option">option::Option</a>&lt;u64&gt;</code>
+<code>inline_capacity: <a href="..\../move-stdlib\doc\option.md#0x1_option_Option">option::Option</a>&lt;u64&gt;</code>
 </dt>
 <dd>
 
 </dd>
 <dt>
-<code>bucket_size: <a href="../../move-stdlib/doc/option.md#0x1_option_Option">option::Option</a>&lt;u64&gt;</code>
+<code>bucket_size: <a href="..\../move-stdlib\doc\option.md#0x1_option_Option">option::Option</a>&lt;u64&gt;</code>
 </dt>
 <dd>
 
@@ -151,10 +151,10 @@ inaccurate.
 
 <pre><code><b>public</b> <b>fun</b> <a href="smart_vector.md#0x1_smart_vector_empty">empty</a>&lt;T: store&gt;(): <a href="smart_vector.md#0x1_smart_vector_SmartVector">SmartVector</a>&lt;T&gt; {
     <a href="smart_vector.md#0x1_smart_vector_SmartVector">SmartVector</a> {
-        inline_vec: <a href="../../move-stdlib/doc/vector.md#0x1_vector">vector</a>[],
-        big_vec: <a href="../../move-stdlib/doc/option.md#0x1_option_none">option::none</a>(),
-        inline_capacity: <a href="../../move-stdlib/doc/option.md#0x1_option_none">option::none</a>(),
-        bucket_size: <a href="../../move-stdlib/doc/option.md#0x1_option_none">option::none</a>(),
+        inline_vec: <a href="..\../move-stdlib\doc\vector.md#0x1_vector">vector</a>[],
+        big_vec: <a href="..\../move-stdlib\doc\option.md#0x1_option_none">option::none</a>(),
+        inline_capacity: <a href="..\../move-stdlib\doc\option.md#0x1_option_none">option::none</a>(),
+        bucket_size: <a href="..\../move-stdlib\doc\option.md#0x1_option_none">option::none</a>(),
     }
 }
 </code></pre>
@@ -181,12 +181,12 @@ When inline_capacity = 0, SmartVector degrades to a wrapper of BigVector.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="smart_vector.md#0x1_smart_vector_empty_with_config">empty_with_config</a>&lt;T: store&gt;(inline_capacity: u64, bucket_size: u64): <a href="smart_vector.md#0x1_smart_vector_SmartVector">SmartVector</a>&lt;T&gt; {
-    <b>assert</b>!(bucket_size &gt; 0, <a href="../../move-stdlib/doc/error.md#0x1_error_invalid_argument">error::invalid_argument</a>(<a href="smart_vector.md#0x1_smart_vector_EZERO_BUCKET_SIZE">EZERO_BUCKET_SIZE</a>));
+    <b>assert</b>!(bucket_size &gt; 0, <a href="..\../move-stdlib\doc\error.md#0x1_error_invalid_argument">error::invalid_argument</a>(<a href="smart_vector.md#0x1_smart_vector_EZERO_BUCKET_SIZE">EZERO_BUCKET_SIZE</a>));
     <a href="smart_vector.md#0x1_smart_vector_SmartVector">SmartVector</a> {
-        inline_vec: <a href="../../move-stdlib/doc/vector.md#0x1_vector">vector</a>[],
-        big_vec: <a href="../../move-stdlib/doc/option.md#0x1_option_none">option::none</a>(),
-        inline_capacity: <a href="../../move-stdlib/doc/option.md#0x1_option_some">option::some</a>(inline_capacity),
-        bucket_size: <a href="../../move-stdlib/doc/option.md#0x1_option_some">option::some</a>(bucket_size),
+        inline_vec: <a href="..\../move-stdlib\doc\vector.md#0x1_vector">vector</a>[],
+        big_vec: <a href="..\../move-stdlib\doc\option.md#0x1_option_none">option::none</a>(),
+        inline_capacity: <a href="..\../move-stdlib\doc\option.md#0x1_option_some">option::some</a>(inline_capacity),
+        bucket_size: <a href="..\../move-stdlib\doc\option.md#0x1_option_some">option::some</a>(bucket_size),
     }
 }
 </code></pre>
@@ -240,10 +240,10 @@ Aborts if <code>v</code> is not empty.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="smart_vector.md#0x1_smart_vector_destroy_empty">destroy_empty</a>&lt;T&gt;(v: <a href="smart_vector.md#0x1_smart_vector_SmartVector">SmartVector</a>&lt;T&gt;) {
-    <b>assert</b>!(<a href="smart_vector.md#0x1_smart_vector_is_empty">is_empty</a>(&v), <a href="../../move-stdlib/doc/error.md#0x1_error_invalid_argument">error::invalid_argument</a>(<a href="smart_vector.md#0x1_smart_vector_EVECTOR_NOT_EMPTY">EVECTOR_NOT_EMPTY</a>));
+    <b>assert</b>!(<a href="smart_vector.md#0x1_smart_vector_is_empty">is_empty</a>(&v), <a href="..\../move-stdlib\doc\error.md#0x1_error_invalid_argument">error::invalid_argument</a>(<a href="smart_vector.md#0x1_smart_vector_EVECTOR_NOT_EMPTY">EVECTOR_NOT_EMPTY</a>));
     <b>let</b> <a href="smart_vector.md#0x1_smart_vector_SmartVector">SmartVector</a> { inline_vec, big_vec, inline_capacity: _, bucket_size: _} = v;
-    <a href="../../move-stdlib/doc/vector.md#0x1_vector_destroy_empty">vector::destroy_empty</a>(inline_vec);
-    <a href="../../move-stdlib/doc/option.md#0x1_option_destroy_none">option::destroy_none</a>(big_vec);
+    <a href="..\../move-stdlib\doc\vector.md#0x1_vector_destroy_empty">vector::destroy_empty</a>(inline_vec);
+    <a href="..\../move-stdlib\doc\option.md#0x1_option_destroy_none">option::destroy_none</a>(big_vec);
 }
 </code></pre>
 
@@ -269,12 +269,12 @@ Aborts if <code>i</code> is out of bounds.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="smart_vector.md#0x1_smart_vector_borrow">borrow</a>&lt;T&gt;(v: &<a href="smart_vector.md#0x1_smart_vector_SmartVector">SmartVector</a>&lt;T&gt;, i: u64): &T {
-    <b>assert</b>!(i &lt; <a href="smart_vector.md#0x1_smart_vector_length">length</a>(v), <a href="../../move-stdlib/doc/error.md#0x1_error_invalid_argument">error::invalid_argument</a>(<a href="smart_vector.md#0x1_smart_vector_EINDEX_OUT_OF_BOUNDS">EINDEX_OUT_OF_BOUNDS</a>));
-    <b>let</b> inline_len = <a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&v.inline_vec);
+    <b>assert</b>!(i &lt; <a href="smart_vector.md#0x1_smart_vector_length">length</a>(v), <a href="..\../move-stdlib\doc\error.md#0x1_error_invalid_argument">error::invalid_argument</a>(<a href="smart_vector.md#0x1_smart_vector_EINDEX_OUT_OF_BOUNDS">EINDEX_OUT_OF_BOUNDS</a>));
+    <b>let</b> inline_len = <a href="..\../move-stdlib\doc\vector.md#0x1_vector_length">vector::length</a>(&v.inline_vec);
     <b>if</b> (i &lt; inline_len) {
-        <a href="../../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&v.inline_vec, i)
+        <a href="..\../move-stdlib\doc\vector.md#0x1_vector_borrow">vector::borrow</a>(&v.inline_vec, i)
     } <b>else</b> {
-        <a href="big_vector.md#0x1_big_vector_borrow">big_vector::borrow</a>(<a href="../../move-stdlib/doc/option.md#0x1_option_borrow">option::borrow</a>(&v.big_vec), i - inline_len)
+        <a href="big_vector.md#0x1_big_vector_borrow">big_vector::borrow</a>(<a href="..\../move-stdlib\doc\option.md#0x1_option_borrow">option::borrow</a>(&v.big_vec), i - inline_len)
     }
 }
 </code></pre>
@@ -301,12 +301,12 @@ Aborts if <code>i</code> is out of bounds.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="smart_vector.md#0x1_smart_vector_borrow_mut">borrow_mut</a>&lt;T&gt;(v: &<b>mut</b> <a href="smart_vector.md#0x1_smart_vector_SmartVector">SmartVector</a>&lt;T&gt;, i: u64): &<b>mut</b> T {
-    <b>assert</b>!(i &lt; <a href="smart_vector.md#0x1_smart_vector_length">length</a>(v), <a href="../../move-stdlib/doc/error.md#0x1_error_invalid_argument">error::invalid_argument</a>(<a href="smart_vector.md#0x1_smart_vector_EINDEX_OUT_OF_BOUNDS">EINDEX_OUT_OF_BOUNDS</a>));
-    <b>let</b> inline_len = <a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&v.inline_vec);
+    <b>assert</b>!(i &lt; <a href="smart_vector.md#0x1_smart_vector_length">length</a>(v), <a href="..\../move-stdlib\doc\error.md#0x1_error_invalid_argument">error::invalid_argument</a>(<a href="smart_vector.md#0x1_smart_vector_EINDEX_OUT_OF_BOUNDS">EINDEX_OUT_OF_BOUNDS</a>));
+    <b>let</b> inline_len = <a href="..\../move-stdlib\doc\vector.md#0x1_vector_length">vector::length</a>(&v.inline_vec);
     <b>if</b> (i &lt; inline_len) {
-        <a href="../../move-stdlib/doc/vector.md#0x1_vector_borrow_mut">vector::borrow_mut</a>(&<b>mut</b> v.inline_vec, i)
+        <a href="..\../move-stdlib\doc\vector.md#0x1_vector_borrow_mut">vector::borrow_mut</a>(&<b>mut</b> v.inline_vec, i)
     } <b>else</b> {
-        <a href="big_vector.md#0x1_big_vector_borrow_mut">big_vector::borrow_mut</a>(<a href="../../move-stdlib/doc/option.md#0x1_option_borrow_mut">option::borrow_mut</a>(&<b>mut</b> v.big_vec), i - inline_len)
+        <a href="big_vector.md#0x1_big_vector_borrow_mut">big_vector::borrow_mut</a>(<a href="..\../move-stdlib\doc\option.md#0x1_option_borrow_mut">option::borrow_mut</a>(&<b>mut</b> v.big_vec), i - inline_len)
     }
 }
 </code></pre>
@@ -372,26 +372,26 @@ This operation will cost more gas when it adds new bucket.
 
 <pre><code><b>public</b> <b>fun</b> <a href="smart_vector.md#0x1_smart_vector_push_back">push_back</a>&lt;T: store&gt;(v: &<b>mut</b> <a href="smart_vector.md#0x1_smart_vector_SmartVector">SmartVector</a>&lt;T&gt;, val: T) {
     <b>let</b> len = <a href="smart_vector.md#0x1_smart_vector_length">length</a>(v);
-    <b>let</b> inline_len = <a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&v.inline_vec);
+    <b>let</b> inline_len = <a href="..\../move-stdlib\doc\vector.md#0x1_vector_length">vector::length</a>(&v.inline_vec);
     <b>if</b> (len == inline_len) {
-        <b>let</b> bucket_size = <b>if</b> (<a href="../../move-stdlib/doc/option.md#0x1_option_is_some">option::is_some</a>(&v.inline_capacity)) {
-            <b>if</b> (len &lt; *<a href="../../move-stdlib/doc/option.md#0x1_option_borrow">option::borrow</a>(&v.inline_capacity)) {
-                <a href="../../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> v.inline_vec, val);
+        <b>let</b> bucket_size = <b>if</b> (<a href="..\../move-stdlib\doc\option.md#0x1_option_is_some">option::is_some</a>(&v.inline_capacity)) {
+            <b>if</b> (len &lt; *<a href="..\../move-stdlib\doc\option.md#0x1_option_borrow">option::borrow</a>(&v.inline_capacity)) {
+                <a href="..\../move-stdlib\doc\vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> v.inline_vec, val);
                 <b>return</b>
             };
-            *<a href="../../move-stdlib/doc/option.md#0x1_option_borrow">option::borrow</a>(&v.bucket_size)
+            *<a href="..\../move-stdlib\doc\option.md#0x1_option_borrow">option::borrow</a>(&v.bucket_size)
         } <b>else</b> {
             <b>let</b> val_size = size_of_val(&val);
             <b>if</b> (val_size * (inline_len + 1) &lt; 150 /* magic number */) {
-                <a href="../../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> v.inline_vec, val);
+                <a href="..\../move-stdlib\doc\vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> v.inline_vec, val);
                 <b>return</b>
             };
             <b>let</b> estimated_avg_size = max((size_of_val(&v.inline_vec) + val_size) / (inline_len + 1), 1);
             max(1024 /* free_write_quota */ / estimated_avg_size, 1)
         };
-        <a href="../../move-stdlib/doc/option.md#0x1_option_fill">option::fill</a>(&<b>mut</b> v.big_vec, <a href="big_vector.md#0x1_big_vector_empty">big_vector::empty</a>(bucket_size));
+        <a href="..\../move-stdlib\doc\option.md#0x1_option_fill">option::fill</a>(&<b>mut</b> v.big_vec, <a href="big_vector.md#0x1_big_vector_empty">big_vector::empty</a>(bucket_size));
     };
-    <a href="big_vector.md#0x1_big_vector_push_back">big_vector::push_back</a>(<a href="../../move-stdlib/doc/option.md#0x1_option_borrow_mut">option::borrow_mut</a>(&<b>mut</b> v.big_vec), val);
+    <a href="big_vector.md#0x1_big_vector_push_back">big_vector::push_back</a>(<a href="..\../move-stdlib\doc\option.md#0x1_option_borrow_mut">option::borrow_mut</a>(&<b>mut</b> v.big_vec), val);
 }
 </code></pre>
 
@@ -417,19 +417,19 @@ Aborts if <code>v</code> is empty.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="smart_vector.md#0x1_smart_vector_pop_back">pop_back</a>&lt;T&gt;(v: &<b>mut</b> <a href="smart_vector.md#0x1_smart_vector_SmartVector">SmartVector</a>&lt;T&gt;): T {
-    <b>assert</b>!(!<a href="smart_vector.md#0x1_smart_vector_is_empty">is_empty</a>(v), <a href="../../move-stdlib/doc/error.md#0x1_error_invalid_state">error::invalid_state</a>(<a href="smart_vector.md#0x1_smart_vector_EVECTOR_EMPTY">EVECTOR_EMPTY</a>));
+    <b>assert</b>!(!<a href="smart_vector.md#0x1_smart_vector_is_empty">is_empty</a>(v), <a href="..\../move-stdlib\doc\error.md#0x1_error_invalid_state">error::invalid_state</a>(<a href="smart_vector.md#0x1_smart_vector_EVECTOR_EMPTY">EVECTOR_EMPTY</a>));
     <b>let</b> big_vec_wrapper = &<b>mut</b> v.big_vec;
-    <b>if</b> (<a href="../../move-stdlib/doc/option.md#0x1_option_is_some">option::is_some</a>(big_vec_wrapper)) {
-        <b>let</b> big_vec = <a href="../../move-stdlib/doc/option.md#0x1_option_extract">option::extract</a>(big_vec_wrapper);
+    <b>if</b> (<a href="..\../move-stdlib\doc\option.md#0x1_option_is_some">option::is_some</a>(big_vec_wrapper)) {
+        <b>let</b> big_vec = <a href="..\../move-stdlib\doc\option.md#0x1_option_extract">option::extract</a>(big_vec_wrapper);
         <b>let</b> val = <a href="big_vector.md#0x1_big_vector_pop_back">big_vector::pop_back</a>(&<b>mut</b> big_vec);
         <b>if</b> (<a href="big_vector.md#0x1_big_vector_is_empty">big_vector::is_empty</a>(&big_vec)) {
             <a href="big_vector.md#0x1_big_vector_destroy_empty">big_vector::destroy_empty</a>(big_vec)
         } <b>else</b> {
-            <a href="../../move-stdlib/doc/option.md#0x1_option_fill">option::fill</a>(big_vec_wrapper, big_vec);
+            <a href="..\../move-stdlib\doc\option.md#0x1_option_fill">option::fill</a>(big_vec_wrapper, big_vec);
         };
         val
     } <b>else</b> {
-        <a href="../../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(&<b>mut</b> v.inline_vec)
+        <a href="..\../move-stdlib\doc\vector.md#0x1_vector_pop_back">vector::pop_back</a>(&<b>mut</b> v.inline_vec)
     }
 }
 </code></pre>
@@ -458,18 +458,18 @@ Disclaimer: This function may be costly. Use it at your own discretion.
 
 <pre><code><b>public</b> <b>fun</b> <a href="smart_vector.md#0x1_smart_vector_remove">remove</a>&lt;T&gt;(v: &<b>mut</b> <a href="smart_vector.md#0x1_smart_vector_SmartVector">SmartVector</a>&lt;T&gt;, i: u64): T {
     <b>let</b> len = <a href="smart_vector.md#0x1_smart_vector_length">length</a>(v);
-    <b>assert</b>!(i &lt; len, <a href="../../move-stdlib/doc/error.md#0x1_error_invalid_argument">error::invalid_argument</a>(<a href="smart_vector.md#0x1_smart_vector_EINDEX_OUT_OF_BOUNDS">EINDEX_OUT_OF_BOUNDS</a>));
-    <b>let</b> inline_len = <a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&v.inline_vec);
+    <b>assert</b>!(i &lt; len, <a href="..\../move-stdlib\doc\error.md#0x1_error_invalid_argument">error::invalid_argument</a>(<a href="smart_vector.md#0x1_smart_vector_EINDEX_OUT_OF_BOUNDS">EINDEX_OUT_OF_BOUNDS</a>));
+    <b>let</b> inline_len = <a href="..\../move-stdlib\doc\vector.md#0x1_vector_length">vector::length</a>(&v.inline_vec);
     <b>if</b> (i &lt; inline_len) {
-        <a href="../../move-stdlib/doc/vector.md#0x1_vector_remove">vector::remove</a>(&<b>mut</b> v.inline_vec, i)
+        <a href="..\../move-stdlib\doc\vector.md#0x1_vector_remove">vector::remove</a>(&<b>mut</b> v.inline_vec, i)
     } <b>else</b> {
         <b>let</b> big_vec_wrapper = &<b>mut</b> v.big_vec;
-        <b>let</b> big_vec = <a href="../../move-stdlib/doc/option.md#0x1_option_extract">option::extract</a>(big_vec_wrapper);
+        <b>let</b> big_vec = <a href="..\../move-stdlib\doc\option.md#0x1_option_extract">option::extract</a>(big_vec_wrapper);
         <b>let</b> val = <a href="big_vector.md#0x1_big_vector_remove">big_vector::remove</a>(&<b>mut</b> big_vec, i - inline_len);
         <b>if</b> (<a href="big_vector.md#0x1_big_vector_is_empty">big_vector::is_empty</a>(&big_vec)) {
             <a href="big_vector.md#0x1_big_vector_destroy_empty">big_vector::destroy_empty</a>(big_vec)
         } <b>else</b> {
-            <a href="../../move-stdlib/doc/option.md#0x1_option_fill">option::fill</a>(big_vec_wrapper, big_vec);
+            <a href="..\../move-stdlib\doc\option.md#0x1_option_fill">option::fill</a>(big_vec_wrapper, big_vec);
         };
         val
     }
@@ -500,31 +500,31 @@ Aborts if <code>i</code> is out of bounds.
 
 <pre><code><b>public</b> <b>fun</b> <a href="smart_vector.md#0x1_smart_vector_swap_remove">swap_remove</a>&lt;T&gt;(v: &<b>mut</b> <a href="smart_vector.md#0x1_smart_vector_SmartVector">SmartVector</a>&lt;T&gt;, i: u64): T {
     <b>let</b> len = <a href="smart_vector.md#0x1_smart_vector_length">length</a>(v);
-    <b>assert</b>!(i &lt; len, <a href="../../move-stdlib/doc/error.md#0x1_error_invalid_argument">error::invalid_argument</a>(<a href="smart_vector.md#0x1_smart_vector_EINDEX_OUT_OF_BOUNDS">EINDEX_OUT_OF_BOUNDS</a>));
-    <b>let</b> inline_len = <a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&v.inline_vec);
+    <b>assert</b>!(i &lt; len, <a href="..\../move-stdlib\doc\error.md#0x1_error_invalid_argument">error::invalid_argument</a>(<a href="smart_vector.md#0x1_smart_vector_EINDEX_OUT_OF_BOUNDS">EINDEX_OUT_OF_BOUNDS</a>));
+    <b>let</b> inline_len = <a href="..\../move-stdlib\doc\vector.md#0x1_vector_length">vector::length</a>(&v.inline_vec);
     <b>let</b> big_vec_wrapper = &<b>mut</b> v.big_vec;
     <b>let</b> inline_vec = &<b>mut</b> v.inline_vec;
     <b>if</b> (i &gt;= inline_len) {
-        <b>let</b> big_vec = <a href="../../move-stdlib/doc/option.md#0x1_option_extract">option::extract</a>(big_vec_wrapper);
+        <b>let</b> big_vec = <a href="..\../move-stdlib\doc\option.md#0x1_option_extract">option::extract</a>(big_vec_wrapper);
         <b>let</b> val = <a href="big_vector.md#0x1_big_vector_swap_remove">big_vector::swap_remove</a>(&<b>mut</b> big_vec, i - inline_len);
         <b>if</b> (<a href="big_vector.md#0x1_big_vector_is_empty">big_vector::is_empty</a>(&big_vec)) {
             <a href="big_vector.md#0x1_big_vector_destroy_empty">big_vector::destroy_empty</a>(big_vec)
         } <b>else</b> {
-            <a href="../../move-stdlib/doc/option.md#0x1_option_fill">option::fill</a>(big_vec_wrapper, big_vec);
+            <a href="..\../move-stdlib\doc\option.md#0x1_option_fill">option::fill</a>(big_vec_wrapper, big_vec);
         };
         val
     } <b>else</b> {
         <b>if</b> (inline_len &lt; len) {
-            <b>let</b> big_vec = <a href="../../move-stdlib/doc/option.md#0x1_option_extract">option::extract</a>(big_vec_wrapper);
+            <b>let</b> big_vec = <a href="..\../move-stdlib\doc\option.md#0x1_option_extract">option::extract</a>(big_vec_wrapper);
             <b>let</b> last_from_big_vec = <a href="big_vector.md#0x1_big_vector_pop_back">big_vector::pop_back</a>(&<b>mut</b> big_vec);
             <b>if</b> (<a href="big_vector.md#0x1_big_vector_is_empty">big_vector::is_empty</a>(&big_vec)) {
                 <a href="big_vector.md#0x1_big_vector_destroy_empty">big_vector::destroy_empty</a>(big_vec)
             } <b>else</b> {
-                <a href="../../move-stdlib/doc/option.md#0x1_option_fill">option::fill</a>(big_vec_wrapper, big_vec);
+                <a href="..\../move-stdlib\doc\option.md#0x1_option_fill">option::fill</a>(big_vec_wrapper, big_vec);
             };
-            <a href="../../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(inline_vec, last_from_big_vec);
+            <a href="..\../move-stdlib\doc\vector.md#0x1_vector_push_back">vector::push_back</a>(inline_vec, last_from_big_vec);
         };
-        <a href="../../move-stdlib/doc/vector.md#0x1_vector_swap_remove">vector::swap_remove</a>(inline_vec, i)
+        <a href="..\../move-stdlib\doc\vector.md#0x1_vector_swap_remove">vector::swap_remove</a>(inline_vec, i)
     }
 }
 </code></pre>
@@ -555,19 +555,19 @@ for v.
         <b>return</b> <a href="smart_vector.md#0x1_smart_vector_swap">swap</a>(v, j, i)
     };
     <b>let</b> len = <a href="smart_vector.md#0x1_smart_vector_length">length</a>(v);
-    <b>assert</b>!(j &lt; len, <a href="../../move-stdlib/doc/error.md#0x1_error_invalid_argument">error::invalid_argument</a>(<a href="smart_vector.md#0x1_smart_vector_EINDEX_OUT_OF_BOUNDS">EINDEX_OUT_OF_BOUNDS</a>));
-    <b>let</b> inline_len = <a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&v.inline_vec);
+    <b>assert</b>!(j &lt; len, <a href="..\../move-stdlib\doc\error.md#0x1_error_invalid_argument">error::invalid_argument</a>(<a href="smart_vector.md#0x1_smart_vector_EINDEX_OUT_OF_BOUNDS">EINDEX_OUT_OF_BOUNDS</a>));
+    <b>let</b> inline_len = <a href="..\../move-stdlib\doc\vector.md#0x1_vector_length">vector::length</a>(&v.inline_vec);
     <b>if</b> (i &gt;= inline_len) {
-        <a href="big_vector.md#0x1_big_vector_swap">big_vector::swap</a>(<a href="../../move-stdlib/doc/option.md#0x1_option_borrow_mut">option::borrow_mut</a>(&<b>mut</b> v.big_vec), i - inline_len, j - inline_len);
+        <a href="big_vector.md#0x1_big_vector_swap">big_vector::swap</a>(<a href="..\../move-stdlib\doc\option.md#0x1_option_borrow_mut">option::borrow_mut</a>(&<b>mut</b> v.big_vec), i - inline_len, j - inline_len);
     } <b>else</b> <b>if</b> (j &lt; inline_len) {
-        <a href="../../move-stdlib/doc/vector.md#0x1_vector_swap">vector::swap</a>(&<b>mut</b> v.inline_vec, i, j);
+        <a href="..\../move-stdlib\doc\vector.md#0x1_vector_swap">vector::swap</a>(&<b>mut</b> v.inline_vec, i, j);
     } <b>else</b> {
-        <b>let</b> big_vec = <a href="../../move-stdlib/doc/option.md#0x1_option_borrow_mut">option::borrow_mut</a>(&<b>mut</b> v.big_vec);
+        <b>let</b> big_vec = <a href="..\../move-stdlib\doc\option.md#0x1_option_borrow_mut">option::borrow_mut</a>(&<b>mut</b> v.big_vec);
         <b>let</b> inline_vec = &<b>mut</b> v.inline_vec;
-        <b>let</b> element_i = <a href="../../move-stdlib/doc/vector.md#0x1_vector_swap_remove">vector::swap_remove</a>(inline_vec, i);
+        <b>let</b> element_i = <a href="..\../move-stdlib\doc\vector.md#0x1_vector_swap_remove">vector::swap_remove</a>(inline_vec, i);
         <b>let</b> element_j = <a href="big_vector.md#0x1_big_vector_swap_remove">big_vector::swap_remove</a>(big_vec, j - inline_len);
-        <a href="../../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(inline_vec, element_j);
-        <a href="../../move-stdlib/doc/vector.md#0x1_vector_swap">vector::swap</a>(inline_vec, i, inline_len - 1);
+        <a href="..\../move-stdlib\doc\vector.md#0x1_vector_push_back">vector::push_back</a>(inline_vec, element_j);
+        <a href="..\../move-stdlib\doc\vector.md#0x1_vector_swap">vector::swap</a>(inline_vec, i, inline_len - 1);
         <a href="big_vector.md#0x1_big_vector_push_back">big_vector::push_back</a>(big_vec, element_i);
         <a href="big_vector.md#0x1_big_vector_swap">big_vector::swap</a>(big_vec, j - inline_len, len - inline_len - 1);
     }
@@ -596,34 +596,34 @@ Disclaimer: This function may be costly. Use it at your own discretion.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="smart_vector.md#0x1_smart_vector_reverse">reverse</a>&lt;T: store&gt;(v: &<b>mut</b> <a href="smart_vector.md#0x1_smart_vector_SmartVector">SmartVector</a>&lt;T&gt;) {
-    <b>let</b> inline_len = <a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&v.inline_vec);
+    <b>let</b> inline_len = <a href="..\../move-stdlib\doc\vector.md#0x1_vector_length">vector::length</a>(&v.inline_vec);
     <b>let</b> i = 0;
-    <b>let</b> new_inline_vec = <a href="../../move-stdlib/doc/vector.md#0x1_vector">vector</a>[];
-    // Push the last `inline_len` elements into a temp <a href="../../move-stdlib/doc/vector.md#0x1_vector">vector</a>.
+    <b>let</b> new_inline_vec = <a href="..\../move-stdlib\doc\vector.md#0x1_vector">vector</a>[];
+    // Push the last `inline_len` elements into a temp <a href="..\../move-stdlib\doc\vector.md#0x1_vector">vector</a>.
     <b>while</b> (i &lt; inline_len) {
-        <a href="../../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> new_inline_vec, <a href="smart_vector.md#0x1_smart_vector_pop_back">pop_back</a>(v));
+        <a href="..\../move-stdlib\doc\vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> new_inline_vec, <a href="smart_vector.md#0x1_smart_vector_pop_back">pop_back</a>(v));
         i = i + 1;
     };
-    <a href="../../move-stdlib/doc/vector.md#0x1_vector_reverse">vector::reverse</a>(&<b>mut</b> new_inline_vec);
+    <a href="..\../move-stdlib\doc\vector.md#0x1_vector_reverse">vector::reverse</a>(&<b>mut</b> new_inline_vec);
     // Reverse the <a href="big_vector.md#0x1_big_vector">big_vector</a> left <b>if</b> <b>exists</b>.
-    <b>if</b> (<a href="../../move-stdlib/doc/option.md#0x1_option_is_some">option::is_some</a>(&v.big_vec)) {
-        <a href="big_vector.md#0x1_big_vector_reverse">big_vector::reverse</a>(<a href="../../move-stdlib/doc/option.md#0x1_option_borrow_mut">option::borrow_mut</a>(&<b>mut</b> v.big_vec));
+    <b>if</b> (<a href="..\../move-stdlib\doc\option.md#0x1_option_is_some">option::is_some</a>(&v.big_vec)) {
+        <a href="big_vector.md#0x1_big_vector_reverse">big_vector::reverse</a>(<a href="..\../move-stdlib\doc\option.md#0x1_option_borrow_mut">option::borrow_mut</a>(&<b>mut</b> v.big_vec));
     };
     // Mem::swap the two vectors.
-    <b>let</b> temp_vec = <a href="../../move-stdlib/doc/vector.md#0x1_vector">vector</a>[];
-    <b>while</b> (!<a href="../../move-stdlib/doc/vector.md#0x1_vector_is_empty">vector::is_empty</a>(&<b>mut</b> v.inline_vec)) {
-        <a href="../../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> temp_vec, <a href="../../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(&<b>mut</b> v.inline_vec));
+    <b>let</b> temp_vec = <a href="..\../move-stdlib\doc\vector.md#0x1_vector">vector</a>[];
+    <b>while</b> (!<a href="..\../move-stdlib\doc\vector.md#0x1_vector_is_empty">vector::is_empty</a>(&<b>mut</b> v.inline_vec)) {
+        <a href="..\../move-stdlib\doc\vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> temp_vec, <a href="..\../move-stdlib\doc\vector.md#0x1_vector_pop_back">vector::pop_back</a>(&<b>mut</b> v.inline_vec));
     };
-    <a href="../../move-stdlib/doc/vector.md#0x1_vector_reverse">vector::reverse</a>(&<b>mut</b> temp_vec);
-    <b>while</b> (!<a href="../../move-stdlib/doc/vector.md#0x1_vector_is_empty">vector::is_empty</a>(&<b>mut</b> new_inline_vec)) {
-        <a href="../../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> v.inline_vec, <a href="../../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(&<b>mut</b> new_inline_vec));
+    <a href="..\../move-stdlib\doc\vector.md#0x1_vector_reverse">vector::reverse</a>(&<b>mut</b> temp_vec);
+    <b>while</b> (!<a href="..\../move-stdlib\doc\vector.md#0x1_vector_is_empty">vector::is_empty</a>(&<b>mut</b> new_inline_vec)) {
+        <a href="..\../move-stdlib\doc\vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> v.inline_vec, <a href="..\../move-stdlib\doc\vector.md#0x1_vector_pop_back">vector::pop_back</a>(&<b>mut</b> new_inline_vec));
     };
-    <a href="../../move-stdlib/doc/vector.md#0x1_vector_destroy_empty">vector::destroy_empty</a>(new_inline_vec);
-    // Push the rest elements originally left in inline_vector back <b>to</b> the end of the smart <a href="../../move-stdlib/doc/vector.md#0x1_vector">vector</a>.
-    <b>while</b> (!<a href="../../move-stdlib/doc/vector.md#0x1_vector_is_empty">vector::is_empty</a>(&<b>mut</b> temp_vec)) {
-        <a href="smart_vector.md#0x1_smart_vector_push_back">push_back</a>(v, <a href="../../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(&<b>mut</b> temp_vec));
+    <a href="..\../move-stdlib\doc\vector.md#0x1_vector_destroy_empty">vector::destroy_empty</a>(new_inline_vec);
+    // Push the rest elements originally left in inline_vector back <b>to</b> the end of the smart <a href="..\../move-stdlib\doc\vector.md#0x1_vector">vector</a>.
+    <b>while</b> (!<a href="..\../move-stdlib\doc\vector.md#0x1_vector_is_empty">vector::is_empty</a>(&<b>mut</b> temp_vec)) {
+        <a href="smart_vector.md#0x1_smart_vector_push_back">push_back</a>(v, <a href="..\../move-stdlib\doc\vector.md#0x1_vector_pop_back">vector::pop_back</a>(&<b>mut</b> temp_vec));
     };
-    <a href="../../move-stdlib/doc/vector.md#0x1_vector_destroy_empty">vector::destroy_empty</a>(temp_vec);
+    <a href="..\../move-stdlib\doc\vector.md#0x1_vector_destroy_empty">vector::destroy_empty</a>(temp_vec);
 }
 </code></pre>
 
@@ -650,12 +650,12 @@ Disclaimer: This function may be costly. Use it at your own discretion.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="smart_vector.md#0x1_smart_vector_index_of">index_of</a>&lt;T&gt;(v: &<a href="smart_vector.md#0x1_smart_vector_SmartVector">SmartVector</a>&lt;T&gt;, val: &T): (bool, u64) {
-    <b>let</b> (found, i) = <a href="../../move-stdlib/doc/vector.md#0x1_vector_index_of">vector::index_of</a>(&v.inline_vec, val);
+    <b>let</b> (found, i) = <a href="..\../move-stdlib\doc\vector.md#0x1_vector_index_of">vector::index_of</a>(&v.inline_vec, val);
     <b>if</b> (found) {
         (<b>true</b>, i)
-    } <b>else</b> <b>if</b> (<a href="../../move-stdlib/doc/option.md#0x1_option_is_some">option::is_some</a>(&v.big_vec)) {
-        <b>let</b> (found, i) = <a href="big_vector.md#0x1_big_vector_index_of">big_vector::index_of</a>(<a href="../../move-stdlib/doc/option.md#0x1_option_borrow">option::borrow</a>(&v.big_vec), val);
-        (found, i + <a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&v.inline_vec))
+    } <b>else</b> <b>if</b> (<a href="..\../move-stdlib\doc\option.md#0x1_option_is_some">option::is_some</a>(&v.big_vec)) {
+        <b>let</b> (found, i) = <a href="big_vector.md#0x1_big_vector_index_of">big_vector::index_of</a>(<a href="..\../move-stdlib\doc\option.md#0x1_option_borrow">option::borrow</a>(&v.big_vec), val);
+        (found, i + <a href="..\../move-stdlib\doc\vector.md#0x1_vector_length">vector::length</a>(&v.inline_vec))
     } <b>else</b> {
         (<b>false</b>, 0)
     }
@@ -711,10 +711,10 @@ Return the length of the vector.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="smart_vector.md#0x1_smart_vector_length">length</a>&lt;T&gt;(v: &<a href="smart_vector.md#0x1_smart_vector_SmartVector">SmartVector</a>&lt;T&gt;): u64 {
-    <a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&v.inline_vec) + <b>if</b> (<a href="../../move-stdlib/doc/option.md#0x1_option_is_none">option::is_none</a>(&v.big_vec)) {
+    <a href="..\../move-stdlib\doc\vector.md#0x1_vector_length">vector::length</a>(&v.inline_vec) + <b>if</b> (<a href="..\../move-stdlib\doc\option.md#0x1_option_is_none">option::is_none</a>(&v.big_vec)) {
         0
     } <b>else</b> {
-        <a href="big_vector.md#0x1_big_vector_length">big_vector::length</a>(<a href="../../move-stdlib/doc/option.md#0x1_option_borrow">option::borrow</a>(&v.big_vec))
+        <a href="big_vector.md#0x1_big_vector_length">big_vector::length</a>(<a href="..\../move-stdlib\doc\option.md#0x1_option_borrow">option::borrow</a>(&v.big_vec))
     }
 }
 </code></pre>
