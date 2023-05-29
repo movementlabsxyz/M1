@@ -976,7 +976,7 @@ impl Vm {
         let tx_factory = TransactionFactory::new(ChainId::test());
         let tx_acc_mint = core_account
             .sign_with_transaction_builder(
-                tx_factory.mint(to, 1000 * 100_000_000)
+                tx_factory.mint(to, 10 * 100_000_000)
             );
         return self.submit_transaction(bcs::to_bytes(&tx_acc_mint).unwrap()).await;
     }
@@ -1080,7 +1080,7 @@ impl Vm {
                 "block error,maybe not sync ",
             ));
         }
-        println!("------------inner_build_block------parent-{}-new--{}-----", parent_block_id, block_id);
+        println!("------------inner_build_block-------{}----", block_id);
         let next_epoch = aptos_data.3;
         let ts = aptos_data.4;
         let output = executor
@@ -1243,7 +1243,7 @@ impl ChainVm for Vm
                 choices::status::Status::Processing,
             ).unwrap();
             block_.set_state(state_b.clone());
-            println!("--------vm---build_block------{}---", block_.id());
+            println!("--------vm_build_block------{}---", block_.id());
             block_.verify().await.unwrap();
             return Ok(block_);
         }
