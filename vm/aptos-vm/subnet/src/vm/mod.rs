@@ -994,6 +994,8 @@ impl Vm {
     }
 
     /// Sets the state of the Vm.
+    /// # Errors
+    /// Will fail if the `snow::State` is syncing
     pub async fn set_state(&self, snow_state: snow::State) -> io::Result<()> {
         let mut vm_state = self.state.write().await;
         match snow_state {
@@ -1005,9 +1007,8 @@ impl Vm {
             }
 
             snow::State::StateSyncing => {
-                vm_state.bootstrapped = false;
                 log::info!("set_state: state syncing");
-                Ok(())
+                Err(Error::new(ErrorKind::Other, "state sync is not supported"))
             }
 
             // called by the bootstrapper to signal bootstrapping has started.
@@ -1025,6 +1026,7 @@ impl Vm {
             }
         }
     }
+
 
     /// Sets the container preference of the Vm.
     pub async fn set_preference(&self, id: ids::Id) -> io::Result<()> {
