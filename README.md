@@ -311,39 +311,3 @@ curl -X POST --data '{
 {"jsonrpc":"2.0","result":{"data":100000000000},"id":1}
 
 ```
-## Future Work
-### Phase 1: Problem Diagnosis and Planning (Q1 2023)
-* Identify and analyze the root cause of each problem.
-* Determine potential solutions.
-* Prioritize solutions and establish a timeline.
-
-### Phase 2: Fix Node Replay and Sync Issues (Q2-Q3 2023)
-* Improve synchronization mechanism to enhance node connectivity and data transfer efficiency.
-* Resolve data conflicts and inconsistencies between nodes.
-* Test solution to ensure proper functionality.
-### Phase 3: Improve Block Production and Transaction Handling (Q4 2023 - Q1 2024)
-* Optimize block production algorithm to increase efficiency and scalability.
-* Reduce network load by minimizing each transaction's production of a new block.
-* Test solution to ensure proper functionality.
-### Phase 4: Implement New Token Model (Q2-Q3 2024)
-
-* Research and evaluate different token models to determine the best fit.
-Design and implement a new token model to meet security, scalability, and usability requirements.
-* Migrate existing Aptos tokens to the new model while preserving user balances and transaction records.
-* Communicate changes to network participants and provide necessary guidance and tools.
-
-### Phase 5: Design and Implement Staking Reward Mechanism (Q4 2024 - Q1 2025)
-* Design and implement a staking reward mechanism to incentivize user participation and support long-term sustainability.
-* Determine appropriate reward rate and allocation methods and establish relevant policies and rules.
-* Test solution to ensure proper functionality.
-
-### Phase 6: Implement Transaction Explorer (Q2-Q3 2025)
-* Implement a new transaction explorer to enable users to conveniently view their transactions.
-* Design and implement a user-friendly transaction explorer with advanced filtering, sorting, and search features.
-* Test solution to ensure proper functionality.
-
-### Phase 7: Implement Consensus Algorithm and P-chain/Movement Bridge Communication (Q4 2025 and beyond)
-
-* Implement an efficient and secure consensus algorithm.
-* Improve communication between the P-chain and Movement through their bridge.
-* Test solution to ensure proper functionality.
