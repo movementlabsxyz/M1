@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-avalanche-types = { version = "0.0.392", features = ["subnet", "codec_base64"] }
+avalanche-types = { version = "0.0.395", features = ["subnet", "codec_base64"] }
 tokio = { version = "1.25.0", features = ["fs", "rt-multi-thread"] }
 tonic = { version = "0.8.3", features = ["gzip"] }
 serde = { version = "1.0.152", features = ["derive"] }
