@@ -914,22 +914,41 @@ impl Vm {
     async fn check_pending_tx(&self) {
         // Clone the reference to `self` and create an Arc pointer to allow for multiple owners.
         let shared_self = Arc::new(self.clone());
+        // Define the duration after which we will consider a check to have timed-out.
+        let check_timeout_duration = Duration::from_secs(2);
         // Define the duration for which we will wait between each check.
         let check_duration = Duration::from_millis(500);
         // Spawn a new task to handle the checking logic asynchronously.
         tokio::task::spawn(async move {
+            // Initialize a variable to keep track of the last time we checked for unprocessed transactions.
+            let mut last_check_time = Instant::now();
+            // Enter an infinite loop.
             loop {
                 // Wait for the specified time interval before continuing.
                 _ = tokio::time::sleep(check_duration).await;
                 // Acquire a read lock on the shared `is_building_block` data to check if there are any blocks being built.
                 let is_build = shared_self.is_buiding_block.read().await;
                 if !*is_build { // If there is no building block...
-                     let tx_arr = shared_self.get_pending_tx(1).await;
+                    // Check if the time elapsed since the last check is greater than the timeout duration.
+                    if last_check_time.elapsed() > check_timeout_duration {
+                        // If so, release the read lock and acquire a write lock to modify the shared data.
+                        drop(is_build);
+                        let mut is_build = shared_self.is_buiding_block.write().await;
+                        // Set the `is_building_block` to `false` to indicate that a new block can now be built.
+                        *is_build = false;
+                    } else { // If the timeout duration has not yet been reached...
+                        // Call the `get_pending_tx` function to acquire the list of unprocessed transactions.
+                        let tx_arr = shared_self.get_pending_tx(1).await;
                         if !tx_arr.is_empty() { // If there are any unprocessed transactions...
                             // Notify the main thread that a block is ready to be built, and update the last check time.
                             shared_self.notify_block_ready().await;
+                            last_check_time = Instant::now();
                         }
-                } 
+                    }
+                } else { // If there is a building block...
+                    // Update the last check time to prevent any timeouts during the block construction process.
+                    last_check_time = Instant::now();
+                }
             }
         });
     }
