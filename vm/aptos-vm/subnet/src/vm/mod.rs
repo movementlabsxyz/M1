@@ -13,7 +13,8 @@ use avalanche_types::subnet::rpc::snow::engine::common::http_handler::{HttpHandl
 use avalanche_types::subnet::rpc::snow::engine::common::message::Message::PendingTxs;
 use avalanche_types::subnet::rpc::snow::engine::common::vm::{CommonVm, Connector};
 use avalanche_types::subnet::rpc::snow::validators::client::ValidatorStateClient;
-use avalanche_types::subnet::rpc::snowman::block::{ChainVm, Getter, Parser};
+use avalanche_types::subnet::rpc::snowman::block::{BatchedChainVm, ChainVm, Getter, Parser};
+use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use futures::{channel::mpsc as futures_mpsc, StreamExt};
 use hex;
@@ -1082,7 +1083,7 @@ impl Vm {
                 "block error,maybe not sync ",
             ));
         }
-        println!("------------inner_build_block-------{}----", block_id);
+        println!("------------inner_build_block {}----", block_id);
         let next_epoch = aptos_data.3;
         let ts = aptos_data.4;
         let output = executor
@@ -1181,6 +1182,31 @@ impl Vm {
                 }
             }
         });
+    }
+}
+
+#[tonic::async_trait]
+impl BatchedChainVm for Vm {
+    type Block = Block;
+
+    async fn get_ancestors(
+        &self,
+        _block_id: ids::Id,
+        _max_block_num: i32,
+        _max_block_size: i32,
+        _max_block_retrival_time: Duration,
+    ) -> io::Result<Vec<Bytes>> {
+        Err(Error::new(
+            ErrorKind::Unsupported,
+            "get_ancestors not implemented",
+        ))
+    }
+
+    async fn batched_parse_block(&self, _blocks: &[Vec<u8>]) -> io::Result<Vec<Self::Block>> {
+        Err(Error::new(
+            ErrorKind::Unsupported,
+            "batched_parse_block not implemented",
+        ))
     }
 }
 
