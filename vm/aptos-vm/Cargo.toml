@@ -4,6 +4,7 @@ resolver = "2"
 members = [
     "api",
     "subnet",
+    "subnet/movement-benchmark",
     "api/openapi-spec-generator",
     "api/test-context",
     "api/types",
