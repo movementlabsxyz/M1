@@ -210,24 +210,28 @@ impl Block {
 
     /// Mark this [`Block`](Block) accepted and updates [`State`](crate::state::State) accordingly.
     pub async fn accept(&mut self) -> io::Result<()> {
+        self.inner_build().await?;
+        println!("-----accept----1---");
         self.set_status(choices::status::Status::Accepted);
         // only decided blocks are persistent -- no reorg
         self.state.write_block(&self.clone()).await?;
         self.state.set_last_accepted_block(&self.id()).await?;
-
         self.state.remove_verified(&self.id()).await;
+        Ok(())
+    }
 
+    async fn inner_build(&self) -> io::Result<()> {
         if let Some(vm_) = self.state.vm.as_ref() {
             let vm = vm_.read().await;
-            vm.inner_build_block(self.data.clone(), false).await.unwrap();
+            return vm.inner_build_block(self.data.clone()).await;
         }
-        Ok(())
+        return Ok(());
     }
 
     /// Mark this [`Block`](Block) rejected and updates [`State`](crate::state::State) accordingly.
     pub async fn reject(&mut self) -> io::Result<()> {
         self.set_status(choices::status::Status::Rejected);
-
+        println!("-----reject----1---");
         // only decided blocks are persistent -- no reorg
         self.state.write_block(&self.clone()).await?;
 
