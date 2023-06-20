@@ -48,7 +48,7 @@ use aptos_types::account_view::AccountView;
 use aptos_types::block_info::BlockInfo;
 use aptos_types::block_metadata::BlockMetadata;
 use aptos_types::chain_id::ChainId;
-use aptos_types::ledger_info::{generate_ledger_info_with_sig, LedgerInfo, LedgerInfoWithSignatures};
+use aptos_types::ledger_info::{generate_ledger_info_with_sig, LedgerInfo};
 use aptos_types::mempool_status::{MempoolStatus, MempoolStatusCode};
 use aptos_types::transaction::{SignedTransaction, Transaction, WriteSetPayload};
 use aptos_types::transaction::Transaction::UserTransaction;
@@ -61,7 +61,7 @@ use crate::api::chain_handlers::{AccountStateArgs, ChainHandler, ChainService, R
 use crate::api::static_handlers::{StaticHandler, StaticService};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-const MOVE_DB_DIR: &str = "aptos-chain-data";
+const MOVE_DB_DIR: &str = ".move-chain-data";
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AptosData(
@@ -70,7 +70,6 @@ pub struct AptosData(
     pub HashValue,
     pub u64,
     pub u64,
-    pub Vec<u8>,// leger info
 );
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -134,8 +133,9 @@ pub struct Vm {
     pub signer: Option<ValidatorSigner>,
 
     pub executor: Option<Arc<RwLock<BlockExecutor<AptosVM, Transaction>>>>,
+  
+    pub is_building_block: Arc<RwLock<bool>>,
 
-    pub is_buiding_block: Arc<RwLock<bool>>,
 
 }
 
@@ -160,7 +160,8 @@ impl Vm {
             signer: None,
             executor: None,
             db: None,
-            is_buiding_block: Arc::new(RwLock::new(false)),
+            is_building_block: Arc::new(RwLock::new(false)),
+
         }
     }
 
@@ -912,42 +913,28 @@ impl Vm {
     /// the construction of a new block. If there is a block currently being constructed or the
     /// waiting time for unprocessed transactions has not timed out, it continues to wait.
     async fn check_pending_tx(&self) {
-        // Clone the reference to `self` and create an Arc pointer to allow for multiple owners.
         let shared_self = Arc::new(self.clone());
-        // Define the duration after which we will consider a check to have timed-out.
-        let check_timeout_duration = Duration::from_secs(2);
-        // Define the duration for which we will wait between each check.
+        // let check_timeout_duration = Duration::from_secs(2);
         let check_duration = Duration::from_millis(500);
-        // Spawn a new task to handle the checking logic asynchronously.
         tokio::task::spawn(async move {
-            // Initialize a variable to keep track of the last time we checked for unprocessed transactions.
-            let mut last_check_time = Instant::now();
-            // Enter an infinite loop.
+            // let mut last_check_time = Instant::now();
             loop {
-                // Wait for the specified time interval before continuing.
                 _ = tokio::time::sleep(check_duration).await;
-                // Acquire a read lock on the shared `is_building_block` data to check if there are any blocks being built.
-                let is_build = shared_self.is_buiding_block.read().await;
-                if !*is_build { // If there is no building block...
-                    // Check if the time elapsed since the last check is greater than the timeout duration.
-                    if last_check_time.elapsed() > check_timeout_duration {
-                        // If so, release the read lock and acquire a write lock to modify the shared data.
-                        drop(is_build);
-                        let mut is_build = shared_self.is_buiding_block.write().await;
-                        // Set the `is_building_block` to `false` to indicate that a new block can now be built.
-                        *is_build = false;
-                    } else { // If the timeout duration has not yet been reached...
-                        // Call the `get_pending_tx` function to acquire the list of unprocessed transactions.
-                        let tx_arr = shared_self.get_pending_tx(1).await;
-                        if !tx_arr.is_empty() { // If there are any unprocessed transactions...
-                            // Notify the main thread that a block is ready to be built, and update the last check time.
-                            shared_self.notify_block_ready().await;
-                            last_check_time = Instant::now();
-                        }
+                let is_build = shared_self.is_building_block.read().await;
+                if !*is_build {
+                    let tx_arr = shared_self.get_pending_tx(1).await;
+                    if !tx_arr.is_empty() {
+                        shared_self.notify_block_ready().await;
                     }
-                } else { // If there is a building block...
-                    // Update the last check time to prevent any timeouts during the block construction process.
-                    last_check_time = Instant::now();
+                    // last_check_time = Instant::now();
+                } else {
+                    // if last_check_time.elapsed() > check_timeout_duration {
+                    //     drop(is_build);
+                    //     let mut is_build = shared_self.is_building_block.write().await;
+                    //     *is_build = false;
+                    //     last_check_time = Instant::now();
+                    //     println!("------------check_pending_tx timeout ");
+                    // }
                 }
             }
         });
@@ -955,20 +942,23 @@ impl Vm {
 
 
     async fn notify_block_ready(&self) {
-        {
-            let is_build = self.is_buiding_block.read().await;
-            if *is_build {
-                return;
-            }
-        }
+        // {
+        //     let is_build = self.is_building_block.read().await;
+        //     if *is_build {
+        //         println!("------------notify_block_ready ignore");
+        //         return;
+        //     }
+        // }
+
         if let Some(to_engine) = &self.to_engine {
             let send_result = {
                 let to_engine = to_engine.read().await;
                 to_engine.send(PendingTxs).await
             };
             if send_result.is_ok() {
-                let mut is_build = self.is_buiding_block.write().await;
-                *is_build = true;
+                // let mut is_build = self.is_building_block.write().await;
+                // *is_build = true;
+                println!("---------------notify_block_ready success---------------------");
             } else {
                 log::info!("send tx to_engine error ")
             }
@@ -1134,7 +1124,14 @@ impl Vm {
             sn,
         )
     }
-    pub async fn inner_build_block(&self, data: Vec<u8>, is_miner: bool) -> io::Result<Vec<u8>> {
+
+    async fn reset_building_status(&self) {
+        let mut is_build = self.is_building_block.write().await;
+        *is_build = false;
+    }
+
+    pub async fn inner_build_block(&self, data: Vec<u8>) -> io::Result<()> {
+        // self.reset_building_status().await;
         let executor = self.executor.as_ref().unwrap().read().await;
         let aptos_data = serde_json::from_slice::<AptosData>(&data).unwrap();
         let block_tx = serde_json::from_slice::<Vec<Transaction>>(&aptos_data.0).unwrap();
@@ -1174,12 +1171,7 @@ impl Vm {
             ),
             HashValue::zero(),
         );
-        let li;
-        if is_miner {
-            li = generate_ledger_info_with_sig(&[self.signer.as_ref().unwrap().clone()], ledger_info);
-        } else {
-            li = serde_json::from_slice::<LedgerInfoWithSignatures>(&aptos_data.5).unwrap();
-        }
+        let li = generate_ledger_info_with_sig(&[self.signer.as_ref().unwrap().clone()], ledger_info);
         executor.commit_blocks(vec![block_id], li.clone()).unwrap();
         let mut core_pool = self.core_mempool.as_ref().unwrap().write().await;
         for t in block_tx.iter() {
@@ -1192,28 +1184,19 @@ impl Vm {
                 _ => {}
             }
         }
-        let mut is_build = self.is_buiding_block.write().await;
-        *is_build = false;
-        if is_miner {
-            Ok(serde_json::to_vec(&li).unwrap())
-        } else {
-            Ok(vec![])
-        }
+        Ok(())
     }
     async fn init_aptos(&mut self) {
-        let vm_state = self.state.write().await;
         let (genesis, validators) = test_genesis_change_set_and_validators(Some(1));
         let signer = ValidatorSigner::new(
             validators[0].data.owner_address,
             validators[0].consensus_key.clone(),
         );
-        let db_path = vm_state.ctx.as_ref().unwrap().node_id.to_vec();
         self.signer = Some(signer.clone());
         let genesis_txn = Transaction::GenesisTransaction(WriteSetPayload::Direct(genesis));
-        let p = format!("{}/{}/{}",
+        let p = format!("{}/{}",
                         dirs::home_dir().unwrap().to_str().unwrap(),
-                        MOVE_DB_DIR,
-                        hex::encode(db_path).as_str());
+                        MOVE_DB_DIR);
         let db;
         if !fs::metadata(p.clone().as_str()).is_ok() {
             fs::create_dir_all(p.as_str()).unwrap();
@@ -1242,7 +1225,7 @@ impl Vm {
         let service = get_raw_api_service(Arc::new(context));
         self.api_service = Some(service);
         self.core_mempool = Some(Arc::new(RwLock::new(CoreMempool::new(&node_config))));
-        self.check_pending_tx().await;
+        // self.check_pending_tx().await;
         tokio::task::spawn(async move {
             while let Some(request) = mempool_client_receiver.next().await {
                 match request {
@@ -1325,15 +1308,12 @@ impl ChainVm for Vm
             block_tx.push(Transaction::StateCheckpoint(HashValue::random()));
             let parent_block_id = executor.committed_block_id();
             let block_tx_bytes = serde_json::to_vec(&block_tx).unwrap();
-            let mut data = AptosData(block_tx_bytes,
-                                     block_id.clone(),
-                                     parent_block_id,
-                                     next_epoch,
-                                     unix_now, vec![]);
+            let data = AptosData(block_tx_bytes,
+                                 block_id.clone(),
+                                 parent_block_id,
+                                 next_epoch,
+                                 unix_now);
 
-            data.5 = self.inner_build_block(
-                serde_json::to_vec(&data.clone()).unwrap(),
-                true).await.unwrap();
             let mut block_ = Block::new(
                 prnt_blk.id(),
                 prnt_blk.height() + 1,
@@ -1484,7 +1464,10 @@ impl Getter for Vm
     ) -> io::Result<<Self as Getter>::Block> {
         let vm_state = self.state.read().await;
         if let Some(state) = &vm_state.state {
-            let block = state.get_block(&blk_id).await?;
+            let mut block = state.get_block(&blk_id).await?;
+            let mut new_state = state.clone();
+            new_state.set_vm(self.clone());
+            block.set_state(new_state);
             return Ok(block);
         }
         Err(Error::new(ErrorKind::NotFound, "state manager not found"))
@@ -1515,7 +1498,6 @@ impl Parser for Vm
                 }
             };
         }
-
         Err(Error::new(ErrorKind::NotFound, "state manager not found"))
     }
 }
@@ -1566,8 +1548,7 @@ impl CommonVm for Vm
                                  HashValue::zero(),
                                  HashValue::zero(),
                                  0,
-                                 0,
-                                 vec![]);
+                                 0);
             let mut genesis_block = Block::new(
                 ids::Id::empty(),
                 0,
