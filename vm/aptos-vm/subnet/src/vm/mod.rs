@@ -133,8 +133,9 @@ pub struct Vm {
     pub signer: Option<ValidatorSigner>,
 
     pub executor: Option<Arc<RwLock<BlockExecutor<AptosVM, Transaction>>>>,
-
+  
     pub is_building_block: Arc<RwLock<bool>>,
+
 
 }
 
@@ -160,6 +161,7 @@ impl Vm {
             executor: None,
             db: None,
             is_building_block: Arc::new(RwLock::new(false)),
+
         }
     }
 
@@ -947,6 +949,7 @@ impl Vm {
         //         return;
         //     }
         // }
+
         if let Some(to_engine) = &self.to_engine {
             let send_result = {
                 let to_engine = to_engine.read().await;
