@@ -25,7 +25,7 @@ use async_trait::async_trait;
 use clap::Parser;
 use std::collections::BTreeMap;
 
-/// Command Line Interface (CLI) for developing and interacting with the movement subnet blockchain
+/// Command Line Interface (CLI) for developing and interacting with the Aptos blockchain
 #[derive(Parser)]
 #[clap(name = "movement", author, version, propagate_version = true)]
 pub enum Tool {

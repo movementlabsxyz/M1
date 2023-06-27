@@ -49,7 +49,7 @@ use std::{
 const WAYPOINT_FILE: &str = "waypoint.txt";
 const GENESIS_FILE: &str = "genesis.blob";
 
-/// Tool for setting up an Aptos chain Genesis transaction
+/// Tool for setting up an Movement chain Genesis transaction
 ///
 /// This tool sets up a space for multiple initial "validator"
 /// accounts to build a genesis transaction for a new chain.
