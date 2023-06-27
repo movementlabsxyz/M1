@@ -25,6 +25,16 @@ pub struct State {
     pub vm: Option<Arc<RwLock<Vm>>>,
 }
 
+impl Default for State {
+    fn default() -> State {
+        Self {
+            db: Arc::new(RwLock::new(subnet::rpc::database::memdb::Database::new())),
+            verified_blocks: Arc::new(RwLock::new(HashMap::new())),
+            vm: None,
+        }
+    }
+}
+
 const LAST_ACCEPTED_BLOCK_KEY: &[u8] = b"last_accepted_block";
 
 const STATUS_PREFIX: u8 = 0x0;
