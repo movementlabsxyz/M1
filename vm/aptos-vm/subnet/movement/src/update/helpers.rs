@@ -35,7 +35,7 @@ pub fn check_if_update_required(repo_owner: &str, repo_name: &str) -> Result<Upd
             Some(release) => release,
             None => return Err(anyhow!("Failed to find latest CLI release")),
         };
-        if release.version.starts_with("aptos-cli-") {
+        if release.version.starts_with("movement-cli-") {
             break release;
         }
     };
