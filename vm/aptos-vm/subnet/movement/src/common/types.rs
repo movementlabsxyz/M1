@@ -54,7 +54,7 @@ use std::{
 };
 use thiserror::Error;
 
-pub const USER_AGENT: &str = concat!("aptos-cli/", env!("CARGO_PKG_VERSION"));
+pub const USER_AGENT: &str = concat!("movement-cli/", env!("CARGO_PKG_VERSION"));
 const US_IN_SECS: u64 = 1_000_000;
 const ACCEPTED_CLOCK_SKEW_US: u64 = 5 * US_IN_SECS;
 pub const DEFAULT_EXPIRATION_SECS: u64 = 30;
@@ -79,7 +79,7 @@ pub enum CliError {
     CommandArgumentError(String),
     #[error("Unable to load config: {0} {1}")]
     ConfigLoadError(String, String),
-    #[error("Unable to find config {0}, have you run `aptos init`?")]
+    #[error("Unable to find config {0}, have you run `movement init`?")]
     ConfigNotFoundError(String),
     #[error("Error accessing '{0}': {1}")]
     IO(String, #[source] std::io::Error),
@@ -193,7 +193,7 @@ pub struct CliConfig {
 
 const CONFIG_FILE: &str = "config.yaml";
 const LEGACY_CONFIG_FILE: &str = "config.yml";
-pub const CONFIG_FOLDER: &str = ".aptos";
+pub const CONFIG_FOLDER: &str = ".movement";
 
 /// An individual profile
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -897,7 +897,7 @@ impl RestOptions {
             reqwest::Url::parse(&url)
                 .map_err(|err| CliError::UnableToParse("Rest URL", err.to_string()))
         } else {
-            Err(CliError::CommandArgumentError("No rest url given.  Please add --url or add a rest_url to the .aptos/config.yaml for the current profile".to_string()))
+            Err(CliError::CommandArgumentError("No rest url given.  Please add --url or add a rest_url to the .movement/config.yaml for the current profile".to_string()))
         }
     }
 
@@ -1009,7 +1009,7 @@ pub fn load_account_arg(str: &str) -> Result<AccountAddress, CliError> {
         Ok(account_address_from_public_key(&public_key))
     } else {
         Err(CliError::CommandArgumentError(
-            "'--account' or '--profile' after using aptos init must be provided".to_string(),
+            "'--account' or '--profile' after using movement init must be provided".to_string(),
         ))
     }
 }
@@ -1228,7 +1228,7 @@ impl FaucetOptions {
             reqwest::Url::parse(&url)
                 .map_err(|err| CliError::UnableToParse("config faucet_url", err.to_string()))
         } else {
-            Err(CliError::CommandArgumentError("No faucet given.  Please add --faucet-url or add a faucet URL to the .aptos/config.yaml for the current profile".to_string()))
+            Err(CliError::CommandArgumentError("No faucet given.  Please add --faucet-url or add a faucet URL to the .movement/config.yaml for the current profile".to_string()))
         }
     }
 }

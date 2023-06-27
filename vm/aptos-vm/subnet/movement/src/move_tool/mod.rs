@@ -491,7 +491,7 @@ impl CliCommand<&'static str> for TestPackage {
             };
             summary.coverage()?;
 
-            println!("Please use `aptos move coverage -h` for more detailed source or bytecode test coverage of this package");
+            println!("Please use `movement move coverage -h` for more detailed source or bytecode test coverage of this package");
         }
 
         match result {
@@ -803,7 +803,7 @@ impl CliCommand<TransactionSummary> for CreateResourceAccountAndPublishPackage {
             account
         } else {
             return Err(CliError::CommandArgumentError(
-                "Please provide an account using --profile or run aptos init".to_string(),
+                "Please provide an account using --profile or run movement init".to_string(),
             ));
         };
         let seed = seed_args.seed()?;

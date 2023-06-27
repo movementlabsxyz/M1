@@ -23,7 +23,7 @@ impl PackageHooks for AptosPackageHooks {
     }
 
     fn custom_dependency_key(&self) -> Option<String> {
-        Some("aptos".to_string())
+        Some("movement".to_string())
     }
 
     fn resolve_custom_dependency(
