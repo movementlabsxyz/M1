@@ -3,7 +3,7 @@
 
 use crate::common::types::{CliError, CliTypedResult};
 /// Most of the code below comes from the crate `datatest-stable`. Because the limitation of `datatest-stable`,
-/// we are not able to run transactional tests as a subcommand of the Aptos CLI. Therefore, we need to duplicate code
+/// we are not able to run transactional tests as a subcommand of the Movement CLI. Therefore, we need to duplicate code
 /// here and make minor modifications.
 ///
 use clap::Parser;

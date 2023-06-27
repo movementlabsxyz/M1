@@ -23,6 +23,9 @@ use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, str::FromStr};
 
+// 
+const SEED_NODE_1_REST : &str = "https://seed-node1.movementlabs.xyz";
+
 /// 1 APT (might not actually get that much, depending on the faucet)
 const NUM_DEFAULT_OCTAS: u64 = 100000000;
 
@@ -64,7 +67,7 @@ pub struct InitTool {
 #[async_trait]
 impl CliCommand<()> for InitTool {
     fn command_name(&self) -> &'static str {
-        "AptosInit"
+        "MovementInit"
     }
 
     async fn execute(self) -> CliTypedResult<()> {
@@ -81,7 +84,7 @@ impl CliCommand<()> for InitTool {
 
         // Select profile we're using
         let mut profile_config = if let Some(profile_config) = config.remove_profile(profile_name) {
-            prompt_yes_with_override(&format!("Aptos already initialized for profile {}, do you want to overwrite the existing config?", profile_name), self.prompt_options)?;
+            prompt_yes_with_override(&format!("Movement already initialized for profile {}, do you want to overwrite the existing config?", profile_name), self.prompt_options)?;
             profile_config
         } else {
             ProfileConfig::default()
@@ -111,18 +114,19 @@ impl CliCommand<()> for InitTool {
         match network {
             Network::Mainnet => {
                 profile_config.rest_url =
-                    Some("https://fullnode.mainnet.aptoslabs.com".to_string());
-                profile_config.faucet_url = None;
+                    Some(SEED_NODE_1_REST.to_string());
+                profile_config.faucet_url = 
+                    Some(SEED_NODE_1_REST.to_string());
             },
             Network::Testnet => {
                 profile_config.rest_url =
-                    Some("https://fullnode.testnet.aptoslabs.com".to_string());
+                    Some(SEED_NODE_1_REST.to_string());
                 profile_config.faucet_url =
-                    Some("https://faucet.testnet.aptoslabs.com".to_string());
+                    Some(SEED_NODE_1_REST.to_string());
             },
             Network::Devnet => {
-                profile_config.rest_url = Some("https://fullnode.devnet.aptoslabs.com".to_string());
-                profile_config.faucet_url = Some("https://faucet.devnet.aptoslabs.com".to_string());
+                profile_config.rest_url = Some(SEED_NODE_1_REST.to_string());
+                profile_config.faucet_url = Some(SEED_NODE_1_REST.to_string());
             },
             Network::Local => {
                 profile_config.rest_url = Some("http://localhost:8080".to_string());
@@ -253,7 +257,7 @@ impl CliCommand<()> for InitTool {
             .expect("Must have profiles, as created above")
             .insert(profile_name.to_string(), profile_config);
         config.save()?;
-        eprintln!("\n---\nAptos CLI is now set up for account {} as profile {}!  Run `aptos --help` for more information about commands", address, self.profile_options.profile_name().unwrap_or(DEFAULT_PROFILE));
+        eprintln!("\n---\nMovement CLI is now set up for account {} as profile {}!  Run `movement --help` for more information about commands", address, self.profile_options.profile_name().unwrap_or(DEFAULT_PROFILE));
         Ok(())
     }
 }
