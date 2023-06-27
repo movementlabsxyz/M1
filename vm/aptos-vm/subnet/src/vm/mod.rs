@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs, io::{self, Error, ErrorKind}, sync::Arc};
 use std::str::FromStr;
-use std::time::{Duration, Instant};
+use std::time::{Duration};
 use avalanche_types::{
     choices, ids,
     subnet::{self, rpc::snow},
@@ -133,9 +133,10 @@ pub struct Vm {
     pub signer: Option<ValidatorSigner>,
 
     pub executor: Option<Arc<RwLock<BlockExecutor<AptosVM, Transaction>>>>,
-  
-    pub is_building_block: Arc<RwLock<bool>>,
 
+    pub build_status: Arc<RwLock<u8>>,
+    // 0 done 1 building
+    pub has_pending_tx: Arc<RwLock<bool>>,
 
 }
 
@@ -160,8 +161,8 @@ impl Vm {
             signer: None,
             executor: None,
             db: None,
-            is_building_block: Arc::new(RwLock::new(false)),
-
+            build_status: Arc::new(RwLock::new(0)),
+            has_pending_tx: Arc::new(RwLock::new(false)),
         }
     }
 
@@ -898,6 +899,7 @@ impl Vm {
                           0,
                           signed_transaction.clone().sequence_number(),
                           TimelineState::NonQualified);
+        drop(core_pool);
     }
     async fn get_pending_tx(&self, count: u64) -> Vec<SignedTransaction> {
         let core_pool = self.core_mempool.as_ref().unwrap().read().await;
@@ -907,63 +909,87 @@ impl Vm {
                             true, vec![])
     }
 
-    /// The logic of this function is to periodically check whether there is a block currently
-    /// being constructed and whether there are pending transactions. If there is no block being
-    /// constructed and the waiting time for unprocessed transactions has timed out, it allows
-    /// the construction of a new block. If there is a block currently being constructed or the
-    /// waiting time for unprocessed transactions has not timed out, it continues to wait.
     async fn check_pending_tx(&self) {
         let shared_self = Arc::new(self.clone());
-        // let check_timeout_duration = Duration::from_secs(2);
-        let check_duration = Duration::from_millis(500);
-        tokio::task::spawn(async move {
-            // let mut last_check_time = Instant::now();
+        let check_duration = Duration::from_millis(2000);
+        tokio::spawn(async move {
             loop {
                 _ = tokio::time::sleep(check_duration).await;
-                let is_build = shared_self.is_building_block.read().await;
-                if !*is_build {
-                    let tx_arr = shared_self.get_pending_tx(1).await;
-                    if !tx_arr.is_empty() {
-                        shared_self.notify_block_ready().await;
+                let status = shared_self.build_status.try_read();
+                match status {
+                    Ok(s_) => {
+                        let s = s_.clone();
+                        drop(s_);
+                        if let 0 = s {
+                            let more = shared_self.has_pending_tx.try_read();
+                            match more {
+                                Ok(t_) => {
+                                    let t = t_.clone();
+                                    drop(t_);
+                                    if t == true {
+                                        shared_self.update_pending_tx_flag(false).await;
+                                        shared_self.notify_block_ready2().await;
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
                     }
-                    // last_check_time = Instant::now();
-                } else {
-                    // if last_check_time.elapsed() > check_timeout_duration {
-                    //     drop(is_build);
-                    //     let mut is_build = shared_self.is_building_block.write().await;
-                    //     *is_build = false;
-                    //     last_check_time = Instant::now();
-                    //     println!("------------check_pending_tx timeout ");
-                    // }
+                    _ => {}
                 }
             }
         });
     }
 
+    async fn update_build_block_status(&self, s: u8) {
+        let mut status = self.build_status.write().await;
+        if *status != s {
+            *status = s;
+        }
+    }
 
-    async fn notify_block_ready(&self) {
-        // {
-        //     let is_build = self.is_building_block.read().await;
-        //     if *is_build {
-        //         println!("------------notify_block_ready ignore");
-        //         return;
-        //     }
-        // }
+    async fn update_pending_tx_flag(&self, n: bool) {
+        let mut tx = self.has_pending_tx.write().await;
+        if *tx != n {
+            *tx = n;
+        }
+    }
 
+    async fn notify_block_ready2(&self) {
         if let Some(to_engine) = &self.to_engine {
             let send_result = {
                 let to_engine = to_engine.read().await;
                 to_engine.send(PendingTxs).await
             };
             if send_result.is_ok() {
-                // let mut is_build = self.is_building_block.write().await;
-                // *is_build = true;
-                println!("---------------notify_block_ready success---------------------");
+                self.update_build_block_status(1).await;
+                println!("----------notify_block_ready----success------------------");
             } else {
                 log::info!("send tx to_engine error ")
             }
         } else {
             log::info!("send tx to_engine error ")
+        }
+    }
+
+    async fn notify_block_ready(&self) {
+        let status_ = self.build_status.read().await;
+        let tx_ = self.has_pending_tx.read().await;
+        let status = status_.clone();
+        let tx = tx_.clone();
+        drop(tx_);
+        drop(status_);
+        match status {
+            1 => { // building
+                if tx == false {
+                    self.update_pending_tx_flag(true).await;
+                } else {}
+                println!("----------notify_block_ready----ignore------------------");
+            }
+            0 => {// done
+                self.notify_block_ready2().await;
+            }
+            _ => {}
         }
     }
 
@@ -1125,13 +1151,8 @@ impl Vm {
         )
     }
 
-    async fn reset_building_status(&self) {
-        let mut is_build = self.is_building_block.write().await;
-        *is_build = false;
-    }
 
     pub async fn inner_build_block(&self, data: Vec<u8>) -> io::Result<()> {
-        // self.reset_building_status().await;
         let executor = self.executor.as_ref().unwrap().read().await;
         let aptos_data = serde_json::from_slice::<AptosData>(&data).unwrap();
         let block_tx = serde_json::from_slice::<Vec<Transaction>>(&aptos_data.0).unwrap();
@@ -1184,8 +1205,11 @@ impl Vm {
                 _ => {}
             }
         }
+        drop(core_pool);
+        self.update_build_block_status(0).await;
         Ok(())
     }
+
     async fn init_aptos(&mut self) {
         let (genesis, validators) = test_genesis_change_set_and_validators(Some(1));
         let signer = ValidatorSigner::new(
@@ -1225,7 +1249,7 @@ impl Vm {
         let service = get_raw_api_service(Arc::new(context));
         self.api_service = Some(service);
         self.core_mempool = Some(Arc::new(RwLock::new(CoreMempool::new(&node_config))));
-        // self.check_pending_tx().await;
+        self.check_pending_tx().await;
         tokio::task::spawn(async move {
             while let Some(request) = mempool_client_receiver.next().await {
                 match request {

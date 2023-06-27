@@ -111,7 +111,7 @@ pub fn encode_aptos_mainnet_genesis_transaction(
         Features::default(),
         TimedFeatures::enable_all(),
     )
-    .unwrap();
+        .unwrap();
     let id1 = HashValue::zero();
     let mut session = move_vm.new_session(&data_cache, SessionId::genesis(id1));
 
@@ -228,7 +228,7 @@ pub fn encode_genesis_change_set(
         Features::default(),
         TimedFeatures::enable_all(),
     )
-    .unwrap();
+        .unwrap();
     let id1 = HashValue::zero();
     let mut session = move_vm.new_session(&data_cache, SessionId::genesis(id1));
 
@@ -653,7 +653,7 @@ fn verify_genesis_write_set(events: &[ContractEvent]) {
         1,
         "There should only be exactly one NewEpochEvent"
     );
-    assert_eq!(new_epoch_events[0].sequence_number(), 0,);
+    assert_eq!(new_epoch_events[0].sequence_number(), 0, );
 }
 
 /// An enum specifying whether the compiled stdlib/scripts should be used or freshly built versions
@@ -683,7 +683,7 @@ pub fn generate_genesis_change_set_for_testing_with_count(
         GenesisOptions::Mainnet => {
             // We don't yet have mainnet, so returning testnet here
             aptos_framework::testnet_release_bundle()
-        },
+        }
     };
 
     generate_test_genesis(framework, Some(count as usize)).0
@@ -744,10 +744,46 @@ impl TestValidator {
     pub fn new_test_set(count: Option<usize>, initial_stake: Option<u64>) -> Vec<TestValidator> {
         let mut rng = rand::SeedableRng::from_seed([1u8; 32]);
         (0..count.unwrap_or(10))
-            .map(|_| TestValidator::gen(&mut rng, initial_stake))
+            .map(|_| TestValidator::gen_raw(&mut rng, initial_stake))
             .collect()
     }
+    fn gen_raw(_rng: &mut StdRng, initial_stake: Option<u64>) -> TestValidator {
+        let k1 =  vec![1u8; 32];
+        let k2 = vec![2u8; 32];
+        let key = Ed25519PrivateKey::try_from(k1.as_slice()).unwrap();
+        let auth_key = AuthenticationKey::ed25519(&key.public_key());
+        let owner_address = auth_key.derived_address();
+        let consensus_key = bls12381::PrivateKey::try_from(k2.as_slice()).unwrap();
+        let consensus_pubkey = consensus_key.public_key().to_bytes().to_vec();
+        let proof_of_possession = bls12381::ProofOfPossession::create(&consensus_key)
+            .to_bytes()
+            .to_vec();
+        let network_address = [0u8; 0].to_vec();
+        let full_node_network_address = [0u8; 0].to_vec();
 
+        let stake_amount = if let Some(amount) = initial_stake {
+            amount
+        } else {
+            1
+        };
+        let data = Validator {
+            owner_address,
+            consensus_pubkey,
+            proof_of_possession,
+            operator_address: owner_address,
+            voter_address: owner_address,
+            network_addresses: network_address,
+            full_node_network_addresses: full_node_network_address,
+            stake_amount,
+        };
+        Self {
+            key,
+            consensus_key,
+            data,
+        }
+    }
+
+    #[allow(dead_code)]
     fn gen(rng: &mut StdRng, initial_stake: Option<u64>) -> TestValidator {
         let key = Ed25519PrivateKey::generate(rng);
         let auth_key = AuthenticationKey::ed25519(&key.public_key());
@@ -890,7 +926,7 @@ pub fn test_genesis_module_publishing() {
     // create a state view for move_vm
     let mut state_view = GenesisStateView::new();
     for (module_bytes, module) in
-        aptos_cached_packages::head_release_bundle().code_and_compiled_modules()
+    aptos_cached_packages::head_release_bundle().code_and_compiled_modules()
     {
         state_view.add_module(&module.self_id(), module_bytes);
     }
@@ -904,7 +940,7 @@ pub fn test_genesis_module_publishing() {
         Features::default(),
         TimedFeatures::enable_all(),
     )
-    .unwrap();
+        .unwrap();
     let id1 = HashValue::zero();
     let mut session = move_vm.new_session(&data_cache, SessionId::genesis(id1));
     publish_framework(&mut session, aptos_cached_packages::head_release_bundle());
