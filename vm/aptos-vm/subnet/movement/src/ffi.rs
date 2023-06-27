@@ -13,7 +13,7 @@ use tokio::runtime::Runtime;
 
 /// # Safety
 ///
-/// Run the aptos CLI synchronously
+/// Run the movement CLI synchronously
 /// Note: This function should only be called from other SDK (i.g Typescript)
 ///
 /// Return: the pointer to CLIResult c string
@@ -42,14 +42,14 @@ pub unsafe extern "C" fn run_aptos_sync(s: *const c_char) -> *const c_char {
 
 /// # Safety
 ///
-/// Run the aptos CLI async; Use this function if you are expecting the aptos CLI command
+/// Run the movement CLI async; Use this function if you are expecting the movement CLI command
 /// to run in the background, or different thread
 /// Note: This function should only be called from other SDK (i.g Typescript)
 ///
 /// Return: the pointer to c string: 'true'
 #[no_mangle]
 pub unsafe extern "C" fn run_aptos_async(s: *mut c_char) -> *mut c_char {
-    println!("Running aptos...");
+    println!("Running movement...");
     let c_str = unsafe {
         assert!(!s.is_null());
         CStr::from_ptr(s)
@@ -72,7 +72,7 @@ pub unsafe extern "C" fn run_aptos_async(s: *mut c_char) -> *mut c_char {
 
 /// # Safety
 ///
-/// After running the aptos CLI using FFI. Make sure to invoke this method to free up or
+/// After running the movement CLI using FFI. Make sure to invoke this method to free up or
 /// deallocate the memory
 #[no_mangle]
 pub unsafe extern "C" fn free_cstring(s: *mut c_char) {

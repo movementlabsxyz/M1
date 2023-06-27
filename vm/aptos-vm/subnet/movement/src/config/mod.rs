@@ -18,7 +18,7 @@ use clap_complete::{generate, Shell};
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, fmt::Formatter, path::PathBuf, str::FromStr};
 
-/// Tool for interacting with configuration of the Movement subnet CLI tool
+/// Tool for interacting with configuration of the Movement CLI tool
 ///
 /// This tool handles the global configuration of the CLI tool for
 /// default configuration, and user specific settings.
