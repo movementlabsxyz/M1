@@ -187,7 +187,7 @@ impl CliCommand<RotateSummary> for RotateKey {
                         "Profile {} exits. Do you want to provide a new profile name?",
                         profile_name
                     )
-                    .as_str(),
+                        .as_str(),
                     self.txn_options.prompt_options,
                 ) {
                     match cli_err {
@@ -196,10 +196,10 @@ impl CliCommand<RotateSummary> for RotateKey {
                                 transaction: txn_summary,
                                 message: None,
                             });
-                        },
+                        }
                         _ => {
                             return Err(cli_err);
-                        },
+                        }
                     }
                 }
 
@@ -312,14 +312,7 @@ pub async fn lookup_address(
         .await
     {
         Ok(inner) => Ok(inner.into_inner()),
-        Err(RestError::Api(AptosErrorResponse {
-            error:
-                AptosError {
-                    error_code: AptosErrorCode::TableItemNotFound,
-                    ..
-                },
-            ..
-        })) => {
+        Err(RestError::Api(..)) => {
             // If the table item wasn't found, we may check if the account exists
             if !must_exist {
                 Ok(address_key)
@@ -329,7 +322,7 @@ pub async fn lookup_address(
                     .await
                     .map(|_| address_key)
             }
-        },
+        }
         Err(err) => Err(err),
     }
 }
