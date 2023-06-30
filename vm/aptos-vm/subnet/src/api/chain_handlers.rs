@@ -7,6 +7,7 @@ use bytes::Bytes;
 use jsonrpc_core::{BoxFuture, Error, ErrorCode, IoHandler, Result};
 use jsonrpc_derive::rpc;
 use serde::{Deserialize, Serialize};
+use aptos_api::accept_type::AcceptType;
 use aptos_api_types::U64;
 
 use crate::api::de_request;
@@ -107,6 +108,7 @@ pub struct GetTableItemArgs {
     pub key_type: String,
     pub value_type: String,
     pub key: String,
+    pub is_bsc_format: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -115,6 +117,7 @@ pub struct RpcReq {
     pub ledger_version: Option<U64>,
     pub start: Option<String>,
     pub limit: Option<u16>,
+    pub is_bsc_format: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -129,6 +132,7 @@ pub struct RpcTableReq {
     pub query: String,
     pub body: String,
     pub ledger_version: Option<U64>,
+    pub is_bsc_format: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -137,6 +141,7 @@ pub struct RpcEventNumReq {
     pub creation_number: U64,
     pub start: Option<U64>,
     pub limit: Option<u16>,
+    pub is_bsc_format: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -146,17 +151,20 @@ pub struct RpcEventHandleReq {
     pub address: String,
     pub event_handle: String,
     pub field_name: String,
+    pub is_bsc_format: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct BlockArgs {
     pub height_or_version: u64,
     pub with_transactions: Option<bool>,
+    pub is_bsc_format: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct GetTransactionByVersionArgs {
     pub version: U64,
+    pub is_bsc_format: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -164,12 +172,14 @@ pub struct AccountStateArgs {
     pub account: String,
     pub resource: String,
     pub ledger_version: Option<U64>,
+    pub is_bsc_format: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct PageArgs {
     pub start: Option<U64>,
     pub limit: Option<u16>,
+    pub is_bsc_format: Option<bool>,
 }
 
 
@@ -189,7 +199,7 @@ impl Rpc for ChainService {
     fn get_transactions(&self, args: PageArgs) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_transactions(args.start, args.limit).await;
+            let ret = vm.get_transactions(args).await;
             return Ok(ret);
         })
     }
@@ -198,7 +208,12 @@ impl Rpc for ChainService {
         log::debug!("submit_transaction called");
         let vm = self.vm.clone();
         Box::pin(async move {
-            let r = vm.submit_transaction(hex::decode(args.data).unwrap()).await;
+            let accept = if args.is_bsc_format.unwrap_or(false) {
+                AcceptType::Bcs
+            } else {
+                AcceptType::Json
+            };
+            let r = vm.submit_transaction(hex::decode(args.data).unwrap(), accept).await;
             Ok(r)
         })
     }
@@ -206,7 +221,12 @@ impl Rpc for ChainService {
     fn submit_transaction_batch(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let r = vm.submit_transaction_batch(hex::decode(args.data).unwrap()).await;
+            let accept = if args.is_bsc_format.unwrap_or(false) {
+                AcceptType::Bcs
+            } else {
+                AcceptType::Json
+            };
+            let r = vm.submit_transaction_batch(hex::decode(args.data).unwrap(), accept).await;
             Ok(r)
         })
     }
@@ -214,7 +234,7 @@ impl Rpc for ChainService {
     fn get_transaction_by_hash(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_transaction_by_hash(args.data.as_str()).await;
+            let ret = vm.get_transaction_by_hash(args).await;
             return Ok(ret);
         })
     }
@@ -222,7 +242,7 @@ impl Rpc for ChainService {
     fn get_transaction_by_version(&self, args: GetTransactionByVersionArgs) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_transaction_by_version(args.version).await;
+            let ret = vm.get_transaction_by_version(args).await;
             return Ok(ret);
         })
     }
@@ -239,7 +259,12 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let data = hex::decode(args.data).unwrap();
-            let ret = vm.simulate_transaction(data).await;
+            let accept = if args.is_bsc_format.unwrap_or(false) {
+                AcceptType::Bcs
+            } else {
+                AcceptType::Json
+            };
+            let ret = vm.simulate_transaction(data, accept).await;
             Ok(ret)
         })
     }
@@ -264,7 +289,12 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let acc = hex::decode(args.data).unwrap();
-            let ret = vm.facet_apt(acc).await;
+            let accept = if args.is_bsc_format.unwrap_or(false) {
+                AcceptType::Bcs
+            } else {
+                AcceptType::Json
+            };
+            let ret = vm.facet_apt(acc, accept).await;
             Ok(ret)
         })
     }
@@ -272,7 +302,12 @@ impl Rpc for ChainService {
     fn create_account(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.create_account(args.data.as_str()).await;
+            let accept = if args.is_bsc_format.unwrap_or(false) {
+                AcceptType::Bcs
+            } else {
+                AcceptType::Json
+            };
+            let ret = vm.create_account(args.data.as_str(), accept).await;
             Ok(ret)
         })
     }
@@ -320,7 +355,7 @@ impl Rpc for ChainService {
     fn get_block_by_height(&self, args: BlockArgs) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_block_by_height(args.height_or_version, args.with_transactions).await;
+            let ret = vm.get_block_by_height(args).await;
             return Ok(ret);
         })
     }
@@ -328,8 +363,7 @@ impl Rpc for ChainService {
     fn get_block_by_version(&self, args: BlockArgs) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_block_by_version(args.height_or_version,
-                                              args.with_transactions).await;
+            let ret = vm.get_block_by_version(args).await;
             return Ok(ret);
         })
     }
@@ -338,7 +372,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             log::info!("view_function called {}",args.data.clone());
-            let ret = vm.view_function(args.data.as_str(), args.ledger_version).await;
+            let ret = vm.view_function(args).await;
             return Ok(ret);
         })
     }
