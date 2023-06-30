@@ -26,7 +26,7 @@ use aptos_api::{Context, get_raw_api_service, RawApi};
 use aptos_api::accept_type::AcceptType;
 use aptos_api::response::{AptosResponseContent, BasicResponse};
 use aptos_api::transactions::{SubmitTransactionPost, SubmitTransactionResponse, SubmitTransactionsBatchPost, SubmitTransactionsBatchResponse};
-use aptos_api_types::{Address, EncodeSubmissionRequest, IdentifierWrapper, MoveStructTag, RawTableItemRequest, StateKeyWrapper, TableItemRequest, U64, ViewRequest};
+use aptos_api_types::{Address, EncodeSubmissionRequest, IdentifierWrapper, MoveStructTag, RawTableItemRequest, StateKeyWrapper, TableItemRequest, ViewRequest};
 use aptos_config::config::NodeConfig;
 use aptos_crypto::{HashValue, ValidCryptoMaterialStringExt};
 use aptos_crypto::ed25519::Ed25519PublicKey;
@@ -57,7 +57,7 @@ use aptos_vm::AptosVM;
 use aptos_vm_genesis::{GENESIS_KEYPAIR, test_genesis_change_set_and_validators};
 
 use crate::{block::Block, state};
-use crate::api::chain_handlers::{AccountStateArgs, ChainHandler, ChainService, RpcEventHandleReq, RpcEventNumReq, RpcReq, RpcRes, RpcTableReq};
+use crate::api::chain_handlers::{AccountStateArgs, BlockArgs, ChainHandler, ChainService, GetTransactionByVersionArgs, PageArgs, RpcEventHandleReq, RpcEventNumReq, RpcReq, RpcRes, RpcTableReq};
 use crate::api::static_handlers::{StaticHandler, StaticService};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -171,9 +171,14 @@ impl Vm {
         vm_state.bootstrapped
     }
 
-    pub async fn get_transactions(&self, start: Option<U64>, limit: Option<u16>) -> RpcRes {
+    pub async fn get_transactions(&self, args: PageArgs) -> RpcRes {
+        let accept = if args.is_bsc_format.unwrap_or(false) {
+            AcceptType::Bcs
+        } else {
+            AcceptType::Json
+        };
         let api = self.api_service.as_ref().unwrap();
-        let ret = api.0.get_transactions_raw(AcceptType::Json, start, limit).await;
+        let ret = api.0.get_transactions_raw(accept, args.start, args.limit).await;
         let ret = ret.unwrap();
         let header;
         let ret = match ret {
@@ -201,9 +206,14 @@ impl Vm {
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn get_block_by_height(&self, height: u64, with_transactions: Option<bool>) -> RpcRes {
+    pub async fn get_block_by_height(&self, args: BlockArgs) -> RpcRes {
+        let accept = if args.is_bsc_format.unwrap_or(false) {
+            AcceptType::Bcs
+        } else {
+            AcceptType::Json
+        };
         let api = self.api_service.as_ref().unwrap();
-        let ret = api.5.get_block_by_height_raw(AcceptType::Json, height, with_transactions).await;
+        let ret = api.5.get_block_by_height_raw(accept, args.height_or_version, args.with_transactions).await;
         let ret = ret.unwrap();
         let header;
         let ret = match ret {
@@ -231,9 +241,14 @@ impl Vm {
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn get_block_by_version(&self, version: u64, with_transactions: Option<bool>) -> RpcRes {
+    pub async fn get_block_by_version(&self, args: BlockArgs) -> RpcRes {
+        let accept = if args.is_bsc_format.unwrap_or(false) {
+            AcceptType::Bcs
+        } else {
+            AcceptType::Json
+        };
         let api = self.api_service.as_ref().unwrap();
-        let ret = api.5.get_block_by_version_raw(AcceptType::Json, version, with_transactions).await;
+        let ret = api.5.get_block_by_version_raw(accept, args.height_or_version, args.with_transactions).await;
         let ret = ret.unwrap();
         let header;
         let ret = match ret {
@@ -262,6 +277,11 @@ impl Vm {
     }
 
     pub async fn get_accounts_transactions(&self, args: RpcReq) -> RpcRes {
+        let accept = if args.is_bsc_format.unwrap_or(false) {
+            AcceptType::Bcs
+        } else {
+            AcceptType::Json
+        };
         let account = args.data.as_str();
         let api = self.api_service.as_ref().unwrap();
         let start = match args.start {
@@ -269,7 +289,7 @@ impl Vm {
             Some(_) => Some(StateKeyWrapper::from_str(args.start.unwrap().as_str()).unwrap())
         };
         let ret = api.3.get_account_resources_raw(
-            AcceptType::Json,
+            accept,
             Address::from_str(account).unwrap(),
             args.ledger_version,
             start,
@@ -302,6 +322,11 @@ impl Vm {
     }
 
     pub async fn get_account_resources(&self, args: RpcReq) -> RpcRes {
+        let accept = if args.is_bsc_format.unwrap_or(false) {
+            AcceptType::Bcs
+        } else {
+            AcceptType::Json
+        };
         let account = args.data.as_str();
         let api = self.api_service.as_ref().unwrap();
         let start = match args.start {
@@ -309,7 +334,7 @@ impl Vm {
             Some(_) => Some(StateKeyWrapper::from_str(args.start.unwrap().as_str()).unwrap())
         };
         let ret = api.3.get_account_resources_raw(
-            AcceptType::Json,
+            accept,
             Address::from_str(account).unwrap(),
             args.ledger_version,
             start,
@@ -342,9 +367,14 @@ impl Vm {
     }
 
     pub async fn get_account(&self, args: RpcReq) -> RpcRes {
+        let accept = if args.is_bsc_format.unwrap_or(false) {
+            AcceptType::Bcs
+        } else {
+            AcceptType::Json
+        };
         let account = args.data.as_str();
         let api = self.api_service.as_ref().unwrap();
-        let ret = api.3.get_account_raw(AcceptType::Json,
+        let ret = api.3.get_account_raw(accept,
                                         Address::from_str(account).unwrap(), args.ledger_version).await.unwrap();
         let header;
         let ret = match ret {
@@ -372,12 +402,17 @@ impl Vm {
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
     pub async fn get_account_modules_state(&self, args: AccountStateArgs) -> RpcRes {
+        let accept = if args.is_bsc_format.unwrap_or(false) {
+            AcceptType::Bcs
+        } else {
+            AcceptType::Json
+        };
         let account = args.account.as_str();
         let module_name = args.resource.as_str();
         let module_name = IdentifierWrapper::from_str(module_name).unwrap();
         let api = self.api_service.as_ref().unwrap();
         let ret = api.4.get_account_module_raw(
-            AcceptType::Json,
+            accept,
             Address::from_str(account).unwrap(),
             module_name, args.ledger_version).await.unwrap();
         let header;
@@ -407,10 +442,15 @@ impl Vm {
     }
 
     pub async fn get_account_resources_state(&self, args: AccountStateArgs) -> RpcRes {
+        let accept = if args.is_bsc_format.unwrap_or(false) {
+            AcceptType::Bcs
+        } else {
+            AcceptType::Json
+        };
         let account = args.account.as_str();
         let resource = args.resource.as_str();
         let api = self.api_service.as_ref().unwrap();
-        let ret = api.4.get_account_resource_raw(AcceptType::Json,
+        let ret = api.4.get_account_resource_raw(accept,
                                                  Address::from_str(account).unwrap(),
                                                  MoveStructTag::from_str(resource).unwrap(),
                                                  args.ledger_version).await.unwrap();
@@ -441,6 +481,11 @@ impl Vm {
     }
 
     pub async fn get_account_modules(&self, args: RpcReq) -> RpcRes {
+        let accept = if args.is_bsc_format.unwrap_or(false) {
+            AcceptType::Bcs
+        } else {
+            AcceptType::Json
+        };
         let account = args.data.as_str();
         let start = match args.start {
             None => None,
@@ -448,7 +493,7 @@ impl Vm {
         };
         let api = self.api_service.as_ref().unwrap();
         let address = Address::from_str(account).unwrap();
-        let ret = api.3.get_account_modules_raw(AcceptType::Json,
+        let ret = api.3.get_account_modules_raw(accept,
                                                 address,
                                                 args.ledger_version,
                                                 start,
@@ -508,13 +553,18 @@ impl Vm {
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn view_function(&self, req: &str, ver: Option<U64>) -> RpcRes {
+    pub async fn view_function(&self, args: RpcReq) -> RpcRes {
+        let accept = if args.is_bsc_format.unwrap_or(false) {
+            AcceptType::Bcs
+        } else {
+            AcceptType::Json
+        };
         let api = self.api_service.as_ref().unwrap();
-        let req = serde_json::from_str::<ViewRequest>(req).unwrap();
+        let req = serde_json::from_str::<ViewRequest>(args.data.as_str()).unwrap();
         let ret = api.1.view_function_raw(
-            AcceptType::Json,
+            accept,
             req,
-            ver,
+            args.ledger_version,
         ).await;
         let ret = ret.unwrap();
         let header;
@@ -543,11 +593,17 @@ impl Vm {
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn get_transaction_by_hash(&self, h: &str) -> RpcRes {
+    pub async fn get_transaction_by_hash(&self, args: RpcReq) -> RpcRes {
+        let accept = if args.is_bsc_format.unwrap_or(false) {
+            AcceptType::Bcs
+        } else {
+            AcceptType::Json
+        };
+        let h = args.data.as_str();
         let h1 = HashValue::from_hex(h).unwrap();
         let hash = aptos_api_types::hash::HashValue::from(h1);
         let api = self.api_service.as_ref().unwrap();
-        let ret = api.0.get_transaction_by_hash_raw(AcceptType::Json,
+        let ret = api.0.get_transaction_by_hash_raw(accept,
                                                     hash).await;
         let ret = ret.unwrap();
         let header;
@@ -576,10 +632,15 @@ impl Vm {
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn get_transaction_by_version(&self, version: U64) -> RpcRes {
+    pub async fn get_transaction_by_version(&self, args: GetTransactionByVersionArgs) -> RpcRes {
+        let accept = if args.is_bsc_format.unwrap_or(false) {
+            AcceptType::Bcs
+        } else {
+            AcceptType::Json
+        };
         let api = self.api_service.as_ref().unwrap();
-        let ret = api.0.get_transaction_by_version_raw(AcceptType::Json,
-                                                       version).await;
+        let ret = api.0.get_transaction_by_version_raw(accept,
+                                                       args.version).await;
         let ret = ret.unwrap();
         let header;
         let ret = match ret {
@@ -639,12 +700,12 @@ impl Vm {
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn submit_transaction(&self, data: Vec<u8>) -> RpcRes {
+    pub async fn submit_transaction(&self, data: Vec<u8>, accept: AcceptType) -> RpcRes {
         log::info!("submit_transaction length {}",{data.len()});
         let service = self.api_service.as_ref().unwrap();
         let payload = SubmitTransactionPost::Bcs(aptos_api::bcs_payload::Bcs(data.clone()));
         let ret =
-            service.0.submit_transaction_raw(AcceptType::Json, payload).await;
+            service.0.submit_transaction_raw(accept, payload).await;
         let ret = ret.unwrap();
         let header;
         let ret = match ret {
@@ -679,11 +740,11 @@ impl Vm {
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn submit_transaction_batch(&self, data: Vec<u8>) -> RpcRes {
+    pub async fn submit_transaction_batch(&self, data: Vec<u8>, accept: AcceptType) -> RpcRes {
         log::info!("submit_transaction_batch length {}",{data.len()});
         let service = self.api_service.as_ref().unwrap();
         let payload = SubmitTransactionsBatchPost::Bcs(aptos_api::bcs_payload::Bcs(data.clone()));
-        let ret = service.0.submit_transactions_batch_raw(AcceptType::Json,
+        let ret = service.0.submit_transactions_batch_raw(accept,
                                                           payload).await;
         let ret = ret.unwrap();
         let mut failed_index = vec![];
@@ -751,12 +812,17 @@ impl Vm {
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
     pub async fn get_table_item(&self, args: RpcTableReq) -> RpcRes {
+        let accept = if args.is_bsc_format.unwrap_or(false) {
+            AcceptType::Bcs
+        } else {
+            AcceptType::Json
+        };
         let account = args.query;
         let body = args.body;
         let payload = serde_json::from_str::<TableItemRequest>(body.as_str()).unwrap();
         let api = self.api_service.as_ref().unwrap();
         let ret = api.4.get_table_item_raw(
-            AcceptType::Json,
+            accept,
             Address::from_str(account.as_str()).unwrap(),
             payload,
             args.ledger_version).await;
@@ -788,12 +854,17 @@ impl Vm {
     }
 
     pub async fn get_raw_table_item(&self, args: RpcTableReq) -> RpcRes {
+        let accept = if args.is_bsc_format.unwrap_or(false) {
+            AcceptType::Bcs
+        } else {
+            AcceptType::Json
+        };
         let account = args.query;
         let body = args.body;
         let payload = serde_json::from_str::<RawTableItemRequest>(body.as_str()).unwrap();
         let api = self.api_service.as_ref().unwrap();
         let ret = api.4.get_raw_table_item_raw(
-            AcceptType::Json,
+            accept,
             Address::from_str(account.as_str()).unwrap(),
             payload,
             args.ledger_version).await;
@@ -825,9 +896,14 @@ impl Vm {
     }
 
     pub async fn get_events_by_creation_number(&self, args: RpcEventNumReq) -> RpcRes {
+        let accept = if args.is_bsc_format.unwrap_or(false) {
+            AcceptType::Bcs
+        } else {
+            AcceptType::Json
+        };
         let api = self.api_service.as_ref().unwrap();
         let ret = api.6.get_events_by_creation_number_raw(
-            AcceptType::Json,
+            accept,
             Address::from_str(args.address.as_str()).unwrap(),
             args.creation_number,
             args.start, args.limit).await;
@@ -858,11 +934,16 @@ impl Vm {
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
     pub async fn get_events_by_event_handle(&self, args: RpcEventHandleReq) -> RpcRes {
+        let accept = if args.is_bsc_format.unwrap_or(false) {
+            AcceptType::Bcs
+        } else {
+            AcceptType::Json
+        };
         let event_handle = MoveStructTag::from_str(args.event_handle.as_str()).unwrap();
         let field_name = IdentifierWrapper::from_str(args.field_name.as_str()).unwrap();
         let api = self.api_service.as_ref().unwrap();
         let ret = api.6.get_events_by_event_handle_raw(
-            AcceptType::Json,
+            accept,
             Address::from_str(args.address.as_str()).unwrap(),
             event_handle,
             field_name, args.start, args.limit).await;
@@ -993,10 +1074,10 @@ impl Vm {
         }
     }
 
-    pub async fn simulate_transaction(&self, data: Vec<u8>) -> RpcRes {
+    pub async fn simulate_transaction(&self, data: Vec<u8>, accept: AcceptType) -> RpcRes {
         let service = self.api_service.as_ref().unwrap();
         let ret = service.0.simulate_transaction_raw(
-            AcceptType::Json,
+            accept,
             Some(true),
             Some(false),
             Some(true),
@@ -1059,7 +1140,7 @@ impl Vm {
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn facet_apt(&self, acc: Vec<u8>) -> RpcRes {
+    pub async fn facet_apt(&self, acc: Vec<u8>, accept: AcceptType) -> RpcRes {
         let to = AccountAddress::from_bytes(acc).unwrap();
         let db = self.db.as_ref().unwrap().read().await;
         let mut core_account = self.get_core_account(&db).await;
@@ -1068,10 +1149,10 @@ impl Vm {
             .sign_with_transaction_builder(
                 tx_factory.mint(to, 10 * 100_000_000)
             );
-        return self.submit_transaction(bcs::to_bytes(&tx_acc_mint).unwrap()).await;
+        return self.submit_transaction(bcs::to_bytes(&tx_acc_mint).unwrap(), accept).await;
     }
 
-    pub async fn create_account(&self, key: &str) -> RpcRes {
+    pub async fn create_account(&self, key: &str, accept: AcceptType) -> RpcRes {
         let to = Ed25519PublicKey::from_encoded_string(key).unwrap();
         let db = self.db.as_ref().unwrap().read().await;
         let mut core_account = self.get_core_account(&db).await;
@@ -1080,7 +1161,7 @@ impl Vm {
             .sign_with_transaction_builder(
                 tx_factory.create_user_account(&to)
             );
-        return self.submit_transaction(bcs::to_bytes(&tx_acc_create).unwrap()).await;
+        return self.submit_transaction(bcs::to_bytes(&tx_acc_create).unwrap(), accept).await;
     }
 
     /// Sets the state of the Vm.
@@ -1221,16 +1302,17 @@ impl Vm {
         let p = format!("{}/{}",
                         dirs::home_dir().unwrap().to_str().unwrap(),
                         MOVE_DB_DIR);
-        let db;
         if !fs::metadata(p.clone().as_str()).is_ok() {
             fs::create_dir_all(p.as_str()).unwrap();
-            db = DbReaderWriter::wrap(
-                AptosDB::new_for_test(p.as_str()));
-            let waypoint = generate_waypoint::<AptosVM>(&db.1, &genesis_txn).unwrap();
-            maybe_bootstrap::<AptosVM>(&db.1, &genesis_txn, waypoint).unwrap();
-        } else {
-            db = DbReaderWriter::wrap(
-                AptosDB::new_for_test(p.as_str()));
+        }
+        let db = DbReaderWriter::wrap(
+            AptosDB::new_for_test(p.as_str()));
+        let waypoint = generate_waypoint::<AptosVM>(&db.1, &genesis_txn);
+        match waypoint {
+            Ok(w) => {
+                maybe_bootstrap::<AptosVM>(&db.1, &genesis_txn, w).unwrap();
+            }
+            _ => {}
         }
         // BLOCK-STM
         // AptosVM::set_concurrency_level_once(2);
