@@ -1,0 +1,17 @@
+name: Force Push to Movement Framework Mirror
+
+on:
+  push:
+    branches:
+      - main  # Change this to the branch you want to trigger the action on
+
+jobs:
+  force-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Mirror directory to Movement Framework Mirror
+        run: ./.github/mirror.sh
