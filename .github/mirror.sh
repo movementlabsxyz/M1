@@ -1,5 +1,7 @@
 #!/bin/bash
-#!/bin/bash
+
+git config --global user.email "noreply@movementlabs.xyz"
+git config --global user.name "CI Bot"
 
 # Clone the Movement Framework Mirror repository
 git clone https://github.com/movemntdev/movement-framework-mirror.git
