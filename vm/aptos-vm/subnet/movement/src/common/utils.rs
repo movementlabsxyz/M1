@@ -281,6 +281,7 @@ pub async fn chain_id(rest_client: &Client) -> CliTypedResult<ChainId> {
         .into_inner();
     Ok(ChainId::new(state.chain_id))
 }
+
 /// Error message for parsing a map
 const PARSE_MAP_SYNTAX_MSG: &str = "Invalid syntax for map. Example: Name=Value,Name2=Value";
 
@@ -408,6 +409,37 @@ pub async fn fund_account(
             "{}mint?amount={}&auth_key={}",
             faucet_url, num_octas, address
         ))
+        .body("{}")
+        .send()
+        .await
+        .map_err(|err| {
+            CliError::ApiError(format!("Failed to fund account with faucet: {:#}", err))
+        })?;
+    if response.status() == 200 {
+        let hashes: Vec<HashValue> = response
+            .json()
+            .await
+            .map_err(|err| CliError::UnexpectedError(err.to_string()))?;
+        Ok(hashes)
+    } else {
+        Err(CliError::ApiError(format!(
+            "Faucet issue: {}",
+            response.status()
+        )))
+    }
+}
+
+/// Fund by public key (and possibly create it) from a faucet
+pub async fn fund_pub_key(
+    faucet_url: Url,
+    pub_key: String,
+) -> CliTypedResult<Vec<HashValue>> {
+    let url = format!(
+        "{}v1/mint?&pub_key={}",
+        faucet_url, pub_key
+    );
+    let response = reqwest::Client::new()
+        .post(url)
         .body("{}")
         .send()
         .await

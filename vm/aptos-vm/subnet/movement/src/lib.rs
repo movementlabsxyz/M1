@@ -16,6 +16,7 @@ pub mod stake;
 #[cfg(any(test, feature = "fuzzing"))]
 pub mod test;
 pub mod update;
+pub mod faucet;
 
 use crate::common::{
     types::{CliCommand, CliResult, CliTypedResult},
@@ -50,6 +51,7 @@ pub enum Tool {
     #[clap(subcommand)]
     Stake(stake::StakeTool),
     Update(update::UpdateTool),
+    Faucet(faucet::FaucetTool),
 }
 
 impl Tool {
@@ -69,6 +71,7 @@ impl Tool {
             Node(tool) => tool.execute().await,
             Stake(tool) => tool.execute().await,
             Update(tool) => tool.execute_serialized().await,
+            Faucet(tool) => tool.execute_serialized().await,
         }
     }
 }

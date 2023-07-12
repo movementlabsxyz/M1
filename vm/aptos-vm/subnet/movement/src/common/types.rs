@@ -52,12 +52,13 @@ use std::{
     str::FromStr,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
+use reqwest::Url;
 use thiserror::Error;
 
 pub const USER_AGENT: &str = concat!("movement-cli/", env!("CARGO_PKG_VERSION"));
 const US_IN_SECS: u64 = 1_000_000;
 const ACCEPTED_CLOCK_SKEW_US: u64 = 5 * US_IN_SECS;
-pub const DEFAULT_EXPIRATION_SECS: u64 = 30;
+pub const DEFAULT_EXPIRATION_SECS: u64 = 60;
 pub const DEFAULT_PROFILE: &str = "default";
 
 /// A common result to be returned to users
@@ -491,7 +492,7 @@ impl EncodingType {
                 let hex_string = String::from_utf8(data)?;
                 Key::from_encoded_string(hex_string.trim())
                     .map_err(|err| CliError::UnableToParse(name, err.to_string()))
-            },
+            }
             EncodingType::Base64 => {
                 let string = String::from_utf8(data)?;
                 let bytes = base64::decode(string.trim())
@@ -499,7 +500,7 @@ impl EncodingType {
                 Key::try_from(bytes.as_slice()).map_err(|err| {
                     CliError::UnableToParse(name, format!("Failed to parse key {:?}", err))
                 })
-            },
+            }
         }
     }
 }
@@ -653,7 +654,7 @@ impl ExtractPublicKey for PublicKeyInputOptions {
             profile.profile_name(),
             ConfigSearchMode::CurrentDirAndParents,
         )?
-        .map(|p| p.public_key)
+            .map(|p| p.public_key)
         {
             Ok(public_key)
         } else {
@@ -756,7 +757,7 @@ impl PrivateKeyInputOptions {
             profile.profile_name(),
             ConfigSearchMode::CurrentDirAndParents,
         )?
-        .map(|p| (p.private_key, p.account))
+            .map(|p| (p.private_key, p.account))
         {
             match (maybe_address, maybe_config_address) {
                 (Some(address), _) => Ok((key, address)),
@@ -764,7 +765,7 @@ impl PrivateKeyInputOptions {
                 (None, None) => {
                     let address = account_address_from_public_key(&key.public_key());
                     Ok((key, address))
-                },
+                }
             }
         } else {
             Err(CliError::CommandArgumentError(
@@ -785,7 +786,7 @@ impl PrivateKeyInputOptions {
             profile.profile_name(),
             ConfigSearchMode::CurrentDirAndParents,
         )?
-        .map(|p| p.private_key)
+            .map(|p| p.private_key)
         {
             Ok(private_key)
         } else {
@@ -892,7 +893,7 @@ impl RestOptions {
             profile.profile_name(),
             ConfigSearchMode::CurrentDirAndParents,
         )?
-        .map(|p| p.rest_url)
+            .map(|p| p.rest_url)
         {
             reqwest::Url::parse(&url)
                 .map_err(|err| CliError::UnableToParse("Rest URL", err.to_string()))
@@ -904,6 +905,13 @@ impl RestOptions {
     pub fn client(&self, profile: &ProfileOptions) -> CliTypedResult<Client> {
         Ok(Client::new_with_timeout_and_user_agent(
             self.url(profile)?,
+            Duration::from_secs(self.connection_timeout_secs),
+            USER_AGENT,
+        ))
+    }
+    pub fn client_raw(&self, url: Url) -> CliTypedResult<Client> {
+        Ok(Client::new_with_timeout_and_user_agent(
+            url,
             Duration::from_secs(self.connection_timeout_secs),
             USER_AGENT,
         ))
@@ -1117,6 +1125,7 @@ impl From<Transaction> for TransactionSummary {
         TransactionSummary::from(&transaction)
     }
 }
+
 impl From<&Transaction> for TransactionSummary {
     fn from(transaction: &Transaction) -> Self {
         match transaction {
@@ -1223,7 +1232,7 @@ impl FaucetOptions {
             profile.profile_name(),
             ConfigSearchMode::CurrentDirAndParents,
         )?
-        .map(|profile| profile.faucet_url)
+            .map(|profile| profile.faucet_url)
         {
             reqwest::Url::parse(&url)
                 .map_err(|err| CliError::UnableToParse("config faucet_url", err.to_string()))
@@ -1284,7 +1293,7 @@ pub struct TransactionOptions {
     ///
     /// This allows you to override the account address from the derived account address
     /// in the event that the authentication key was rotated or for a resource account
-    #[clap(long, parse(try_from_str=crate::common::types::load_account_arg))]
+    #[clap(long, parse(try_from_str = crate::common::types::load_account_arg))]
     pub(crate) sender_account: Option<AccountAddress>,
 
     #[clap(flatten)]
@@ -1381,7 +1390,7 @@ impl TransactionOptions {
         // Warn local user that clock is skewed behind the blockchain.
         // There will always be a little lag from real time to blockchain time
         if now_usecs < state.timestamp_usecs - ACCEPTED_CLOCK_SKEW_US {
-            eprintln!("Local clock is is skewed from blockchain clock.  Clock is more than {} seconds behind the blockchain {}", ACCEPTED_CLOCK_SKEW_US, state.timestamp_usecs / US_IN_SECS );
+            eprintln!("Local clock is is skewed from blockchain clock.  Clock is more than {} seconds behind the blockchain {}", ACCEPTED_CLOCK_SKEW_US, state.timestamp_usecs / US_IN_SECS);
         }
         let expiration_time_secs = now + self.gas_options.expiration_secs;
 
@@ -1391,7 +1400,7 @@ impl TransactionOptions {
         let max_gas = if let Some(max_gas) = self.gas_options.max_gas {
             // If the gas unit price was estimated ask, but otherwise you've chosen hwo much you want to spend
             if ask_to_confirm_price {
-                let message = format!("Do you want to submit transaction for a maximum of {} Octas at a gas unit price of {} Octas?",  max_gas * gas_unit_price, gas_unit_price);
+                let message = format!("Do you want to submit transaction for a maximum of {} Octas at a gas unit price of {} Octas?", max_gas * gas_unit_price, gas_unit_price);
                 prompt_yes_with_override(&message, self.prompt_options)?;
             }
             max_gas
@@ -1434,10 +1443,10 @@ impl TransactionOptions {
             let upper_cost_bound = adjusted_max_gas * gas_unit_price;
             let lower_cost_bound = gas_used * gas_unit_price;
             let message = format!(
-                    "Do you want to submit a transaction for a range of [{} - {}] Octas at a gas unit price of {} Octas?",
-                    lower_cost_bound,
-                    upper_cost_bound,
-                    gas_unit_price);
+                "Do you want to submit a transaction for a range of [{} - {}] Octas at a gas unit price of {} Octas?",
+                lower_cost_bound,
+                upper_cost_bound,
+                gas_unit_price);
             prompt_yes_with_override(&message, self.prompt_options)?;
             adjusted_max_gas
         };
@@ -1530,7 +1539,7 @@ impl TransactionOptions {
                     addr_short.as_str()
                 };
                 format!("0x{}-{}-{}", addr_truncated, module_id.name(), name)
-            },
+            }
         };
         let raw_file_name = format!("txn-{}-{}", hash, human_readable_name);
 
@@ -1567,10 +1576,10 @@ impl TransactionOptions {
                     "Execution & IO Gas flamegraph saved to {}",
                     graph_file_path.display()
                 );
-            },
+            }
             None => {
                 println!("Skipped generating execution & IO flamegraph");
-            },
+            }
         }
 
         // Generate the storage fee flamegraph.
@@ -1592,10 +1601,10 @@ impl TransactionOptions {
                     "Storage fee flamegraph saved to {}",
                     graph_file_path.display()
                 );
-            },
+            }
             None => {
                 println!("Skipped generating storage fee flamegraph");
-            },
+            }
         }
 
         println!();
@@ -1642,14 +1651,14 @@ pub struct OptionalPoolAddressArgs {
     /// Address of the Staking pool
     ///
     /// Defaults to the profile's `AccountAddress`
-    #[clap(long, parse(try_from_str=crate::common::types::load_account_arg))]
+    #[clap(long, parse(try_from_str = crate::common::types::load_account_arg))]
     pub(crate) pool_address: Option<AccountAddress>,
 }
 
 #[derive(Parser)]
 pub struct PoolAddressArgs {
     /// Address of the Staking pool
-    #[clap(long, parse(try_from_str=crate::common::types::load_account_arg))]
+    #[clap(long, parse(try_from_str = crate::common::types::load_account_arg))]
     pub(crate) pool_address: AccountAddress,
 }
 
@@ -1739,6 +1748,6 @@ impl EntryFunctionArguments {
 #[derive(Clone, Debug, Parser, Serialize)]
 pub struct MultisigAccount {
     /// The address of the multisig account to interact with.
-    #[clap(long, parse(try_from_str=crate::common::types::load_account_arg))]
+    #[clap(long, parse(try_from_str = crate::common::types::load_account_arg))]
     pub(crate) multisig_address: AccountAddress,
 }
