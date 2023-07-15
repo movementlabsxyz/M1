@@ -22,4 +22,4 @@ jobs:
           destination-github-username: 'movemntdev'
           destination-repository-name: 'movement-framework-mirror'
           user-email: l.mak.monninger@gmail.com
-          target-branch: main
+          target-branch: main # maybe this should be changed
