@@ -3,13 +3,13 @@
 
 # M1
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License](https://img.shields.io/badge/license-BSD-blue.svg)](https://opensource.org/license/bsd-3-clause/)
 [![Tests](https://img.shields.io/badge/tests-Passing-brightgreen)](#)
 [![Build Status](https://img.shields.io/badge/build-Passing-brightgreen)](#)
 [![Coverage](https://img.shields.io/codecov/c/github/username/project.svg)](https://codecov.io/gh/username/project)
-[![Windows](https://img.shields.io/badge/Windows-Download-blue)](https://example.com/releases/windows)
-[![macOS](https://img.shields.io/badge/macOS-Download-blue)](https://example.com/releases/macos)
-[![Linux](https://img.shields.io/badge/Linux-Download-blue)](https://example.com/releases/linux)
+[![Windows](https://img.shields.io/badge/Windows-Download-blue)](https://github.com/movemntdev/m1/releases)
+[![macOS](https://img.shields.io/badge/macOS-Download-blue)](https://github.com/movemntdev/m1/releases)
+[![Linux](https://img.shields.io/badge/Linux-Download-blue)](https://github.com/movemntdev/m1/releases)
 
 **An L1 for Move VM built on Avalanche.**
 
