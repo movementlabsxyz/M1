@@ -41,9 +41,11 @@ This repository contains the code and contributor documentation for M1. If you w
 ## Features
 
 Currently, M1 consists of...
-- A testnet with bootstrap nodes at `https://seed1-node.movementlabs.xyz`
+- A testnet with bootstrap nodes at [https://seed1-node.movementlabs.xyz](https://seed1-node.movementlabs.xyz).
 - An Aptos-compatible cient called `movement`.
 - A fork of Aptos framework.
+
+M1 also has its own DEX, with a web client currently available at [https://movemnt-dex-client.vercel.app/](https://movemnt-dex-client.vercel.app/).
 
 ## Installation
 
