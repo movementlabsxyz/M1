@@ -22,6 +22,24 @@ jobs:
           toolchain: nightly
           override: true
 
+      - name: Cache cargo registry
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+    
+      - name: Cache cargo index
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+    
+      - name: Cache cargo build
+        uses: actions/cache@v2
+        with:
+          path: ./m1/target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Run Cargo Check
-        working-directory: ./m1  # Ensures we're in the correct directory
+        working-directory: ./m1  
         run:  RUSTFLAGS="--cfg tokio_unstable" cargo check
