@@ -1,0 +1,55 @@
+name: Code Coverage
+
+on:
+  workflow_run:
+    workflows: ["Cargo Check"]
+    types: 
+      - completed
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }} 
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          components: rustfmt
+          override: true
+      
+      - name: Install kcov
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libcurl4-openssl-dev libelf-dev libdw-dev cmake gcc binutils-dev libiberty-dev
+          wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz
+          tar xzf master.tar.gz
+          mkdir kcov-master/build
+          cd kcov-master/build
+          cmake ..
+          make
+          sudo make install
+
+      - name: Build for Coverage
+        run: |
+          cd ./m1
+          RUSTFLAGS="--cfg tokio_unstable" cargo build --all --all-targets
+
+      - name: Test & Generate Coverage Report
+        run: |
+          for file in m1/target/debug/deps/*; do
+            mkdir -p "target/cov/$(basename $file)";
+            kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file";
+          done
+          
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }} # Add your Codecov token here
+          directory: ./target/cov/
