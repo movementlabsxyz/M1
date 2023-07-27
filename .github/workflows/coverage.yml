@@ -38,11 +38,12 @@ jobs:
 
       - name: Build for Coverage
         run: |
-          cargo build
+          cd ./m1
+          RUSTFLAGS="--cfg tokio_unstable" cargo build --all --all-targets
 
       - name: Test & Generate Coverage Report
         run: |
-          for file in target/debug/deps/*; do
+          for file in m1/target/debug/deps/*; do
             mkdir -p "target/cov/$(basename $file)";
             kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file";
           done
