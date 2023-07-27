@@ -1,0 +1,14 @@
+[submodule "aptos-core"]
+	path = aptos-core
+	url = https://github.com/movemntdev/aptos-core
+	branch = m1
+[submodule "x25519-dalek"]
+	path = x25519-dalek
+	url = https://github.com/movemntdev/x25519-dalek
+[submodule "ed25519-dalek"]
+	path = ed25519-dalek
+	url = https://github.com/movemntdev/ed25519-dalek
+[submodule "aptos-pre-core"]
+	path = aptos-pre-core
+	url = https://github.com/movemntdev/aptos-core
+	branch = m1-pre-core

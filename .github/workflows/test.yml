@@ -1,0 +1,38 @@
+name: Rust Tests
+
+on:
+  workflow_run:
+    workflows: ["Cargo Check"]
+    types: 
+      - completed
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }} 
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+
+      - name: Build and Test Subnet
+        run: |
+          cd ./m1
+          RUSTFLAGS="--cfg tokio_unstable" cargo build --all --all-targets
+          RUSTFLAGS="--cfg tokio_unstable" cargo test --all
+
+      - name: Update Badge
+        run: |
+          if [ $? -eq 0 ]; then
+            sed -i 's/badge\/tests-[a-zA-Z]*/badge\/tests-Passing-brightgreen/g' README.md
+          else
+            sed -i 's/badge\/tests-[a-zA-Z]*/badge\/tests-Failing-red/g' README.md
+          fi
+        if: ${{ always() }}

@@ -1,23 +1,26 @@
 name: Binary Release
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: ["Cargo Check"]
+    types: 
+      - completed
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    if: ${{ github.event.workflow_run.conclusion == 'success' }} 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'  # Ensures submodules are fetched
 
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly
           override: true
 
       - name: Install Dependencies
@@ -27,94 +30,81 @@ jobs:
 
       - name: Run dev setup script
         run: |
-          cd "$GITHUB_WORKSPACE/vm/aptos-vm"
+          cd "$GITHUB_WORKSPACE/aptos-pre-core"
           chmod -R 755 ./scripts
           echo "yes" | ./scripts/dev_setup.sh
 
-      - name: Build subnet binaries
+      - name: Build binaries
         run: |
-          cd "$GITHUB_WORKSPACE"
-          cargo build --release -p subnet
-          cargo build --release -p movement
-
+          cd "$GITHUB_WORKSPACE/m1"
+          RUSTFLAGS="--cfg tokio_unstable" cargo build --release
+          
       - name: Archive binaries
         uses: actions/upload-artifact@v2
         with:
           name: binaries
           path: |
-            $GITHUB_WORKSPACE/target/release/subnet
-            $GITHUB_WORKSPACE/target/release/movement
+            $GITHUB_WORKSPACE/m1/target/release/*
 
       - name: Set up cross-compilation environment
         uses: crazy-max/ghaction-docker-buildx@v3
-        with:
-          version: latest
 
       - name: Build binaries for macOS
         run: |
-          cd "$GITHUB_WORKSPACE"
+          cd "$GITHUB_WORKSPACE/m1"
           docker buildx create --name mybuilder
           docker buildx use mybuilder
           docker buildx inspect --bootstrap
-          cargo build --release -p subnet --target=x86_64-apple-darwin
-          cargo build --release -p movement --target=x86_64-apple-darwin
+          RUSTFLAGS="--cfg tokio_unstable" cargo build --release --target=x86_64-apple-darwin
 
       - name: Archive macOS binaries
         uses: actions/upload-artifact@v2
         with:
           name: macos-binaries
           path: |
-            $GITHUB_WORKSPACE/target/x86_64-apple-darwin/release/subnet
-            $GITHUB_WORKSPACE/target/x86_64-apple-darwin/release/movement
+            $GITHUB_WORKSPACE/m1/target/x86_64-apple-darwin/release/*
 
       - name: Build binaries for Linux arm64
         run: |
-          cd "$GITHUB_WORKSPACE"
+          cd "$GITHUB_WORKSPACE/m1"
           docker buildx create --name mybuilder
           docker buildx use mybuilder
           docker buildx inspect --bootstrap
-          cargo build --release -p subnet --target=aarch64-unknown-linux-gnu
-          cargo build --release -p movement --target=aarch64-unknown-linux-gnu
+          RUSTFLAGS="--cfg tokio_unstable" cargo build --release --target=aarch64-unknown-linux-gnu
 
       - name: Archive Linux arm64 binaries
         uses: actions/upload-artifact@v2
         with:
           name: linux-arm64-binaries
           path: |
-            $GITHUB_WORKSPACE/target/aarch64-unknown-linux-gnu/release/subnet
-            $GITHUB_WORKSPACE/target/aarch64-unknown-linux-gnu/release/movement
+            $GITHUB_WORKSPACE/m1/target/aarch64-unknown-linux-gnu/release/*
 
       - name: Build binaries for Linux x86_64
         run: |
-          cd "$GITHUB_WORKSPACE"
+          cd "$GITHUB_WORKSPACE/m1"
           docker buildx create --name mybuilder
           docker buildx use mybuilder
           docker buildx inspect --bootstrap
-          cargo build --release -p subnet --target=x86_64-unknown-linux-gnu
-          cargo build --release -p movement --target=x86_64-unknown-linux-gnu
+          RUSTFLAGS="--cfg tokio_unstable" cargo build --release --target=x86_64-unknown-linux-gnu
 
       - name: Archive Linux x86_64 binaries
         uses: actions/upload-artifact@v2
         with:
           name: linux-x86_64-binaries
           path: |
-            $GITHUB_WORKSPACE/target/x86_64-unknown-linux-gnu/release/subnet
-            $GITHUB_WORKSPACE/target/x86_64-unknown-linux-gnu/release/movement
+            $GITHUB_WORKSPACE/m1/target/x86_64-unknown-linux-gnu/release/*
 
       - name: Build binaries for Windows
         run: |
-          cd "$GITHUB_WORKSPACE"
+          cd "$GITHUB_WORKSPACE/m1"
           docker buildx create --name mybuilder
           docker buildx use mybuilder
           docker buildx inspect --bootstrap
-          cargo build --release -p subnet --target=x86_64-pc-windows-gnu
-          cargo build --release -p movement --target=x86_64-pc-windows-gnu
+          RUSTFLAGS="--cfg tokio_unstable" cargo build --release --target=x86_64-pc-windows-gnu
 
       - name: Archive Windows binaries
         uses: actions/upload-artifact@v2
         with:
           name: windows-binaries
           path: |
-            $GITHUB_WORKSPACE/target/x86_64-pc-windows-gnu/release/subnet.exe
-            $GITHUB_WORKSPACE/target/x86_64-pc-windows-gnu/release/movement.exe
-
+            $GITHUB_WORKSPACE/m1/target/x86_64-pc-windows-gnu/release/*.exe
