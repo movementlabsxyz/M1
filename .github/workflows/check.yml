@@ -19,9 +19,9 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly
           override: true
 
       - name: Run Cargo Check
-        working-directory: ./subnet  # Ensures we're in the correct directory
-        run: cargo check
+        working-directory: subnet  # Ensures we're in the correct directory
+        run: RUSTFLAGS="--cfg tokio_unstable" cargo check
