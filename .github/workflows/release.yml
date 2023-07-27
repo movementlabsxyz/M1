@@ -52,9 +52,9 @@ jobs:
           chmod -R 755 ./scripts
           echo "yes" | ./scripts/dev_setup.sh
 
-      - name: Build subnet binaries
+      - name: Build binaries
         run: |
-          cd "$GITHUB_WORKSPACE/subnet"
+          cd "$GITHUB_WORKSPACE/m1"
           cargo build --release
           
       - name: Archive binaries
@@ -62,14 +62,14 @@ jobs:
         with:
           name: binaries
           path: |
-            $GITHUB_WORKSPACE/subnet/target/release/*
+            $GITHUB_WORKSPACE/m1/target/release/*
 
       - name: Set up cross-compilation environment
         uses: crazy-max/ghaction-docker-buildx@v3
 
       - name: Build binaries for macOS
         run: |
-          cd "$GITHUB_WORKSPACE/subnet"
+          cd "$GITHUB_WORKSPACE/m1"
           docker buildx create --name mybuilder
           docker buildx use mybuilder
           docker buildx inspect --bootstrap
@@ -80,11 +80,11 @@ jobs:
         with:
           name: macos-binaries
           path: |
-            $GITHUB_WORKSPACE/subnet/target/x86_64-apple-darwin/release/*
+            $GITHUB_WORKSPACE/m1/target/x86_64-apple-darwin/release/*
 
       - name: Build binaries for Linux arm64
         run: |
-          cd "$GITHUB_WORKSPACE/subnet"
+          cd "$GITHUB_WORKSPACE/m1"
           docker buildx create --name mybuilder
           docker buildx use mybuilder
           docker buildx inspect --bootstrap
@@ -95,11 +95,11 @@ jobs:
         with:
           name: linux-arm64-binaries
           path: |
-            $GITHUB_WORKSPACE/subnet/target/aarch64-unknown-linux-gnu/release/*
+            $GITHUB_WORKSPACE/m1/target/aarch64-unknown-linux-gnu/release/*
 
       - name: Build binaries for Linux x86_64
         run: |
-          cd "$GITHUB_WORKSPACE/subnet"
+          cd "$GITHUB_WORKSPACE/m1"
           docker buildx create --name mybuilder
           docker buildx use mybuilder
           docker buildx inspect --bootstrap
@@ -110,11 +110,11 @@ jobs:
         with:
           name: linux-x86_64-binaries
           path: |
-            $GITHUB_WORKSPACE/subnet/target/x86_64-unknown-linux-gnu/release/*
+            $GITHUB_WORKSPACE/m1/target/x86_64-unknown-linux-gnu/release/*
 
       - name: Build binaries for Windows
         run: |
-          cd "$GITHUB_WORKSPACE/subnet"
+          cd "$GITHUB_WORKSPACE/m1"
           docker buildx create --name mybuilder
           docker buildx use mybuilder
           docker buildx inspect --bootstrap
@@ -125,4 +125,4 @@ jobs:
         with:
           name: windows-binaries
           path: |
-            $GITHUB_WORKSPACE/subnet/target/x86_64-pc-windows-gnu/release/*.exe
+            $GITHUB_WORKSPACE/m1/target/x86_64-pc-windows-gnu/release/*.exe
