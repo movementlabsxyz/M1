@@ -23,5 +23,5 @@ jobs:
           override: true
 
       - name: Run Cargo Check
-        working-directory: ./subnet  # Ensures we're in the correct directory
+        working-directory: ./m1  # Ensures we're in the correct directory
         run: cargo check
