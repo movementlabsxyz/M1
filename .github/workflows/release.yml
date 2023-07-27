@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'  # Ensures submodules are fetched
 
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
@@ -27,23 +29,21 @@ jobs:
 
       - name: Run dev setup script
         run: |
-          cd "$GITHUB_WORKSPACE/vm/aptos-vm"
+          cd "$GITHUB_WORKSPACE/aptos-pre-core"
           chmod -R 755 ./scripts
           echo "yes" | ./scripts/dev_setup.sh
 
       - name: Build subnet binaries
         run: |
-          cd "$GITHUB_WORKSPACE"
-          cargo build --release -p subnet
-          cargo build --release -p movement
-
+          cd "$GITHUB_WORKSPACE/subnet"
+          cargo build --release
+          
       - name: Archive binaries
         uses: actions/upload-artifact@v2
         with:
           name: binaries
           path: |
-            $GITHUB_WORKSPACE/target/release/subnet
-            $GITHUB_WORKSPACE/target/release/movement
+            $GITHUB_WORKSPACE/subnet/target/release/*
 
       - name: Set up cross-compilation environment
         uses: crazy-max/ghaction-docker-buildx@v3
@@ -52,69 +52,60 @@ jobs:
 
       - name: Build binaries for macOS
         run: |
-          cd "$GITHUB_WORKSPACE"
+          cd "$GITHUB_WORKSPACE/subnet"
           docker buildx create --name mybuilder
           docker buildx use mybuilder
           docker buildx inspect --bootstrap
-          cargo build --release -p subnet --target=x86_64-apple-darwin
-          cargo build --release -p movement --target=x86_64-apple-darwin
+          cargo build --release --target=x86_64-apple-darwin
 
       - name: Archive macOS binaries
         uses: actions/upload-artifact@v2
         with:
           name: macos-binaries
           path: |
-            $GITHUB_WORKSPACE/target/x86_64-apple-darwin/release/subnet
-            $GITHUB_WORKSPACE/target/x86_64-apple-darwin/release/movement
+            $GITHUB_WORKSPACE/subnet/target/x86_64-apple-darwin/release/*
 
       - name: Build binaries for Linux arm64
         run: |
-          cd "$GITHUB_WORKSPACE"
+          cd "$GITHUB_WORKSPACE/subnet"
           docker buildx create --name mybuilder
           docker buildx use mybuilder
           docker buildx inspect --bootstrap
-          cargo build --release -p subnet --target=aarch64-unknown-linux-gnu
-          cargo build --release -p movement --target=aarch64-unknown-linux-gnu
+          cargo build --release --target=aarch64-unknown-linux-gnu
 
       - name: Archive Linux arm64 binaries
         uses: actions/upload-artifact@v2
         with:
           name: linux-arm64-binaries
           path: |
-            $GITHUB_WORKSPACE/target/aarch64-unknown-linux-gnu/release/subnet
-            $GITHUB_WORKSPACE/target/aarch64-unknown-linux-gnu/release/movement
+            $GITHUB_WORKSPACE/subnet/target/aarch64-unknown-linux-gnu/release/*
 
       - name: Build binaries for Linux x86_64
         run: |
-          cd "$GITHUB_WORKSPACE"
+          cd "$GITHUB_WORKSPACE/subnet"
           docker buildx create --name mybuilder
           docker buildx use mybuilder
           docker buildx inspect --bootstrap
-          cargo build --release -p subnet --target=x86_64-unknown-linux-gnu
-          cargo build --release -p movement --target=x86_64-unknown-linux-gnu
+          cargo build --release --target=x86_64-unknown-linux-gnu
 
       - name: Archive Linux x86_64 binaries
         uses: actions/upload-artifact@v2
         with:
           name: linux-x86_64-binaries
           path: |
-            $GITHUB_WORKSPACE/target/x86_64-unknown-linux-gnu/release/subnet
-            $GITHUB_WORKSPACE/target/x86_64-unknown-linux-gnu/release/movement
+            $GITHUB_WORKSPACE/subnet/target/x86_64-unknown-linux-gnu/release/*
 
       - name: Build binaries for Windows
         run: |
-          cd "$GITHUB_WORKSPACE"
+          cd "$GITHUB_WORKSPACE/subnet"
           docker buildx create --name mybuilder
           docker buildx use mybuilder
           docker buildx inspect --bootstrap
-          cargo build --release -p subnet --target=x86_64-pc-windows-gnu
-          cargo build --release -p movement --target=x86_64-pc-windows-gnu
+          cargo build --release --target=x86_64-pc-windows-gnu
 
       - name: Archive Windows binaries
         uses: actions/upload-artifact@v2
         with:
           name: windows-binaries
           path: |
-            $GITHUB_WORKSPACE/target/x86_64-pc-windows-gnu/release/subnet.exe
-            $GITHUB_WORKSPACE/target/x86_64-pc-windows-gnu/release/movement.exe
-
+            $GITHUB_WORKSPACE/subnet/target/x86_64-pc-windows-gnu/release/*.exe
