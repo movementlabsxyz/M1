@@ -1,14 +1,15 @@
 name: Force Push to Movement Framework Mirror
 
 on:
-  push:
-    branches:
-      - main  # Change this to the branch you want to trigger the action on
+  workflow_run:
+    workflows: ["Cargo Check"]
+    types: 
+      - completed
 
 jobs:
   force-push:
     runs-on: ubuntu-latest
-
+    if: ${{ github.event.workflow_run.conclusion == 'success' }} 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2

@@ -1,15 +1,15 @@
 name: Rust Tests
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
+  workflow_run:
+    workflows: ["Cargo Check"]
+    types: 
+      - completed
 
 jobs:
   test:
     runs-on: ubuntu-latest
-
+    if: ${{ github.event.workflow_run.conclusion == 'success' }} 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
