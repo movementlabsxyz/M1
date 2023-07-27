@@ -24,4 +24,4 @@ jobs:
 
       - name: Run Cargo Check
         working-directory: ./m1  # Ensures we're in the correct directory
-        run: cargo check
+        run:  RUSTFLAGS="--cfg tokio_unstable" cargo check
