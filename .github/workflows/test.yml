@@ -22,7 +22,7 @@ jobs:
 
       - name: Build and Test Subnet
         run: |
-          cd ./subnet
+          cd ./m1
           RUSTFLAGS="--cfg tokio_unstable" cargo build --all --all-targets
           RUSTFLAGS="--cfg tokio_unstable" cargo test --all
 
