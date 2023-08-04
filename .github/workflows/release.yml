@@ -24,6 +24,15 @@ jobs:
           toolchain: nightly
           override: true
 
+      - name: Install windows target
+        run: rustup target add x86_64-pc-windows-gnu
+
+      - name: Install mac target
+        run: rustup target add x86_64-apple-darwin
+
+      - name: Install aarch64 target
+        runn: rustup target add aarch64-unknown-linux-gnu
+
       - name: Install Dependencies
         run: |
           sudo apt-get update
