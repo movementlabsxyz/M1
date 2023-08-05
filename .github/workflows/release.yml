@@ -48,10 +48,15 @@ jobs:
         run: |
           cd "$GITHUB_WORKSPACE/m1"
           RUSTFLAGS="--cfg tokio_unstable" cargo build --release
+
+      - name: Build binaries
+        run: |
+          cd "$GITHUB_WORKSPACE/m1"
+          ls -l $GITHUB_WORKSPACE/m1/target/release
           
       - name: Archive binaries
         uses: actions/upload-artifact@v2
         with:
           name: binaries
           path: |
-            $GITHUB_WORKSPACE/m1/target/release/*
+            $GITHUB_WORKSPACE/m1/target/release/subnet
