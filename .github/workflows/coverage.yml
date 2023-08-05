@@ -8,7 +8,8 @@ on:
 
 jobs:
   coverage:
-    runs-on: ubuntu-latest
+    runs-on:
+      labels: movement-runner
     if: ${{ github.event.workflow_run.conclusion == 'success' }} 
     steps:
       - name: Checkout Repository
