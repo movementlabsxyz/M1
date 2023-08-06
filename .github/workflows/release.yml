@@ -37,12 +37,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential
 
-      - name: Run dev setup script
-        run: |
-          cd "$GITHUB_WORKSPACE/aptos-pre-core"
-          chmod -R 755 ./scripts
-          echo "yes" | ./scripts/dev_setup.sh
-
       - name: Build binaries
         run: |
           cd "$GITHUB_WORKSPACE/m1"
