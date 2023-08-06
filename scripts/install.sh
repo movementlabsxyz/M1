@@ -90,6 +90,7 @@ fi
 echo 'export PATH="$HOME/.movement/avalanchego:$PATH"' >> "$HOME/.bashrc"
 
 # Reload the bash profile
+exec bash
 source "$HOME/.bashrc"
 
 # Clone the subnet repository if not already cloned
