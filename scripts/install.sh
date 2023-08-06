@@ -66,7 +66,7 @@ curl -sSfL https://raw.githubusercontent.com/ava-labs/avalanche-network-runner/m
 echo 'export PATH="$HOME/bin:$PATH"' >> "$HOME/.bashrc"
 
 # Reload the bash profile
-source "$HOME/.bashrc"
+. "$HOME/.bashrc"
 
 # Download and install AvalancheGo
 if [ "$OS" == "linux-" ]; then
@@ -93,39 +93,44 @@ echo 'export PATH="$HOME/.movement/avalanchego:$PATH"' >> "$HOME/.bashrc"
 source "$HOME/.bashrc"
 
 # Clone the subnet repository if not already cloned
-if [ ! -d "$MOVEMENT_DIR/m1" ]; then
-  git clone https://github.com/movemntdev/m1 "$MOVEMENT_DIR/m1"
+if [ ! -d "$MOVEMENT_DIR/M1" ]; then
+    git clone https://github.com/movemntdev/M1 "$MOVEMENT_DIR/M1"
+    git submodule init
 fi
 
+git pull origin main
+git submodule update --recursive --remote
+
+
 # Set up the developer environment if not already set up
-cd "$MOVEMENT_DIR/m1/vm/aptos-vm"
+cd "$MOVEMENT_DIR/M1/vm/aptos-vm"
 ./script/dev_setup.sh
 
 # Build the subnet binary
 cargo build --release -p subnet
 
 # Move the subnet binary to the plugin directory
-mv "$MOVEMENT_DIR/m1/vm/aptos-vm/target/release/subnet" "$PLUGINS_DIR/subnet"
+mv "$MOVEMENT_DIR/M1/target/release/subnet" "$PLUGINS_DIR/subnet"
 
 # Symlink the subnet binary with its subnet ID
 ln -s "$PLUGINS_DIR/qCP4kDnEWVorqyoUmcAtAmJybm8gXZzhHZ7pZibrJJEWECooU" "$PLUGINS_DIR/subnet"
 ln -s "$AVALANCHEGO_DIR/plugins/qCP4kDnEWVorqyoUmcAtAmJybm8gXZzhHZ7pZibrJJEWECooU" "$PLUGINS_DIR/subnet"
 
 # Clone the movement repository if not already cloned
-if [ ! -d "$MOVEMENT_DIR/m1" ]; then
-  git clone https://github.com/movemntdev/m1 "$MOVEMENT_DIR/m1"
+if [ ! -d "$MOVEMENT_DIR/M1" ]; then
+  git clone https://github.com/movemntdev/M1 "$MOVEMENT_DIR/M1"
 fi
 
 # Set up the developer environment if not already set up
-cd "$MOVEMENT_DIR/m1/aptos-pre-core"
+cd "$MOVEMENT_DIR/M1/aptos-pre-core"
 ./script/dev_setup.sh
 
 # Build the movement binary
-cd "$MOVEMENT_DIR/m1/m1"
+cd "$MOVEMENT_DIR/M1/M1"
 cargo build --release -p movement
 
 # Move the movement binary to the appropriate directory
-mv "$MOVEMENT_DIR/m1/vm/aptos-vm/target/release/movement" "$BIN_DIR"
+mv "$MOVEMENT_DIR/M1/target/release/movement" "$BIN_DIR"
 
 # Add movement binary directory to PATH
 echo 'export PATH="$HOME/.movement/bin:$PATH"' >> "$HOME/.bashrc"
