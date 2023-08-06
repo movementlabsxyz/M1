@@ -21,9 +21,8 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly
+          toolchain: 1.69.0
           components: rustfmt
-          override: true
       
       - name: Install kcov
         run: |
