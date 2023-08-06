@@ -12,7 +12,7 @@
 #
 # Usage:
 # - Run this script on the portable environment:
-#     $ ./install-movement.sh
+#     $ ./install.sh
 #
 # Note: Make sure to review and customize the script variables and paths 
 #       according to your specific requirements before running.
@@ -93,38 +93,39 @@ echo 'export PATH="$HOME/.movement/avalanchego:$PATH"' >> "$HOME/.bashrc"
 source "$HOME/.bashrc"
 
 # Clone the subnet repository if not already cloned
-if [ ! -d "$MOVEMENT_DIR/movement-subnet" ]; then
-  git clone https://github.com/movemntdev/movement-subnet "$MOVEMENT_DIR/movement-subnet"
+if [ ! -d "$MOVEMENT_DIR/m1" ]; then
+  git clone https://github.com/movemntdev/m1 "$MOVEMENT_DIR/m1"
 fi
 
 # Set up the developer environment if not already set up
-cd "$MOVEMENT_DIR/movement-subnet/vm/aptos-vm"
+cd "$MOVEMENT_DIR/m1/vm/aptos-vm"
 ./script/dev_setup.sh
 
 # Build the subnet binary
 cargo build --release -p subnet
 
 # Move the subnet binary to the plugin directory
-mv "$MOVEMENT_DIR/movement-subnet/vm/aptos-vm/target/release/subnet" "$PLUGINS_DIR/subnet"
+mv "$MOVEMENT_DIR/m1/vm/aptos-vm/target/release/subnet" "$PLUGINS_DIR/subnet"
 
 # Symlink the subnet binary with its subnet ID
 ln -s "$PLUGINS_DIR/qCP4kDnEWVorqyoUmcAtAmJybm8gXZzhHZ7pZibrJJEWECooU" "$PLUGINS_DIR/subnet"
 ln -s "$AVALANCHEGO_DIR/plugins/qCP4kDnEWVorqyoUmcAtAmJybm8gXZzhHZ7pZibrJJEWECooU" "$PLUGINS_DIR/subnet"
 
 # Clone the movement repository if not already cloned
-if [ ! -d "$MOVEMENT_DIR/movement-subnet" ]; then
-  git clone https://github.com/movemntdev/movement-subnet "$MOVEMENT_DIR/movement-subnet"
+if [ ! -d "$MOVEMENT_DIR/m1" ]; then
+  git clone https://github.com/movemntdev/m1 "$MOVEMENT_DIR/m1"
 fi
 
 # Set up the developer environment if not already set up
-cd "$MOVEMENT_DIR/movement-subnet/vm/aptos-vm"
+cd "$MOVEMENT_DIR/m1/aptos-pre-core"
 ./script/dev_setup.sh
 
 # Build the movement binary
+cd "$MOVEMENT_DIR/m1/m1"
 cargo build --release -p movement
 
 # Move the movement binary to the appropriate directory
-mv "$MOVEMENT_DIR/movement-subnet/vm/aptos-vm/target/release/movement" "$BIN_DIR"
+mv "$MOVEMENT_DIR/m1/vm/aptos-vm/target/release/movement" "$BIN_DIR"
 
 # Add movement binary directory to PATH
 echo 'export PATH="$HOME/.movement/bin:$PATH"' >> "$HOME/.bashrc"
@@ -133,9 +134,9 @@ echo 'export PATH="$HOME/.movement/bin:$PATH"' >> "$HOME/.bashrc"
 source "$HOME/.bashrc"
 
 # Clone the subnet proxy repository if not already cloned
-if [ ! -d "$MOVEMENT_DIR/subnet-request-proxy" ]; then
-  git clone https://github.com/movemntdev/subnet-request-proxy "$MOVEMENT_DIR/subnet-request-proxy"
-fi
+# if [ ! -d "$MOVEMENT_DIR/subnet-request-proxy" ]; then
+  # git clone https://github.com/movemntdev/subnet-request-proxy "$MOVEMENT_DIR/subnet-request-proxy"
+# fi
 
 # Download and install movementctl
 curl -sSfL "$MOVEMENTCTL_URL" -o "$BIN_DIR/movementctl"
