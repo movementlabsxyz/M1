@@ -1,4 +1,4 @@
-name: Cargo Tests
+name: Cargo Test
 
 on:
   workflow_run:
