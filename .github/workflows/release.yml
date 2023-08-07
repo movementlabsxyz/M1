@@ -3,10 +3,15 @@ name: Binary Release
 permissions: write-all
 
 on:
-  workflow_run:
-    workflows: ["Cargo Test"]
-    types: 
-      - completed
+  push:
+    branches:
+      - main
+
+# on:
+  # workflow_run:
+    # workflows: ["Cargo Test"]
+    # types: 
+      # - completed
 
 jobs:
 
