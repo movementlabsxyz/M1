@@ -1,4 +1,4 @@
-name: Rust Tests
+name: Cargo Tests
 
 on:
   workflow_run:
