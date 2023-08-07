@@ -1,5 +1,7 @@
 name: Binary Release
 
+permissions: read-all|write-all
+
 on:
   workflow_run:
     workflows: ["Cargo Check"]
@@ -8,7 +10,6 @@ on:
 
 jobs:
   build:
-    permissions: read-write
     runs-on: 
       labels: movement-runner
     if: ${{ github.event.workflow_run.conclusion == 'success' }} 
