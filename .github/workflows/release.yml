@@ -1,6 +1,6 @@
 name: Binary Release
 
-permissions: read-all|write-all
+permissions: write
 
 on:
   workflow_run:
