@@ -56,17 +56,23 @@ jobs:
           path: |
             $GITHUB_WORKSPACE/m1/target/release/subnet
 
+      - name: Bump version and push tag
+        uses: anothrNick/github-tag-action@1.64.0 # Don't use @master or @v1 unless you're happy to test the latest version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # if you don't want to set write permissions use a PAT token
+          WITH_V: false
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: Release for ${{ github.ref }}
+          tag_name: ${{ steps.create_tag.outputs.tag }}
+          release_name: Pre-release ${{ steps.create_tag.outputs.tag }}
+          body: Pre-release for ${{ steps.create_tag.outputs.tag }}
           draft: false
-          prerelease: false
+          prerelease: true
 
       - name: Upload Release Asset
         id: upload-release-asset 
