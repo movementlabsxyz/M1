@@ -57,6 +57,7 @@ jobs:
             $GITHUB_WORKSPACE/m1/target/release/subnet
 
       - name: Bump version and push tag
+        id: create_tag
         uses: anothrNick/github-tag-action@1.64.0 # Don't use @master or @v1 unless you're happy to test the latest version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # if you don't want to set write permissions use a PAT token
