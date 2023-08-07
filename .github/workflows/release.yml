@@ -8,6 +8,7 @@ on:
 
 jobs:
   build:
+    permissions: read-write
     runs-on: 
       labels: movement-runner
     if: ${{ github.event.workflow_run.conclusion == 'success' }} 
