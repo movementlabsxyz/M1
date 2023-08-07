@@ -9,53 +9,12 @@ on:
       - completed
 
 jobs:
-  build:
+
+  prepare-release:
     runs-on: 
-      labels: movement-runner
+        labels: movement-runner
     if: ${{ github.event.workflow_run.conclusion == 'success' }} 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
-        with:
-          submodules: 'recursive'  # Ensures submodules are fetched
-
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: 1.69.0
-
-      - name: Install windows target
-        run: rustup target add x86_64-pc-windows-gnu
-
-      - name: Install mac target
-        run: rustup target add x86_64-apple-darwin
-
-      - name: Install aarch64 target
-        run: rustup target add aarch64-unknown-linux-gnu
-
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential
-
-      - name: Build binaries
-        run: |
-          cd "$GITHUB_WORKSPACE/m1"
-          RUSTFLAGS="--cfg tokio_unstable" cargo build --release
-
-      - name: Build binaries
-        run: |
-          cd "$GITHUB_WORKSPACE/m1"
-          ls -l $GITHUB_WORKSPACE/m1/target/release
-          
-      - name: Archive binaries
-        uses: actions/upload-artifact@v3
-        with:
-          name: subnet
-          path: |
-            $GITHUB_WORKSPACE/m1/target/release/subnet
-
       - name: Bump version and push tag
         id: create_tag
         uses: anothrNick/github-tag-action@1.64.0 # Don't use @master or @v1 unless you're happy to test the latest version
@@ -76,14 +35,36 @@ jobs:
           draft: false
           prerelease: true
 
-      - name: Upload Release Asset
-        id: upload-release-asset 
+      - name: Set RELEASE_TAG
+        run: echo "RELEASE_TAG=${{ steps.create_tag.outputs.tag }}" >> $GITHUB_ENV
+
+
+  pre-release-x86_64-linux:
+    needs: prepare-release
+    runs-on:
+      labels: movement-runner
+    steps:
+      - name: Build binaries
+        run: |
+          cd "$GITHUB_WORKSPACE/m1"
+          cargo build --release
+          
+      - name: Upload subnet
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          upload_url: ${{ env.RELEASE_TAG }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
           asset_path: ./m1/target/release/subnet
           asset_name: subnet
           asset_content_type: application/octet-stream
 
+      - name: Upload movement
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ env.RELEASE_TAG }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          asset_path: ./m1/target/release/movement
+          asset_name: subnet
+          asset_content_type: application/octet-stream
