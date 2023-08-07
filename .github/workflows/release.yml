@@ -15,6 +15,10 @@ jobs:
         labels: movement-runner
     if: ${{ github.event.workflow_run.conclusion == 'success' }} 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
       - name: Bump version and push tag
         id: create_tag
         uses: anothrNick/github-tag-action@1.64.0 # Don't use @master or @v1 unless you're happy to test the latest version
@@ -44,6 +48,10 @@ jobs:
     runs-on:
       labels: movement-runner
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
       - name: Build binaries
         run: |
           cd "$GITHUB_WORKSPACE/m1"
@@ -74,6 +82,10 @@ jobs:
     runs-on: 
       labels: movement-runner
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
       - name: Set up Rust for Mac
         uses: actions-rs/toolchain@v1
         with:
@@ -112,6 +124,10 @@ jobs:
     runs-on: 
       labels: movement-runner
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
       - name: Set up Rust for Linux ARM64
         uses: actions-rs/toolchain@v1
         with:
@@ -149,6 +165,10 @@ jobs:
     runs-on: 
       labels: movement-runner
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
       - name: Set up Rust for Mac ARM64
         uses: actions-rs/toolchain@v1
         with:
@@ -186,6 +206,10 @@ jobs:
     runs-on: 
       labels: movement-runner
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
       - name: Set up Rust for Windows
         uses: actions-rs/toolchain@v1
         with:
