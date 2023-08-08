@@ -16,7 +16,7 @@ jobs:
   prepare-release:
     runs-on: 
         labels: movement-runner
-    if: ${{ github.event.workflow_run.conclusion == 'success' }} 
+    # if: ${{ github.event.workflow_run.conclusion == 'success' }} 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
