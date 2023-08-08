@@ -23,6 +23,24 @@
 
 set -e
 
+# Colors
+RED="\033[0;31m"
+GREEN="\033[0;32m"
+YELLOW="\033[0;33m"
+RESET="\033[0m"
+
+log_info() {
+  echo -e "${GREEN}[INFO]${RESET} $1"
+}
+
+log_warning() {
+  echo -e "${YELLOW}[WARNING]${RESET} $1"
+}
+
+log_error() {
+  echo -e "${RED}[ERROR]${RESET} $1"
+}
+
 # Set global variables
 MOVEMENTCTL_URL="https://raw.githubusercontent.com/movemntdev/movement-hack/main/bin/movementctl.sh"
 RELEASES_URL="https://github.com/movemntdev/M1/releases"
@@ -149,36 +167,54 @@ detect() {
 
 }
 
+show_config(){
 
-
-pull() {
-
-  rm -rf "$MOVEMENT_DIR/M1"
-  git clone --recursive https://github.com/movemntdev/M1 "$MOVEMENT_DIR/M1"
-  git submodule init
-  git pull origin main
-  git submodule update --recursive --remote
+  DEV_DISPLAY=""
+  $DEV && DEV_DISPLAY="with dev dependencies"|| DEV_DISPLAY="without dev dependencies"
+  BUILD_DISPLAY=""
+  $BUILD && BUILD_DISPLAY="built locally"|| BUILD_DISPLAY="downloaded from releases"
+  log_info "Installing movement@$VERSION $OS $ARCH ($FARCH), $DEV_DISPLAY, $BUILD_DISPLAY."
 
 }
 
 setup() {
-
+  log_warning "Removing previous installation, if one exists."
+  rm -rf "$AVALANCHEGO_DIR" "$AVALANCHEGO_DIR/plugins" "$MOVEMENT_DIR" "$PLUGINS_DIR" "$BIN_DIR" "$MOVEMENT_WORKSPACE"
+  log_info "Making new .movement directories."
   mkdir -p "$AVALANCHEGO_DIR" "$AVALANCHEGO_DIR/plugins" "$MOVEMENT_DIR" "$PLUGINS_DIR" "$BIN_DIR" "$MOVEMENT_WORKSPACE"
+
+}
+
+
+pull() {
+
+  log_info "Cloning M1."
+  rm -rf "$MOVEMENT_DIR/M1"
+  git clone --recursive https://github.com/movemntdev/M1 "$MOVEMENT_DIR/M1"
+  log_info "Entering M1."
+  cd "$MOVEMENT_DIR/M1"
+  log_info "Initializing submodules."
+  git submodule init
+  git submodule update --recursive --remote
 
 }
 
 deps() {
 
+    log_info "Entering M1."
     cd $MOVEMENT_WORKSPACE
 
-    cd "$MOVEMENT_DIR/movement-subnet/vm/aptos-vm"
-    ./script/dev_setup.sh
+    log_info "Entering aptos-pre-core."
+    cd "$MOVEMENT_DIR/M1/aptos-pre-core"
+    log_info "Running Aptos dev_setup."
+    echo "yes" | ./scripts/dev_setup.sh
 
 }
 
 avalanche_setup() {
 
   # Download and install avalanche-network-runner
+  log_info "Setting up Avalanche."
   curl -sSfL https://raw.githubusercontent.com/ava-labs/avalanche-network-runner/main/scripts/install.sh | sh -s
 
   # Add avalanche-network-runner binary to PATH
@@ -206,14 +242,10 @@ avalanche_setup() {
   fi
 
   # Add AvalancheGo binary directory to PATH
-  echo 'export PATH="$HOME/.movement/avalanchego:$PATH"' >> "$HOME/.bashrc"
+  echo "export PATH=\"$AVALANCHEGO_DIR:\$PATH\"" >> "$HOME/.bashrc"
 
 }
 
-dev_setup() {
-    cd "$MOVEMENT_DIR/movement-subnet/vm/aptos-vm"
-    ./script/dev_setup.sh
-}
 
 build() {
     # Build the subnet binary
@@ -240,14 +272,17 @@ dev() {
 
 download(){
 
-  echo "Downloading released binaries for subnet and movement @ $OS-$FARCH."
+  log_info "Downloading released binaries for subnet and movement@$VERSION $OS-$FARCH."
 
   if [[ $LATEST = true ]]; then
-    echo "$RELEASES_URL/latest/download/subnet-$FARCH-$OS"
+    log_info "Downloading subnet from $RELEASES_URL/latest/download/subnet-$FARCH-$OS."
     curl -sSfL "$RELEASES_URL/latest/download/subnet-$FARCH-$OS" -o "$PLUGINS_DIR/subnet"
+    log_info "Downloading movement from $RELEASES_URL/latest/download/movement-$FARCH-$OS."
     curl -sSfL "$RELEASES_URL/latest/download/movement-$FARCH-$OS" -o "$BIN_DIR/movement"
   else
+    log_info "Downloading subnet from $RELEASES_URL/download/$VERSION/subnet-$FARCH-$OS."
     curl -sSfL "$RELEASES_URL/download/$VERSION/subnet-$FARCH-$OS" -o "$PLUGINS_DIR/subnet"
+    log_info "Downloading movement from $RELEASES_URL/download/$VERSION/movement-$FARCH-$OS."
     curl -sSfL "$RELEASES_URL/download/$VERSION/movement-$FARCH-$OS" -o "$BIN_DIR/movement"
   fi
 
@@ -259,29 +294,33 @@ download(){
 }
 
 movementctl() {
+  log_info "Installing movementctl."
   curl -sSfL "$MOVEMENTCTL_URL" -o "$BIN_DIR/movementctl"
   chmod +x "$BIN_DIR/movementctl"
 }
 
 path(){
+  log_info "Adding $BIN_DIR to bash profile."
   echo "export PATH=\"${BIN_DIR}:\$PATH\"" >> ~/.bashrc
 }
 
 cleanup(){
   # Clean up artifacts
+  log_info "Cleaning up workspace."
   cd $MOVEMENT_DIR
   rm -rf $MOVEMENT_WORKSPACE
 }
 
 main() {
-
-  echo "Installing Movement..."
   
   # parse the args
   parse "$@"
 
   # detect the OS and architecture
   detect
+
+  # show the configuration
+  show_config
 
   # setup the .movement directory
   setup
