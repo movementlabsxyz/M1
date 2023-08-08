@@ -12,7 +12,7 @@ RUN rustup target add aarch64-unknown-linux-gnu
 WORKDIR /app
 
 # Copy your Rust project into the builder
-COPY ./m1 /app/m1
+COPY . /app
 
 # Set environment variables for cross compilation
 ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
