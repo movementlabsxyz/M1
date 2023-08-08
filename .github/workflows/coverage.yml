@@ -39,7 +39,7 @@ jobs:
       - name: Build for Coverage
         run: |
           cd ./m1
-          RUSTFLAGS="--cfg tokio_unstable" cargo build --all --all-targets
+          cargo build -p subnet -p movement
 
       - name: Test & Generate Coverage Report
         run: |
