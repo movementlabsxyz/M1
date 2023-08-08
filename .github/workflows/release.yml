@@ -16,6 +16,8 @@ jobs:
   prepare-release:
     runs-on: 
         labels: movement-runner
+    outputs:
+      release_tag:  ${{ steps.create_tag.outputs.tag }}
     # if: ${{ github.event.workflow_run.conclusion == 'success' }} 
     steps:
       - name: Checkout Repository
@@ -41,10 +43,6 @@ jobs:
           body: Pre-release for ${{ steps.create_tag.outputs.tag }}
           draft: false
           prerelease: true
-
-      - name: Set RELEASE_TAG output
-        id: set_output
-        run: echo "::set-output name=release_tag::${{ steps.create_tag.outputs.tag }}"
 
 
   pre-release-x86_64-linux:
