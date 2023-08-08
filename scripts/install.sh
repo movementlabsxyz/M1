@@ -25,7 +25,7 @@ set -e
 
 # Set global variables
 MOVEMENTCTL_URL="https://raw.githubusercontent.com/movemntdev/movement-hack/main/bin/movementctl.sh"
-RELEASES_URL="https://api.github.com/repos/movementdev/M1/releases"
+RELEASES_URL="https://github.com/movemntdev/M1/releases"
 AVALANCHEGO_VERSION="v1.10.3"
 AVALANCHEGO_DIR="$HOME/.avalanchego"
 MOVEMENT_DIR="$HOME/.movement"
@@ -130,6 +130,12 @@ detect() {
         *)          echo "Unsupported OS: $OS"; exit 1;;
     esac
 
+    if [[ ! -z "$ARCH" ]]; then
+      echo $ARCH
+      map
+      return
+    fi
+
     # Detect the architecture
     ARCH=$(uname -m)
     case $ARCH in
@@ -157,7 +163,7 @@ pull() {
 
 setup() {
 
-  mkdir -p "$AVALANCHEGO_DIR" "$MOVEMENT_DIR" "$PLUGINS_DIR" "$BIN_DIR" "$MOVEMENT_WORKSPACE"
+  mkdir -p "$AVALANCHEGO_DIR" "$AVALANCHEGO_DIR/plugins" "$MOVEMENT_DIR" "$PLUGINS_DIR" "$BIN_DIR" "$MOVEMENT_WORKSPACE"
 
 }
 
@@ -217,8 +223,8 @@ build() {
     mv "$MOVEMENT_DIR/movement-subnet/vm/aptos-vm/target/release/subnet" "$PLUGINS_DIR/subnet"
 
     # Symlink the subnet binary with its subnet ID
-    ln -s "$PLUGINS_DIR/qCP4kDnEWVorqyoUmcAtAmJybm8gXZzhHZ7pZibrJJEWECooU" "$PLUGINS_DIR/subnet"
-    ln -s "$AVALANCHEGO_DIR/plugins/qCP4kDnEWVorqyoUmcAtAmJybm8gXZzhHZ7pZibrJJEWECooU" "$PLUGINS_DIR/subnet"
+    ln -sf "$PLUGINS_DIR/subnet" "$PLUGINS_DIR/qCP4kDnEWVorqyoUmcAtAmJybm8gXZzhHZ7pZibrJJEWECooU" 
+    ln -sf "$PLUGINS_DIR/subnet" "$AVALANCHEGO_DIR/plugins/qCP4kDnEWVorqyoUmcAtAmJybm8gXZzhHZ7pZibrJJEWECooU" 
 
     # Build the movement binary
     cargo build --release -p movement
@@ -234,12 +240,21 @@ dev() {
 
 download(){
 
-  curl -sSfL "$RELEASES_URL/download/$VERSION/subnet-$UNAME$FARCH" -o "$PLUGINS_DIR/subnet"
-  curl -ssFL "$RELEASES_URL/download/$VERSION/movement-$UNAME$FARCH" -o "$BIN_DIR/movement"
+  echo "Downloading released binaries for subnet and movement @ $OS-$FARCH."
+
+  if [[ $LATEST = true ]]; then
+    echo "$RELEASES_URL/latest/download/subnet-$FARCH-$OS"
+    curl -sSfL "$RELEASES_URL/latest/download/subnet-$FARCH-$OS" -o "$PLUGINS_DIR/subnet"
+    curl -sSfL "$RELEASES_URL/latest/download/movement-$FARCH-$OS" -o "$BIN_DIR/movement"
+  else
+    curl -sSfL "$RELEASES_URL/download/$VERSION/subnet-$FARCH-$OS" -o "$PLUGINS_DIR/subnet"
+    curl -sSfL "$RELEASES_URL/download/$VERSION/movement-$FARCH-$OS" -o "$BIN_DIR/movement"
+  fi
+
 
   # Symlink the subnet binary with its subnet ID
-  ln -s "$PLUGINS_DIR/qCP4kDnEWVorqyoUmcAtAmJybm8gXZzhHZ7pZibrJJEWECooU" "$PLUGINS_DIR/subnet"
-  ln -s "$AVALANCHEGO_DIR/plugins/qCP4kDnEWVorqyoUmcAtAmJybm8gXZzhHZ7pZibrJJEWECooU" "$PLUGINS_DIR/subnet"
+  ln -sf "$PLUGINS_DIR/subnet" "$PLUGINS_DIR/qCP4kDnEWVorqyoUmcAtAmJybm8gXZzhHZ7pZibrJJEWECooU" 
+  ln -sf "$PLUGINS_DIR/subnet" "$AVALANCHEGO_DIR/plugins/qCP4kDnEWVorqyoUmcAtAmJybm8gXZzhHZ7pZibrJJEWECooU"
 
 }
 
@@ -259,6 +274,8 @@ cleanup(){
 }
 
 main() {
+
+  echo "Installing Movement..."
   
   # parse the args
   parse "$@"
@@ -270,7 +287,7 @@ main() {
   setup
 
   # if we're building or using dev, we'll need to pull the repo
-  if [ "$BUILD" = true | "$DEV" = true ]; then
+  if [[ ("$BUILD" = true) || ("$DEV" = true) ]]; then
       pull
   fi
 
@@ -293,3 +310,5 @@ main() {
   cleanup
 
 }
+
+main "$@"
