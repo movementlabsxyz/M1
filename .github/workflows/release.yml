@@ -170,13 +170,13 @@ jobs:
         with:
           submodules: 'recursive'
 
-      - name: Install dependencies
+      - name: Install dependencies for cross compilation
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential
-
-      - name: Set up dependencies for cross-compilation
-        run: apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          sudo apt update && sudo apt upgrade -y 
+          sudo apt install -y g++-aarch64-linux-gnu libc6-dev-arm64-cross 
+          sudo apt-get install -y gcc-aarch64-linux-gnu
           
       - name: Set up Rust for Linux ARM64
         uses: actions-rs/toolchain@v1
@@ -189,6 +189,9 @@ jobs:
         run: |
           cd "$GITHUB_WORKSPACE/m1"
           cargo clean
+          export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+          export CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc
+          export CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++
           RUSTFLAGS="--cfg tokio_unstable" cargo build --release --target aarch64-unknown-linux-gnu
           
       - name: Upload subnet
@@ -323,10 +326,10 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2 # Change to your desired region
+          aws-region: us-east-1 # Change to your desired region
 
       - name: Login to ECR
-        run: $(aws ecr get-login --no-include-email --region us-west-2)
+        run: aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 
       - name: Build, tag, and push Docker image
         env:
