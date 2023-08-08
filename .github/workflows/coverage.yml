@@ -21,9 +21,8 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly
+          toolchain: 1.69.0
           components: rustfmt
-          override: true
       
       - name: Install kcov
         run: |
@@ -40,7 +39,7 @@ jobs:
       - name: Build for Coverage
         run: |
           cd ./m1
-          RUSTFLAGS="--cfg tokio_unstable" cargo build --all --all-targets
+          cargo build -p subnet -p movement
 
       - name: Test & Generate Coverage Report
         run: |

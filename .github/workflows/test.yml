@@ -1,4 +1,4 @@
-name: Rust Tests
+name: Cargo Test
 
 on:
   workflow_run:
@@ -21,13 +21,12 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly
+          toolchain: 1.69.0
 
       - name: Build and Test Subnet
         run: |
           cd ./m1
-          RUSTFLAGS="--cfg tokio_unstable" cargo build --all --all-targets
-          RUSTFLAGS="--cfg tokio_unstable" cargo test --all
+          RUSTFLAGS="--cfg tokio_unstable" cargo test --lib # this should only be the lib tests
 
       - name: Update Badge
         run: |

@@ -12,7 +12,7 @@
 #
 # Usage:
 # - Run this script on the portable environment:
-#     $ ./install-movement.sh
+#     $ ./install.sh
 #
 # Note: Make sure to review and customize the script variables and paths 
 #       according to your specific requirements before running.
