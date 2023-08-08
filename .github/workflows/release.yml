@@ -62,6 +62,9 @@ jobs:
           profile: minimal
           toolchain: 1.69.0
 
+      - name: Clean Cargo Cache
+        run: cargo clean
+
       - name: Install Dependencies
         run: |
           sudo apt-get update
