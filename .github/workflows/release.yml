@@ -3,13 +3,13 @@ name: Binary Release
 permissions: write-all
 
 on:
-  push:
-    branches:
-      - main
-  # workflow_run:
-   # workflows: ["Cargo Test"]
-    # types: 
-      # - completed
+  # push:
+   # branches:
+      # - main
+  workflow_run:
+    workflows: ["Cargo Test"]
+    types: 
+      - completed
 
 jobs:
 
@@ -160,7 +160,7 @@ jobs:
 
           
   pre-release-aarch64-linux:
-    if: false # not yet supported
+    # if: false # not yet supported
     needs: prepare-release
     runs-on: 
       labels: movement-runner
@@ -169,6 +169,11 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: 'recursive'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
 
       - name: Set up dependencies for cross-compilation
         run: apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
@@ -183,7 +188,8 @@ jobs:
       - name: Build Linux ARM64 binaries
         run: |
           cd "$GITHUB_WORKSPACE/m1"
-          cargo build --release --target aarch64-unknown-linux-gnu
+          cargo clean
+          RUSTFLAGS="--cfg tokio_unstable" cargo build --release --target aarch64-unknown-linux-gnu
           
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
@@ -302,3 +308,30 @@ jobs:
           asset_name: movement-x86_64-windows
           asset_content_type: application/octet-stream
           
+  build-and-docker:
+      needs: 
+        - prepare-release
+        - pre-release-x86_64-linux
+      runs-on:
+          labels: movement-runner
+      steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up AWS CLI
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2 # Change to your desired region
+
+      - name: Login to ECR
+        run: $(aws ecr get-login --no-include-email --region us-west-2)
+
+      - name: Build, tag, and push Docker image
+        env:
+          ECR_REPOSITORY: public.ecr.aws/c4i6k4r8/movement-dev # Change to your ECR repository name
+          IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }} # Or any other tag you'd like
+        run: |
+          docker buildx create --use
+          docker buildx build -build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/release.dockerfile --platform linux/amd64,linux/arm64 -t $ECR_REPOSITORY:$IMAGE_TAG . --push
