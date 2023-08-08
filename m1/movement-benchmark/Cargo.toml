@@ -23,6 +23,7 @@ criterion = { workspace = true }
 criterion-cpu-time = { workspace = true }
 num_cpus = { workspace = true }
 proptest = { workspace = true }
+# aptos-transaction-benchmarks = { workspace = true }
 
 [[bench]]
 name = "transaction_benches"
