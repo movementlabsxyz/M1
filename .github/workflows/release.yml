@@ -177,7 +177,7 @@ jobs:
       - name: Build Docker image with ARM64 binaries using buildx
         run: |
           docker buildx create --use
-          docker buildx build --platform linux/arm64 -o type=local,dest=./output -f ./Dockerfile .
+          docker buildx build --platform linux/arm64 -o type=local,dest=./output -f ./docker/aarch64-linux.buildx.dockerfile .
   
       # After the build, the binaries are in the ./output/app/m1/target/aarch64-unknown-linux-gnu/release directory. Copy them to the desired location.
       - name: Copy compiled binaries
