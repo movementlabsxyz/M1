@@ -2,7 +2,8 @@
 
 ### Description
 <!-- Provide a brief summary of the changes introduced by this pull request -->
-- [ ] This contribution represent a trivial change (skip the following sections).
+- [ ] This contribution represents a trivial change (skip the following sections).
+- [ ] This contribution represents a CI/CD change that needs to be tested e2e (skip the following sections; justify below).
 
 ### Motivation and Context
 <!-- Explain why these changes are necessary and provide any relevant background information or context -->
