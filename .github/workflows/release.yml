@@ -6,10 +6,10 @@ on:
   push:
     branches:
       - main
-  workflow_run:
-    workflows: ["Cargo Test"]
-    types: 
-      - completed
+  # workflow_run:
+   # workflows: ["Cargo Test"]
+    # types: 
+      # - completed
 
 jobs:
 
@@ -42,8 +42,9 @@ jobs:
           draft: false
           prerelease: true
 
-      - name: Set RELEASE_TAG
-        run: echo "RELEASE_TAG=${{ steps.create_tag.outputs.tag }}" >> $GITHUB_ENV
+      - name: Set RELEASE_TAG output
+        id: set_output
+        run: echo "::set-output name=release_tag::${{ steps.create_tag.outputs.tag }}"
 
 
   pre-release-x86_64-linux:
@@ -60,7 +61,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.69.0
+          toolchain: 1.69.2
 
       - name: Install Dependencies
         run: |
@@ -80,14 +81,14 @@ jobs:
         run: |
           cd "$GITHUB_WORKSPACE/m1"
           cargo clean
-           RUSTFLAGS="--cfg tokio_unstable" cargo build --release
+          RUSTFLAGS="--cfg tokio_unstable" cargo build --release
           
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.RELEASE_TAG }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          upload_url: ${{ needs.prepare-release.outputs.release_tag }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
           asset_path: ./m1/target/release/subnet
           asset_name: subnet-x86_64-linux
           asset_content_type: application/octet-stream
@@ -97,7 +98,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.RELEASE_TAG }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          upload_url: ${{ needs.prepare-release.outputs.release_tag }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
           asset_path: ./m1/target/release/movement
           asset_name: movement-x86_64-linux
           asset_content_type: application/octet-stream
@@ -130,7 +131,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.69.0
+          toolchain: 1.69.2
           target: x86_64-apple-darwin
 
       - name: Build Mac binaries
@@ -143,7 +144,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.RELEASE_TAG }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          upload_url: ${{ needs.prepare-release.outputs.release_tag }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
           asset_path: ./m1/target/release/subnet
           asset_name: subnet-x86_64-mac
           asset_content_type: application/octet-stream
@@ -153,7 +154,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.RELEASE_TAG }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          upload_url: ${{ needs.prepare-release.outputs.release_tag }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
           asset_path: ./m1/target/release/movement
           asset_name: movement-x86_64-mac
           asset_content_type: application/octet-stream
@@ -177,7 +178,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.69.0
+          toolchain: 1.69.2
           target: aarch64-unknown-linux-gnu
 
       - name: Build Linux ARM64 binaries
@@ -190,7 +191,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.RELEASE_TAG }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          upload_url: ${{ needs.prepare-release.outputs.release_tag }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
           asset_path: ./m1/target/release/subnet
           asset_name: subnet-aarch64-linux
           asset_content_type: application/octet-stream
@@ -200,7 +201,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.RELEASE_TAG }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          upload_url: ${{ needs.prepare-release.outputs.release_tag }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
           asset_path: ./m1/target/release/movement
           asset_name: movement-aarch64-linux
           asset_content_type: application/octet-stream
@@ -228,7 +229,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.69.0
+          toolchain: 1.69.2
           target: aarch64-apple-darwin
 
       - name: Build Mac ARM64 binaries
@@ -241,7 +242,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.RELEASE_TAG }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          upload_url: ${{ needs.prepare-release.outputs.release_tag }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
           asset_path: ./m1/target/release/subnet
           asset_name: subnet-aarch64-mac
           asset_content_type: application/octet-stream
@@ -251,7 +252,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.RELEASE_TAG }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          upload_url: ${{ needs.prepare-release.outputs.release_tag }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
           asset_path: ./m1/target/release/movement
           asset_name: movement-aarch64-mac
           asset_content_type: application/octet-stream
@@ -274,7 +275,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.69.0
+          toolchain: 1.69.2
           target: x86_64-pc-windows-gnu
 
       - name: Build Windows binaries
@@ -287,7 +288,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.RELEASE_TAG }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          upload_url: ${{ needs.prepare-release.outputs.release_tag }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
           asset_path: ./m1/target/release/subnet
           asset_name: subnet-x86_64-windows
           asset_content_type: application/octet-stream
@@ -297,7 +298,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.RELEASE_TAG }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          upload_url: ${{ needs.prepare-release.outputs.release_tag }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
           asset_path: ./m1/target/release/movement
           asset_name: movement-x86_64-windows
           asset_content_type: application/octet-stream
