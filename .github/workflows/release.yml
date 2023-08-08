@@ -164,6 +164,7 @@ jobs:
     needs: prepare-release
     runs-on: 
       labels: movement-runner
+    container: arm64v8/rust:1.69.0
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
@@ -315,6 +316,7 @@ jobs:
       needs: 
         - prepare-release
         - pre-release-x86_64-linux
+        - pre-release-aarch64-linux
       runs-on:
           labels: movement-runner
       steps:
