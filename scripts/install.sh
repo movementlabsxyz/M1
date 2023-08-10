@@ -273,7 +273,12 @@ dev() {
 
 download(){
 
-  log_info "Downloading released binaries for subnet and movement@$VERSION $OS-$FARCH."
+  if [[ "$FARCH-$OS" != x86_64-linux ]]; then
+    log_error "$FARCH-$OS is not yet supported. Please use the --build option."
+    exit 1
+  fi
+
+  log_info "Downloading released binaries for subnet and movement@$VERSION $FARCH-$OS."
 
   if [[ $LATEST = true ]]; then
     log_info "Downloading subnet from $RELEASES_URL/latest/download/subnet-$FARCH-$OS."
