@@ -207,6 +207,7 @@ deps() {
     log_info "Entering aptos-pre-core."
     cd "$MOVEMENT_DIR/M1/aptos-pre-core"
     log_info "Running Aptos dev_setup."
+    chmod 755 ./scripts/dev_setup.sh
     echo "yes" | ./scripts/dev_setup.sh
 
 }
@@ -290,6 +291,8 @@ download(){
   # Symlink the subnet binary with its subnet ID
   ln -sf "$PLUGINS_DIR/subnet" "$PLUGINS_DIR/qCP4kDnEWVorqyoUmcAtAmJybm8gXZzhHZ7pZibrJJEWECooU" 
   ln -sf "$PLUGINS_DIR/subnet" "$AVALANCHEGO_DIR/plugins/qCP4kDnEWVorqyoUmcAtAmJybm8gXZzhHZ7pZibrJJEWECooU"
+
+  chmod -R 755 $BIN_DIR
 
 }
 
