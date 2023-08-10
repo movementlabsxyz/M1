@@ -273,11 +273,6 @@ dev() {
 
 download(){
 
-  if [[ "$FARCH-$OS" != x86_64-linux ]]; then
-    log_error "$FARCH-$OS is not yet supported. Please use the --build option."
-    exit 1
-  fi
-
   log_info "Downloading released binaries for subnet and movement@$VERSION $FARCH-$OS."
 
   if [[ $LATEST = true ]]; then
@@ -329,6 +324,11 @@ main() {
 
   # show the configuration
   show_config
+
+  if [[ "$FARCH-$OS" != x86_64-linux ]]; then
+    log_error "$FARCH-$OS is not yet supported. Please use the --build option."
+    exit 1
+  fi
 
   # setup the .movement directory
   setup
