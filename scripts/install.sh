@@ -199,7 +199,75 @@ pull() {
 
 }
 
-deps() {
+# Function to install Rust
+install_rust() {
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+}
+
+builder_deps(){
+
+  # Detect OS
+  if [ "$(uname)" = "Darwin" ]; then
+      # macOS
+  
+      # Install Homebrew if not installed
+      which brew > /dev/null || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  
+      # Install build essentials
+      brew install automake autoconf libtool
+  
+      # Install Rust
+      install_rust
+  
+  elif [ "$(expr substr $(uname -s) 1 5)" = "Linux" ]; then
+    # Linux
+
+    if grep -qE "(Microsoft|WSL)" /proc/version &> /dev/null ; then
+        # Windows Subsystem for Linux
+        powershell.exe "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))" # Install Chocolatey
+        powershell.exe "choco install rust-msvc -y" # Install Rust using Chocolatey
+    else
+        # Pure Linux
+        . /etc/os-release
+
+        case $ID in
+            debian|ubuntu)
+                sudo apt update
+                sudo apt install -y build-essential
+                install_rust
+                ;;
+            fedora)
+                sudo dnf install -y make automake gcc-c++ kernel-devel
+                install_rust
+                ;;
+            centos|rhel)
+                sudo yum groupinstall 'Development Tools'
+                install_rust
+                ;;
+            suse|opensuse|sles)
+                sudo zypper install -y -t pattern devel_basis
+                install_rust
+                ;;
+            arch|manjaro)
+                sudo pacman -S base-devel
+                install_rust
+                ;;
+            *)
+                echo "Unsupported Linux distribution."
+                exit 1
+                ;;
+        esac
+    fi
+
+  else
+      echo "Unsupported OS."
+      exit 1
+  fi
+
+  
+}
+
+dev_deps() {
 
     log_info "Entering M1."
     cd $MOVEMENT_WORKSPACE
@@ -249,6 +317,8 @@ avalanche_setup() {
 
 
 build() {
+    
+
     # Build the subnet binary
     cargo build --release -p subnet
 
@@ -267,7 +337,7 @@ build() {
 }
 
 dev() {
-  deps
+  dev_deps
 }
 
 download(){
@@ -358,6 +428,203 @@ main() {
 
   cleanup
 
+}
+
+# from Aptos setup
+function install_build_essentials {
+  PACKAGE_MANAGER=$1
+  #Differently named packages for pkg-config
+  if [[ "$PACKAGE_MANAGER" == "apt-get" ]]; then
+    install_pkg build-essential "$PACKAGE_MANAGER"
+  fi
+  if [[ "$PACKAGE_MANAGER" == "pacman" ]]; then
+    install_pkg base-devel "$PACKAGE_MANAGER"
+  fi
+  if [[ "$PACKAGE_MANAGER" == "apk" ]]; then
+    install_pkg alpine-sdk "$PACKAGE_MANAGER"
+    install_pkg coreutils "$PACKAGE_MANAGER"
+  fi
+  if [[ "$PACKAGE_MANAGER" == "yum" ]] || [[ "$PACKAGE_MANAGER" == "dnf" ]]; then
+    install_pkg gcc "$PACKAGE_MANAGER"
+    install_pkg gcc-c++ "$PACKAGE_MANAGER"
+    install_pkg make "$PACKAGE_MANAGER"
+  fi
+  #if [[ "$PACKAGE_MANAGER" == "brew" ]]; then
+  #  install_pkg pkgconfig "$PACKAGE_MANAGER"
+  #fi
+}
+
+function install_protoc {
+  INSTALL_PROTOC="true"
+  echo "Installing protoc and plugins"
+
+  if command -v "${INSTALL_DIR}protoc" &>/dev/null && [[ "$("${INSTALL_DIR}protoc" --version || true)" =~ .*${PROTOC_VERSION}.* ]]; then
+     echo "protoc 3.${PROTOC_VERSION} already installed"
+     return
+  fi
+
+  if [[ "$(uname)" == "Linux" ]]; then
+    PROTOC_PKG="protoc-$PROTOC_VERSION-linux-x86_64"
+  elif [[ "$(uname)" == "Darwin" ]]; then
+    PROTOC_PKG="protoc-$PROTOC_VERSION-osx-universal_binary"
+  else
+    echo "protoc support not configured for this platform (uname=$(uname))"
+    return
+  fi
+
+  TMPFILE=$(mktemp)
+  rm "$TMPFILE"
+  mkdir -p "$TMPFILE"/
+  (
+    cd "$TMPFILE" || exit
+    curl -LOs "https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/$PROTOC_PKG.zip" --retry 3
+    sudo unzip -o "$PROTOC_PKG.zip" -d /usr/local bin/protoc
+    sudo unzip -o "$PROTOC_PKG.zip" -d /usr/local 'include/*'
+    sudo chmod +x "/usr/local/bin/protoc"
+  )
+  rm -rf "$TMPFILE"
+
+  # Install the cargo plugins
+  if ! command -v protoc-gen-prost &> /dev/null; then
+    cargo install protoc-gen-prost --locked
+  fi
+  if ! command -v protoc-gen-prost-serde &> /dev/null; then
+    cargo install protoc-gen-prost-serde --locked
+  fi
+  if ! command -v protoc-gen-prost-crate &> /dev/null; then
+    cargo install protoc-gen-prost-crate --locked
+  fi
+}
+
+function install_pkg {
+  package=$1
+  PACKAGE_MANAGER=$2
+  PRE_COMMAND=()
+  if [ "$(whoami)" != 'root' ]; then
+    PRE_COMMAND=(sudo)
+  fi
+  if command -v "$package" &>/dev/null; then
+    echo "$package is already installed"
+  else
+    echo "Installing ${package}."
+    if [[ "$PACKAGE_MANAGER" == "yum" ]]; then
+      "${PRE_COMMAND[@]}" yum install "${package}" -y
+    elif [[ "$PACKAGE_MANAGER" == "apt-get" ]]; then
+      "${PRE_COMMAND[@]}" apt-get install "${package}" --no-install-recommends -y
+      echo apt-get install result code: $?
+    elif [[ "$PACKAGE_MANAGER" == "pacman" ]]; then
+      "${PRE_COMMAND[@]}" pacman -Syu "$package" --noconfirm
+    elif [[ "$PACKAGE_MANAGER" == "apk" ]]; then
+      apk --update add --no-cache "${package}"
+    elif [[ "$PACKAGE_MANAGER" == "dnf" ]]; then
+      dnf install "$package"
+    elif [[ "$PACKAGE_MANAGER" == "brew" ]]; then
+      brew install "$package"
+    fi
+  fi
+}
+
+function install_pkg_config {
+  PACKAGE_MANAGER=$1
+  #Differently named packages for pkg-config
+  if [[ "$PACKAGE_MANAGER" == "apt-get" ]] || [[ "$PACKAGE_MANAGER" == "dnf" ]]; then
+    install_pkg pkg-config "$PACKAGE_MANAGER"
+  fi
+  if [[ "$PACKAGE_MANAGER" == "pacman" ]]; then
+    install_pkg pkgconf "$PACKAGE_MANAGER"
+  fi
+  if [[ "$PACKAGE_MANAGER" == "brew" ]] || [[ "$PACKAGE_MANAGER" == "apk" ]] || [[ "$PACKAGE_MANAGER" == "yum" ]]; then
+    install_pkg pkgconfig "$PACKAGE_MANAGER"
+  fi
+}
+
+function install_shellcheck {
+  if ! command -v shellcheck &> /dev/null; then
+    if [[ $(uname -s) == "Darwin" ]]; then
+      install_pkg shellcheck brew
+    else
+      install_pkg xz "$PACKAGE_MANAGER"
+      MACHINE=$(uname -m);
+      TMPFILE=$(mktemp)
+      rm "$TMPFILE"
+      mkdir -p "$TMPFILE"/
+      curl -sL -o "$TMPFILE"/out.xz "https://github.com/koalaman/shellcheck/releases/download/v${SHELLCHECK_VERSION}/shellcheck-v${SHELLCHECK_VERSION}.$(uname -s | tr '[:upper:]' '[:lower:]').${MACHINE}.tar.xz"
+      tar -xf "$TMPFILE"/out.xz -C "$TMPFILE"/
+      cp "${TMPFILE}/shellcheck-v${SHELLCHECK_VERSION}/shellcheck" "${INSTALL_DIR}/shellcheck"
+      rm -rf "$TMPFILE"
+      chmod +x "${INSTALL_DIR}"/shellcheck
+    fi
+  fi
+}
+
+function install_openssl_dev {
+  PACKAGE_MANAGER=$1
+  #Differently named packages for openssl dev
+  if [[ "$PACKAGE_MANAGER" == "apk" ]]; then
+    install_pkg openssl-dev "$PACKAGE_MANAGER"
+  fi
+  if [[ "$PACKAGE_MANAGER" == "apt-get" ]]; then
+    install_pkg libssl-dev "$PACKAGE_MANAGER"
+  fi
+  if [[ "$PACKAGE_MANAGER" == "yum" ]] || [[ "$PACKAGE_MANAGER" == "dnf" ]]; then
+    install_pkg openssl-devel "$PACKAGE_MANAGER"
+  fi
+  if [[ "$PACKAGE_MANAGER" == "pacman" ]] || [[ "$PACKAGE_MANAGER" == "brew" ]]; then
+    install_pkg openssl "$PACKAGE_MANAGER"
+  fi
+}
+
+function install_lcov {
+  PACKAGE_MANAGER=$1
+  #Differently named packages for lcov with different sources.
+  if [[ "$PACKAGE_MANAGER" == "apk" ]]; then
+    apk --update add --no-cache  -X http://dl-cdn.alpinelinux.org/alpine/edge/testing lcov
+  fi
+  if [[ "$PACKAGE_MANAGER" == "apt-get" ]] || [[ "$PACKAGE_MANAGER" == "yum" ]] || [[ "$PACKAGE_MANAGER" == "dnf" ]] || [[ "$PACKAGE_MANAGER" == "brew" ]]; then
+    install_pkg lcov "$PACKAGE_MANAGER"
+  fi
+  if [[ "$PACKAGE_MANAGER" == "pacman" ]]; then
+    echo nope no lcov for you.
+    echo You can try installing yourself with:
+    echo install_pkg git "$PACKAGE_MANAGER"
+    echo cd lcov;
+    echo git clone https://aur.archlinux.org/lcov.git
+    echo makepkg -si --noconfirm
+  fi
+}
+
+function install_tidy {
+  PACKAGE_MANAGER=$1
+  #Differently named packages for tidy
+  if [[ "$PACKAGE_MANAGER" == "apk" ]]; then
+    apk --update add --no-cache  -X http://dl-cdn.alpinelinux.org/alpine/edge/testing tidyhtml
+  else
+    install_pkg tidy "$PACKAGE_MANAGER"
+  fi
+}
+
+
+function install_xsltproc {
+    if [[ "$PACKAGE_MANAGER" == "apt-get" ]]; then
+      install_pkg xsltproc "$PACKAGE_MANAGER"
+    else
+      install_pkg libxslt "$PACKAGE_MANAGER"
+    fi
+}
+
+function install_lld {
+  # Right now, only install lld for linux
+  if [[ "$(uname)" == "Linux" ]]; then
+    install_pkg lld "$PACKAGE_MANAGER"
+  fi
+}
+
+# this is needed for hdpi crate from aptos-ledger
+function install_libudev-dev {
+  # Need to install libudev-dev for linux
+  if [[ "$(uname)" == "Linux" ]]; then
+    install_pkg libudev-dev "$PACKAGE_MANAGER"
+  fi
 }
 
 main "$@"
