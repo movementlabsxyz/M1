@@ -268,7 +268,6 @@ build() {
 
 dev() {
   deps
-  avalanche_setup
 }
 
 download(){
@@ -332,6 +331,9 @@ main() {
 
   # setup the .movement directory
   setup
+
+  # include avalanche for movementctl
+  avalanche_setup
 
   # if we're building or using dev, we'll need to pull the repo
   if [[ ("$BUILD" = true) || ("$DEV" = true) ]]; then
