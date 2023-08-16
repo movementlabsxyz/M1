@@ -160,7 +160,7 @@ jobs:
 
           
   pre-release-aarch64-linux:
-    # if: false # not yet supported
+    if: false # not yet supported
     needs: prepare-release
     runs-on: 
       labels: movement-runner
@@ -302,6 +302,7 @@ jobs:
           asset_content_type: application/octet-stream
           
   build-and-docker:
+      if: false # not yet supported
       needs: 
         - prepare-release
         - pre-release-x86_64-linux
