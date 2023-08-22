@@ -21,4 +21,5 @@ jobs:
         . ~/.bashrc
         cd examples/movement/data_structures
         ls ~/.movement/bin
+        echo $PATH
         movement move test
