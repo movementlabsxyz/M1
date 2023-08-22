@@ -23,5 +23,5 @@ jobs:
 
     - name: Navigate and Run Movement Test
       run: |
-        cd sources/examples/data_structures
+        cd sources/examples/movement/data_structures
         movement move test
