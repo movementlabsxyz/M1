@@ -1,0 +1,27 @@
+name: Run Movement Tests
+
+on: [push]
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        repository: movemntdev/movement-hack
+
+    - name: Execute install script
+      run: |
+        bash <(curl -fsSL https://raw.githubusercontent.com/movemntdev/M1/main/scripts/install.sh) --latest
+
+    - name: Source bash profile
+      run: |
+        source ~/.bashrc
+        source ~/.bash_profile
+
+    - name: Navigate and Run Movement Test
+      run: |
+        cd sources/examples/data_structures
+        movement move test
