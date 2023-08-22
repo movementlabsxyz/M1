@@ -21,4 +21,5 @@ jobs:
         source ~/.bashrc
         source ~/.bash_profile
         cd examples/movement/data_structures
+        ls ~/.movement
         movement move test
