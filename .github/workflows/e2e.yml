@@ -18,8 +18,7 @@ jobs:
 
     - name: Navigate and Run Movement Test
       run: |
-        source ~/.bashrc
-        source ~/.bash_profile
+        . ~/.bashrc
         cd examples/movement/data_structures
-        ls ~/.movement
+        ls ~/.movement/bin
         movement move test
