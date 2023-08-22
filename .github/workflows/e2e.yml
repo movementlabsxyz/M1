@@ -18,8 +18,8 @@ jobs:
 
     - name: Navigate and Run Movement Test
       run: |
-        $(source ~/.bashrc; echo $PATH) >> $GITHUB_PATH
+        echo "~/.movement/bin" >> $GITHUB_PATH
         cd examples/movement/data_structures
         ls ~/.movement/bin
-        echo $PATH
+        echo $GITHUB_PATH
         movement move test
