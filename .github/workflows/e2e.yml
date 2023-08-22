@@ -16,13 +16,9 @@ jobs:
       run: |
         bash <(curl -fsSL https://raw.githubusercontent.com/movemntdev/M1/main/scripts/install.sh) --latest
 
-    - name: Source bash profile
+    - name: Navigate and Run Movement Test
       run: |
         source ~/.bashrc
         source ~/.bash_profile
-
-    - name: Navigate and Run Movement Test
-      run: |
-        ls -al
         cd examples/movement/data_structures
         movement move test
