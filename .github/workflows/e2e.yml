@@ -19,6 +19,7 @@ jobs:
     - name: Navigate and Run Movement Test
       run: |
         . ~/.bashrc
+        cat ~/.bashrc
         cd examples/movement/data_structures
         ls ~/.movement/bin
         echo $PATH
