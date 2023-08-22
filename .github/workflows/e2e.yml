@@ -15,13 +15,10 @@ jobs:
     - name: Execute install script
       run: |
         bash <(curl -fsSL https://raw.githubusercontent.com/movemntdev/M1/main/scripts/install.sh) --latest
-        NEW_PATH=$(source ~/.bashrc; echo $PATH)
-        echo $NEW_PATH >> $GITHUB_PATH
+        echo "~/.movement/bin" >> $GITHUB_PATH
 
     - name: Navigate and Run Movement Test
       run: |
-        echo "~/.movement/bin" >> $GITHUB_PATH
-        cd examples/movement/data_structures
-        ls ~/.movement/bin
         echo $GITHUB_PATH
+        cd examples/movement/data_structures
         movement move test
