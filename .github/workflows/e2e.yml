@@ -23,5 +23,6 @@ jobs:
 
     - name: Navigate and Run Movement Test
       run: |
+        ls -al
         cd sources/examples/movement/data_structures
         movement move test
