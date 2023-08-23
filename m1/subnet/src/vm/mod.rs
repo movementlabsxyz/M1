@@ -56,9 +56,10 @@ use aptos_types::validator_signer::ValidatorSigner;
 use aptos_vm::AptosVM;
 use aptos_vm_genesis::{GENESIS_KEYPAIR, test_genesis_change_set_and_validators};
 
-use crate::{block::Block, state};
+use crate::{block::Block, state, api};
 use crate::api::chain_handlers::{AccountStateArgs, BlockArgs, ChainHandler, ChainService, GetTransactionByVersionArgs, PageArgs, RpcEventHandleReq, RpcEventNumReq, RpcReq, RpcRes, RpcTableReq};
 use crate::api::static_handlers::{StaticHandler, StaticService};
+use crate::api::eth_rpc_handlers::{EthHandler, EthService};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const MOVE_DB_DIR: &str = ".move-chain-data";
@@ -1635,7 +1636,7 @@ impl CommonVm for Vm
 {
     type DatabaseManager = DatabaseManager;
     type AppSender = AppSenderClient;
-    type ChainHandler = ChainHandler<ChainService>;
+    type ChainHandler = crate::api::ChainHandler;
     type StaticHandler = StaticHandler;
     type ValidatorState = ValidatorStateClient;
 
@@ -1727,13 +1728,28 @@ impl CommonVm for Vm
     async fn create_handlers(
         &mut self,
     ) -> io::Result<HashMap<String, HttpHandler<Self::ChainHandler>>> {
-        let handler = ChainHandler::new(ChainService::new(self.clone()));
         let mut handlers = HashMap::new();
+        
+        let handler = crate::api::ChainHandler::ChainHandler(
+            ChainHandler::new(ChainService::new(self.clone()))
+        );
         handlers.insert(
             "/rpc".to_string(),
             HttpHandler {
                 lock_option: LockOptions::WriteLock,
                 handler,
+                server_addr: None,
+            },
+        );
+
+        let eth_handlers = crate::api::ChainHandler::EthHandler(
+            EthHandler::new(EthService::new(self.clone()))
+        );
+        handlers.insert(
+            "/eth".to_string(),
+            HttpHandler {
+                lock_option: LockOptions::WriteLock,
+                handler: eth_handlers,
                 server_addr: None,
             },
         );
