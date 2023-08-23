@@ -47,3 +47,5 @@ futures = { workspace = true }
 aptos-vm-genesis = { workspace = true }
 rand = { workspace = true }
 bcs = { workspace = true }
+
+ethers = { workspace = true }

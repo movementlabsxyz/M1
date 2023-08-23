@@ -4,6 +4,7 @@ members = [
     "subnet",
     "movement",
     "movement-benchmark",
+    "tests/e2e"
 ]
 
 [workspace.package]
@@ -246,3 +247,6 @@ aptos-vm-types = { path = "../aptos-pre-core/aptos-move/aptos-vm-types" }
 aptos-vm-validator = { path = "../aptos-pre-core/vm-validator" }
 aptos-warp-webserver = { path = "../aptos-pre-core/crates/aptos-warp-webserver" }
 aptos-writeset-generator = { path = "../aptos-pre-core/aptos-move/writeset-transaction-generator" }
+
+# ethers
+ethers = "2.0.7" # 2.07 matches with Avalanche's ethers version
