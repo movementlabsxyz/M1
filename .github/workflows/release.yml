@@ -59,7 +59,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.69.0
+          toolchain: 1.70.0
 
       - name: Install Dependencies
         run: |
@@ -129,7 +129,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.69.0
+          toolchain: 1.70.0
           target: x86_64-apple-darwin
 
       - name: Build Mac binaries
@@ -226,7 +226,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.69.0
+          toolchain: 1.70.0
           target: aarch64-apple-darwin
 
       - name: Build Mac ARM64 binaries
@@ -272,7 +272,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.69.0
+          toolchain: 1.70.0
           target: x86_64-pc-windows-gnu
 
       - name: Build Windows binaries
