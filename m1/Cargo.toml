@@ -14,7 +14,7 @@ authors = ["Liam Monninger <liam@movementlabs.xyz>"]
 homepage = "https://www.movementlabs.xyz"
 publish = false
 repository = "https://github.com/movemntdev/m2"
-rust-version = "1.69"
+rust-version = "1.70"
 
 [workspace.dependencies]
 anyhow = "1.0.62"
