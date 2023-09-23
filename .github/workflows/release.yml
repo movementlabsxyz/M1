@@ -19,7 +19,7 @@ jobs:
     outputs:
       release_tag:  ${{ steps.create_tag.outputs.tag }}
       release_url: ${{ steps.create_release.outputs.upload_url }}
-    # if: ${{ github.event.workflow_run.conclusion == 'success' }} 
+    if: ${{ github.event.workflow_run.conclusion == 'success' }} 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
@@ -40,10 +40,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         with:
           tag_name: ${{ steps.create_tag.outputs.tag }}
-          release_name: Pre-release ${{ steps.create_tag.outputs.tag }}
-          body: Pre-release for ${{ steps.create_tag.outputs.tag }}
+          release_name:  Release ${{ steps.create_tag.outputs.tag }}
+          body: Release ${{ steps.create_tag.outputs.tag }}
           draft: false
-          prerelease: true
 
 
   pre-release-x86_64-linux:
@@ -302,31 +301,44 @@ jobs:
           asset_content_type: application/octet-stream
           
   build-and-docker:
-      if: false # not yet supported
-      needs: 
-        - prepare-release
-        - pre-release-x86_64-linux
-        - pre-release-aarch64-linux
-      runs-on:
-          labels: movement-runner
-      steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    if: 
+    needs: 
+      - prepare-release
+      - pre-release-x86_64-linux
+      - pre-release-aarch64-linux
+    runs-on:
+      labels: movement-runner
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+  
+    - name: Login to Docker Hub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+  
+    - name: ClI-only container
+      env:
+        DOCKER_HUB_REPOSITORY: mvlbs/m1-cli # Change to your Docker Hub repository name
+        IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }} # Or any other tag you'd like
+      run: |
+        docker buildx create --use
+        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/cli.dockerfile --platform linux/amd64,linux/arm64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t latest . --push
 
-      - name: Set up AWS CLI
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1 # Change to your desired region
+    - name: Full developer container
+      env:
+        DOCKER_HUB_REPOSITORY: mvlbs/m1-dev # Change to your Docker Hub repository name
+        IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }} # Or any other tag you'd like
+      run: |
+        docker buildx create --use
+        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/dev.dockerfile --platform linux/amd64,linux/arm64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t latest . --push
 
-      - name: Login to ECR
-        run: aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
-
-      - name: Build, tag, and push Docker image
-        env:
-          ECR_REPOSITORY: public.ecr.aws/c4i6k4r8/movement-dev # Change to your ECR repository name
-          IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }} # Or any other tag you'd like
-        run: |
-          docker buildx create --use
-          docker buildx build -build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/release.dockerfile --platform linux/amd64,linux/arm64 -t $ECR_REPOSITORY:$IMAGE_TAG . --push
+    - name: General container # for now this is just the dev container
+      env:
+        DOCKER_HUB_REPOSITORY: mvlbs/m1 # Change to your Docker Hub repository name
+        IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }} # Or any other tag you'd like
+      run: |
+        docker buildx create --use
+        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/dev.dockerfile --platform linux/amd64,linux/arm64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t latest . --push
+    
