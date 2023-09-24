@@ -316,7 +316,7 @@ jobs:
         IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }} # Or any other tag you'd like
       run: |
         docker buildx create --use
-        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/cli.dockerfile --platform linux/amd64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t latest . --push
+        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/cli.dockerfile --platform linux/amd64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t $DOCKER_HUB_REPOSITORY:latest . --push
 
     - name: Full developer container
       env:
@@ -324,7 +324,7 @@ jobs:
         IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }} # Or any other tag you'd like
       run: |
         docker buildx create --use
-        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/dev.dockerfile --platform linux/amd64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t latest . --push
+        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/dev.dockerfile --platform linux/amd64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t $DOCKER_HUB_REPOSITORY:latest . --push
 
     - name: General container # for now this is just the dev container
       env:
@@ -332,7 +332,7 @@ jobs:
         IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }} # Or any other tag you'd like
       run: |
         docker buildx create --use
-        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/dev.dockerfile --platform linux/amd64,linux/arm64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t latest . --push
+        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/dev.dockerfile --platform linux/amd64,linux/arm64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t $DOCKER_HUB_REPOSITORY:latest . --push
     
   run-tests:
     needs:
