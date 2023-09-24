@@ -24,7 +24,7 @@ jobs:
       - name: Build and Test Subnet
         run: |
           cd ./m1
-          # cargo test --lib # this should only be the lib tests
+          cargo test
 
       - name: Update Badge
         run: |
