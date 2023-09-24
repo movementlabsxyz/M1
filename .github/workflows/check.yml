@@ -26,13 +26,13 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}-v2
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}-v3
     
       - name: Cache cargo index
         uses: actions/cache@v2
         with:
           path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}-v2
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}-v3
 
       - name: Run Cargo Check
         working-directory: ./m1  
