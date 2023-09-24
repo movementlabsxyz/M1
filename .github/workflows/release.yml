@@ -1,4 +1,4 @@
-name: Binary Release
+name: Release
 
 permissions: write-all
 
@@ -43,6 +43,7 @@ jobs:
           release_name:  Release ${{ steps.create_tag.outputs.tag }}
           body: Release ${{ steps.create_tag.outputs.tag }}
           draft: false
+          prerelease: true
 
 
   pre-release-x86_64-linux:
@@ -294,7 +295,7 @@ jobs:
      
           
   build-and-docker:
-    if: 
+    if: true
     needs: 
       - prepare-release
       - pre-release-x86_64-linux
@@ -335,3 +336,24 @@ jobs:
         docker buildx create --use
         docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/dev.dockerfile --platform linux/amd64,linux/arm64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t latest . --push
     
+  run-tests:
+    needs:
+      - prepare-release
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        repository: movemntdev/movement-hack
+
+    - name: Execute install script
+      run: |
+        bash <(curl -fsSL https://raw.githubusercontent.com/movemntdev/M1/main/scripts/install.sh) --version ${{ needs.prepare-release.outputs.release_tag }}
+        echo "~/.movement/bin" >> $GITHUB_PATH
+
+    - name: Navigate and Run Movement Test
+      run: |
+        echo $GITHUB_PATH
+        cd examples/movement/data_structures
+        movement move test
