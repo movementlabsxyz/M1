@@ -12,6 +12,6 @@ RUN curl -fSsL -o install.sh https://raw.githubusercontent.com/movemntdev/M1/mai
 RUN chmod +x install.sh
 
 # Execute the script with the desired arguments
-RUN ./install.sh --version ${VERSION} --dev
+RUN ./install.sh --version ${VERSION}
 
 CMD ["/bin/bash"]
