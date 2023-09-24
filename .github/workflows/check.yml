@@ -11,22 +11,32 @@ jobs:
       labels: movement-runner
 
     steps:
+      
       - name: Checkout Repository
         uses: actions/checkout@v2
         with:
           submodules: 'recursive'
 
-      - name: Install build essentials
-        run: sudo apt-get update && sudo apt-get install -y build-essential lld
+      - name: Setup
+        uses: ./.github/actions/setup-linux-x86_64.yml
 
-      - name: Print Linker Version
-        run: ld --version
-        
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
+      - name: Cache cargo registry
+        uses: actions/cache@v2
         with:
-          profile: minimal
-          toolchain: 1.70
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Cache cargo index
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+    
+      - name: Cache cargo build
+        uses: actions/cache@v2
+        with:
+          path: ./m1/target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Run Cargo Check
         working-directory: ./m1  

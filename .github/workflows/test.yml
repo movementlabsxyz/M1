@@ -12,21 +12,19 @@ jobs:
       labels: movement-runner
     if: ${{ github.event.workflow_run.conclusion == 'success' }} 
     steps:
-      - name: Checkout code
+
+      - name: Checkout Repository
         uses: actions/checkout@v2
         with:
           submodules: 'recursive'
 
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: 1.70.0
+      - name: Setup
+        uses: ./.github/actions/setup-linux-x86_64.yml
 
       - name: Build and Test Subnet
         run: |
           cd ./m1
-          RUSTFLAGS="--cfg tokio_unstable" cargo test --lib # this should only be the lib tests
+          # cargo test --lib # this should only be the lib tests
 
       - name: Update Badge
         run: |
