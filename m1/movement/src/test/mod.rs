@@ -71,9 +71,9 @@ use std::{
     time::Duration,
 };
 use tempfile::TempDir;
-use thiserror::__private::PathAsDisplay;
+use thiserror::__private::AsDisplay;
 #[cfg(feature = "cli-framework-test-move")]
-use thiserror::__private::PathAsDisplay;
+use thiserror::__private::AsDisplay;
 use tokio::time::{sleep, Instant};
 
 #[cfg(test)]
