@@ -11,14 +11,14 @@ jobs:
       labels: movement-runner
 
     steps:
-      
+
       - name: Checkout Repository
         uses: actions/checkout@v2
         with:
           submodules: 'recursive'
 
       - name: Setup
-        uses: ./.github/actions/setup-linux-x86_64.yml
+        uses: ./.github/actions/setup-linux-x86_64
 
       - name: Cache cargo registry
         uses: actions/cache@v2

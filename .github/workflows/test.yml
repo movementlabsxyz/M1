@@ -19,7 +19,7 @@ jobs:
           submodules: 'recursive'
 
       - name: Setup
-        uses: ./.github/actions/setup-linux-x86_64.yml
+        uses: ./.github/actions/setup-linux-x86_64
 
       - name: Build and Test Subnet
         run: |
