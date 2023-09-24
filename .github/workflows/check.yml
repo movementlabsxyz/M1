@@ -20,7 +20,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.70.0
+          toolchain: 1.69
 
       - name: Install build essentials
         run: sudo apt-get update && sudo apt-get install -y build-essential
