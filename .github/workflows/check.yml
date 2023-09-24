@@ -22,6 +22,9 @@ jobs:
           profile: minimal
           toolchain: 1.70.0
 
+      - name: Install build essentials
+        run: sudo apt-get update && sudo apt-get install -y build-essential
+
       - name: Cache cargo registry
         uses: actions/cache@v2
         with:
@@ -37,3 +40,4 @@ jobs:
       - name: Run Cargo Check
         working-directory: ./m1  
         run: cargo check
+
