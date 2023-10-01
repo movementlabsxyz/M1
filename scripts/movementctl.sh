@@ -7,34 +7,54 @@
 # environment. It includes functions to start and stop AvalancheGo, the
 # avalanche-network-runner server, and the subnet-request-proxy Node.js server.
 #
-# Usage: movementctl [start/stop] [fuji/local/subnet-proxy]
+# Usage: movementctl [start/stop] [fuji/local/subnet-proxy] [--foreground]
 #
 # Author: Liam Monninger
 # Version: 1.0
 ################################################################################
 
 PID_DIR="$HOME/.movement/pid"
+mkdir -p "$PID_DIR"
+
+RUN_IN_FOREGROUND="false"
+if [[ "${@: -1}" == "--foreground" ]]; then
+    RUN_IN_FOREGROUND="true"
+fi
 
 # Starts avalanchego with the specified network ID and subnet ID
 function start_avalanchego() {
   network_id="$1"
   subnet_id="$2"
-  avalanchego --network-id="$network_id" --track-subnets "$subnet_id" &
-  echo $! >> "$PID_DIR/avalanchego.pid"
+  
+  if [[ $RUN_IN_FOREGROUND == "true" ]]; then
+    avalanchego --network-id="$network_id" --track-subnets "$subnet_id"
+  else
+    avalanchego --network-id="$network_id" --track-subnets "$subnet_id" &
+    echo $! >> "$PID_DIR/avalanchego.pid"
+  fi
 }
 
 # Starts the avalanche-network-runner server
 function start_avalanche_network_runner() {
-  avalanche-network-runner server --log-level debug &
-  echo $! >> "$PID_DIR/avalanche_network_runner.pid"
+  if [[ $RUN_IN_FOREGROUND == "true" ]]; then
+    avalanche-network-runner server --log-level debug
+  else
+    avalanche-network-runner server --log-level debug &
+    echo $! >> "$PID_DIR/avalanche_network_runner.pid"
+  fi
 }
 
 # Starts the subnet-request-proxy Node.js server
 function start_subnet_proxy() {
   cd "$HOME/.movement/subnet-request-proxy"
   npm i
-  node app.js &
-  echo $! >> "$PID_DIR/subnet_proxy.pid"
+  
+  if [[ $RUN_IN_FOREGROUND == "true" ]]; then
+    node app.js
+  else
+    node app.js &
+    echo $! >> "$PID_DIR/subnet_proxy.pid"
+  fi
 }
 
 # Stops a process based on the provided PID file
@@ -65,7 +85,7 @@ function start() {
       start_subnet_proxy
       ;;
     *)
-      echo "Invalid start command. Usage: movementctl start [fuji/local/subnet-proxy]"
+      echo "Invalid start command. Usage: movementctl start [fuji/local/subnet-proxy] [--foreground]"
       exit 1
       ;;
   esac
@@ -99,7 +119,7 @@ case $1 in
     stop "${@:2}"
     ;;
   *)
-    echo "Invalid command. Usage: movementctl [start/stop]"
+    echo "Invalid command. Usage: movementctl [start/stop] [fuji/local/subnet-proxy] [--foreground]"
     exit 1
     ;;
 esac
