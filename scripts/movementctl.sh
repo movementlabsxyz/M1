@@ -27,9 +27,9 @@ function start_avalanchego() {
   subnet_id="$2"
   
   if [[ $RUN_IN_FOREGROUND == "true" ]]; then
-    avalanchego --network-id="$network_id" --track-subnets "$subnet_id"
+    avalanchego --http-host=0.0.0.0 --network-id="$network_id" --track-subnets "$subnet_id"
   else
-    avalanchego --network-id="$network_id" --track-subnets "$subnet_id" &
+    avalanchego --http-host=0.0.0.0 --network-id="$network_id" --track-subnets "$subnet_id" &
     echo $! >> "$PID_DIR/avalanchego.pid"
   fi
 }
@@ -76,7 +76,7 @@ function stop_process() {
 function start() {
   case $1 in
     fuji)
-      start_avalanchego "fuji" "qCP4kDnEWVorqyoUmcAtAmJybm8gXZzhHZ7pZibrJJEWECooU"
+      start_avalanchego "fuji" "2gLyawqthdiyrJktJmdnDAb1XVc6xwJXU6iJKu3Uwj21F2mXAK"
       ;;
     local)
       start_avalanche_network_runner
