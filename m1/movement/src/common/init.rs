@@ -9,7 +9,7 @@ use crate::{
             ConfigSearchMode, EncodingOptions, PrivateKeyInputOptions, ProfileConfig,
             ProfileOptions, PromptOptions, RngArgs, DEFAULT_PROFILE,
         },
-        utils::{fund_account, prompt_yes_with_override, read_line, wait_for_transactions},
+        utils::{fund_account, fund_pub_key, prompt_yes_with_override, read_line, wait_for_transactions},
     },
 };
 use aptos_crypto::{ed25519::Ed25519PrivateKey, PrivateKey, ValidCryptoMaterialStringExt};
@@ -179,7 +179,7 @@ impl CliCommand<()> for InitTool {
         let address = lookup_address(&client, derived_address, false).await?;
 
         profile_config.private_key = Some(private_key);
-        profile_config.public_key = Some(public_key);
+        profile_config.public_key = Some(public_key.clone());
         profile_config.account = Some(address);
 
         // Create account if it doesn't exist (and there's a faucet)
@@ -229,11 +229,11 @@ impl CliCommand<()> for InitTool {
                     "Account {} doesn't exist, creating it and funding it with {} Octas",
                     address, NUM_DEFAULT_OCTAS
                 );
-                let hashes = fund_account(
+                let hashes = fund_pub_key(
                     Url::parse(faucet_url)
                         .map_err(|err| CliError::UnableToParse("rest_url", err.to_string()))?,
-                    NUM_DEFAULT_OCTAS,
-                    address,
+                    // NUM_DEFAULT_OCTAS,
+                    (public_key.clone()).to_string(),
                 )
                 .await?;
                 wait_for_transactions(&client, hashes).await?;
