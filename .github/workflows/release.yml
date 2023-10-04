@@ -33,6 +33,10 @@ jobs:
           WITH_V: false
           DEFAULT_BUMP: patch
 
+      - name: Archive Repository
+        run: |
+          tar -czvf m1-with-submodules.tar.gz .
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -44,6 +48,16 @@ jobs:
           body: Release ${{ steps.create_tag.outputs.tag }}
           draft: false
           prerelease: true
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./m1-with-submodules.tar.gz
+          asset_name: m1-with-submodules.tar.gz
+          asset_content_type: application/gzip
 
 
   pre-release-x86_64-linux:
