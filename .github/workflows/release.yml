@@ -35,9 +35,8 @@ jobs:
 
       - name: Archive Repository
         run: |
-          df -h
-          df -i
-          tar -czvf m1-with-submodules.tar.gz .
+          cp -r . ./m1-with-submodules
+          tar -czvf m1-with-submodules.tar.gz ./m1-with-submodules
 
       - name: Create Release
         id: create_release
