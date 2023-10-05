@@ -35,7 +35,9 @@ jobs:
 
       - name: Archive Repository
         run: |
-          tar --warning=no-file-changed -czvf m1-with-submodules.tar.gz .
+          df -h
+          df -i
+          tar -czvf m1-with-submodules.tar.gz .
 
       - name: Create Release
         id: create_release
