@@ -13,6 +13,8 @@
 # Version: 1.0
 ################################################################################
 
+VM_NAME="movement"
+SUBNET_ID="2gLyawqthdiyrJktJmdnDAb1XVc6xwJXU6iJKu3Uwj21F2mXAK"
 PID_DIR="$HOME/.movement/pid"
 mkdir -p "$PID_DIR"
 
@@ -37,10 +39,24 @@ function start_avalanchego() {
 # Starts the avalanche-network-runner server
 function start_avalanche_network_runner() {
   if [[ $RUN_IN_FOREGROUND == "true" ]]; then
-    avalanche-network-runner server --log-level debug
+    # Start a new tmux session in detached mode and run the first command
+    tmux new-session -d -s lnet 'avalanche-network-runner server --log-level debug'
+
+    # Introduce a delay (e.g., 5 seconds)
+    sleep 5
+
+    # Run the second command in the current terminal
+    avalanche-network-runner control create-blockchains '[{"vm_name":"'$VM_NAME'", "subnet_id": "'$SUBNET_ID'"}]'
+
+    tmux attach-session -t lnet
+
   else
     avalanche-network-runner server --log-level debug &
     echo $! >> "$PID_DIR/avalanche_network_runner.pid"
+    # Introduce a delay (e.g., 5 seconds)
+    sleep 5
+    # Run the second command in the current terminal
+    avalanche-network-runner control create-blockchains '[{"vm_name":"'$VM_NAME'", "subnet_id": "'$SUBNET_ID'"}]'
   fi
 }
 
