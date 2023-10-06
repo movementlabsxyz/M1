@@ -79,9 +79,9 @@ function start_mevm(){
   npm i
 
   if [[ $RUN_IN_FOREGROUND == "true" ]]; then
-    node app.js
+    npm run start
   else
-    node app.js &
+    npm runs start  &
     echo $! >> "$PID_DIR/mevm.pid"
   fi
 
