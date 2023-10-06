@@ -60,6 +60,12 @@ use crate::{block::Block, state};
 use crate::api::chain_handlers::{AccountStateArgs, BlockArgs, ChainHandler, ChainService, GetTransactionByVersionArgs, PageArgs, RpcEventHandleReq, RpcEventNumReq, RpcReq, RpcRes, RpcTableReq};
 use crate::api::static_handlers::{StaticHandler, StaticService};
 
+pub mod mempool;
+pub mod avalanche;
+pub mod state;
+pub mod vm;
+pub mod aptos;
+
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const MOVE_DB_DIR: &str = ".move-chain-data";
 
