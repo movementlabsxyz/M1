@@ -53,6 +53,7 @@ BIN_DIR="$MOVEMENT_DIR/bin"
 
 # CLI arguments
 LATEST=true
+SOURCE=false
 BUILD=false
 VERSION=""
 DEV=false
@@ -73,8 +74,13 @@ parse() {
                 fi
                 shift
                 ;;
+            --source)
+                SOURCE=true
+                shift
+                ;;
             --build)
                 BUILD=true
+                SOURCE=true
                 shift
                 ;;
             --version)
@@ -92,6 +98,7 @@ parse() {
                 ;;
             --dev)
                 DEV=true
+                SOURCE=true
                 shift
                 ;;
             --arch)
@@ -188,14 +195,18 @@ setup() {
 
 pull() {
 
-  log_info "Cloning M1."
   rm -rf "$MOVEMENT_DIR/M1"
-  git clone --recursive https://github.com/movemntdev/M1 "$MOVEMENT_DIR/M1"
-  log_info "Entering M1."
-  cd "$MOVEMENT_DIR/M1"
-  log_info "Initializing submodules."
-  git submodule init
-  git submodule update --recursive --remote
+  if [[ $LATEST = true ]]; then
+    local URL="$RELEASES_URL/latest/download/m1-with-submodules.tar.gz"
+    log_info "Downloading full source from $URL..."
+    curl -sSfL $URL -o "$MOVEMENT_DIR/M1.tar.gz"
+  else
+    local URL="$RELEASES_URL/download/$VERSION/m1-with-submodules.tar.gz"
+    log_info "Downloading full source from $URL..."
+    curl -sSfL $URL -o "$PLUGINS_DIR/M1.tar.gz"
+  fi
+
+  tar -xzf "$MOVEMENT_DIR/M1.tar.gz" -C "$MOVEMENT_DIR"
 
 }
 
@@ -406,7 +417,7 @@ main() {
   avalanche_setup
 
   # if we're building or using dev, we'll need to pull the repo
-  if [[ ("$BUILD" = true) || ("$DEV" = true) ]]; then
+  if [[ ("$SOURCE" = true) ]]; then
       pull
   fi
 
