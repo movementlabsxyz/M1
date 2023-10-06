@@ -1,0 +1,8 @@
+{
+    "name": "movement",
+    "dockerFile": "Dockerfile",
+    "context": ".",
+    "forwardPorts": [],
+    "postCreateCommand": "cargo check",
+    "remoteUser": "root"
+}
