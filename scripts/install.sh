@@ -53,6 +53,7 @@ BIN_DIR="$MOVEMENT_DIR/bin"
 
 # CLI arguments
 LATEST=true
+SOURCE=false
 BUILD=false
 VERSION=""
 DEV=false
@@ -73,8 +74,13 @@ parse() {
                 fi
                 shift
                 ;;
+            --source)
+                SOURCE=true
+                shift
+                ;;
             --build)
                 BUILD=true
+                SOURCE=true
                 shift
                 ;;
             --version)

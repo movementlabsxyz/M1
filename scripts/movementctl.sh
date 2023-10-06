@@ -62,7 +62,7 @@ function start_avalanche_network_runner() {
 
 # Starts the subnet-request-proxy Node.js server
 function start_subnet_proxy() {
-  cd "$HOME/.movement/subnet-request-proxy"
+  cd "$HOME/.movement/M1/ecosystem/subnet-request-proxy"
   npm i
   
   if [[ $RUN_IN_FOREGROUND == "true" ]]; then
@@ -71,6 +71,20 @@ function start_subnet_proxy() {
     node app.js &
     echo $! >> "$PID_DIR/subnet_proxy.pid"
   fi
+}
+
+function start_mevm(){
+
+  cd "$HOME/.movement/M1/ecosystem/evm-runtime"
+  npm i
+
+  if [[ $RUN_IN_FOREGROUND == "true" ]]; then
+    node app.js
+  else
+    node app.js &
+    echo $! >> "$PID_DIR/mevm.pid"
+  fi
+
 }
 
 # Stops a process based on the provided PID file
@@ -100,6 +114,9 @@ function start() {
     subnet-proxy)
       start_subnet_proxy
       ;;
+    mevm)
+      start_mevm
+      ;;
     *)
       echo "Invalid start command. Usage: movementctl start [fuji/local/subnet-proxy] [--foreground]"
       exit 1
@@ -119,8 +136,11 @@ function stop() {
     subnet-proxy)
       stop_process "subnet_proxy"
       ;;
+    mevm)
+      stop_process "mevm"
+      ;;
     *)
-      echo "Invalid stop command. Usage: movementctl stop [fuji/local/subnet-proxy]"
+      echo "Invalid stop command. Usage: movementctl stop [fuji/local/subnet-proxy/mevm]"
       exit 1
       ;;
   esac

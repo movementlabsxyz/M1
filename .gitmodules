@@ -15,3 +15,6 @@
 [submodule "ecosystem/evm-runtime"]
 	path = ecosystem/evm-runtime
 	url = https://github.com/movemntdev/move-evm-swap-backend
+[submodule "ecosystem/subnet-request-proxy"]
+	path = ecosystem/subnet-request-proxy
+	url = https://github.com/movemntdev/subnet-request-proxy
