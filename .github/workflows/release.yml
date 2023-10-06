@@ -36,9 +36,10 @@ jobs:
 
       - name: Archive Repository
         run: |
-          mkdir -p /assets
-          cp -r . /assets/m1-with-submodules
-          tar -czvf /assets/m1-with-submodules.tar.gz ./m1-with-submodules
+          mkdir -p $GITHUB_WORKSPACE/assets
+          cp -r . $GITHUB_WORKSPACE/assets/m1-with-submodules
+          tar -czvf $GITHUB_WORKSPACE/assets/m1-with-submodules.tar.gz -C $GITHUB_WORKSPACE/assets m1-with-submodules
+
 
       - name: Create Release
         id: create_release
