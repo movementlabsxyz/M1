@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: 'recursive'
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.CI_PAT }}
 
       - name: Setup
         uses: ./.github/actions/setup-linux-x86_64
