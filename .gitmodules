@@ -12,3 +12,6 @@
 	path = aptos-pre-core
 	url = https://github.com/movemntdev/aptos-core
 	branch = m1-pre-core
+[submodule "ecosystem/evm-runtime"]
+	path = ecosystem/evm-runtime
+	url = https://github.com/movemntdev/move-evm-swap-backend
