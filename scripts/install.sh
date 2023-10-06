@@ -42,7 +42,7 @@ log_error() {
 }
 
 # Set global variables
-MOVEMENTCTL_URL="https://raw.githubusercontent.com/movemntdev/movement-hack/main/bin/movementctl.sh"
+MOVEMENTCTL_URL="https://raw.githubusercontent.com/movemntdev/M1/main/scripts/movementctl.sh"
 RELEASES_URL="https://github.com/movemntdev/M1/releases"
 AVALANCHEGO_VERSION="v1.10.3"
 AVALANCHEGO_DIR="$HOME/.avalanchego"
