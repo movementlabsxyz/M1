@@ -50,6 +50,7 @@ MOVEMENT_DIR="$HOME/.movement"
 MOVEMENT_WORKSPACE="$MOVEMENT_DIR/workspace"
 PLUGINS_DIR="$MOVEMENT_DIR/plugins"
 BIN_DIR="$MOVEMENT_DIR/bin"
+SUBNET_ID="2gLyawqthdiyrJktJmdnDAb1XVc6xwJXU6iJKu3Uwj21F2mXAK"
 
 # CLI arguments
 LATEST=true
@@ -337,8 +338,8 @@ build() {
     mv "$MOVEMENT_DIR/movement-subnet/vm/aptos-vm/target/release/subnet" "$PLUGINS_DIR/subnet"
 
     # Symlink the subnet binary with its subnet ID
-    ln -sf "$PLUGINS_DIR/subnet" "$PLUGINS_DIR/qCP4kDnEWVorqyoUmcAtAmJybm8gXZzhHZ7pZibrJJEWECooU" 
-    ln -sf "$PLUGINS_DIR/subnet" "$AVALANCHEGO_DIR/plugins/qCP4kDnEWVorqyoUmcAtAmJybm8gXZzhHZ7pZibrJJEWECooU" 
+    ln -sf "$PLUGINS_DIR/subnet" "$PLUGINS_DIR/$SUBNET_ID" 
+    ln -sf "$PLUGINS_DIR/subnet" "$AVALANCHEGO_DIR/plugins/$SUBNET_ID" 
 
     # Build the movement binary
     cargo build --release -p movement
@@ -369,8 +370,8 @@ download(){
 
 
   # Symlink the subnet binary with its subnet ID
-  ln -sf "$PLUGINS_DIR/subnet" "$PLUGINS_DIR/qCP4kDnEWVorqyoUmcAtAmJybm8gXZzhHZ7pZibrJJEWECooU" 
-  ln -sf "$PLUGINS_DIR/subnet" "$AVALANCHEGO_DIR/plugins/qCP4kDnEWVorqyoUmcAtAmJybm8gXZzhHZ7pZibrJJEWECooU"
+  ln -sf "$PLUGINS_DIR/subnet" "$PLUGINS_DIR/$SUBNET_ID" 
+  ln -sf "$PLUGINS_DIR/subnet" "$AVALANCHEGO_DIR/plugins/$SUBNET_ID"
 
   chmod -R 755 $BIN_DIR
 
