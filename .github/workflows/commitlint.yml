@@ -1,3 +1,4 @@
+# ENSURES COMMON COMMIT CONVENTION WORKS
 name: Lint Commit Messages
 on:
   pull_request:
