@@ -59,7 +59,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./m1-with-submodules.tar.gz
+          asset_path: $RUNNER_TEMP/m1-with-submodules.tar.gz
           asset_name: m1-with-submodules.tar.gz
           asset_content_type: application/gzip
 
