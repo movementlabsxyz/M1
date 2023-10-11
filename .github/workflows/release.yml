@@ -36,9 +36,9 @@ jobs:
 
       - name: Archive Repository
         run: |
-          mkdir -p $GITHUB_WORSKPACE/assets
-          cp -r . $GITHUB_WORSKPACE/assets/m1-with-submodules
-          tar -czvf $GITHUB_WORSKPACE/assets/m1-with-submodules.tar.gz -C $GITHUB_WORSKPACE/assets m1-with-submodules
+          mkdir -p $GITHUB_WORKSPACE/assets
+          cp -r . $GITHUB_WORKSPACE/assets/m1-with-submodules
+          tar -czvf $GITHUB_WORKSPACE/assets/m1-with-submodules.tar.gz -C $GITHUB_WORKSPACE/assets m1-with-submodules
 
 
       - name: Create Release
@@ -59,7 +59,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: $GITHUB_WORSKPACE/assets/m1-with-submodules.tar.gz
+          asset_path: $GITHUB_WORKSPACE/assets/m1-with-submodules.tar.gz
           asset_name: m1-with-submodules.tar.gz
           asset_content_type: application/gzip
 
