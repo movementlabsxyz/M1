@@ -40,6 +40,7 @@ jobs:
           cp -r . $RUNNER_TEMP/assets/m1-with-submodules
           tar -czvf $RUNNER_TEMP/assets/m1-with-submodules.tar.gz -C $RUNNER_TEMP/assets m1-with-submodules
           cp $RUNNER_TEMP/assets/m1-with-submodules.tar.gz $GITHUB_WORKSPACE/m1-with-submodules.tar.gz
+          ls -al $GITHUB_WORKSPACE
 
 
       - name: Create Release
@@ -53,6 +54,10 @@ jobs:
           body: Release ${{ steps.create_tag.outputs.tag }}
           draft: false
           prerelease: true
+
+      - name: Check
+        run: |
+          ls -al $GITHUB_WORKSPACE
 
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
