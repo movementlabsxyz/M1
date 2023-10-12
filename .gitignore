@@ -61,3 +61,5 @@ cmd/simulator/simulator-keys-temp/*
 .searcher/
 .replayer/
 tokens
+
+.movement

@@ -204,10 +204,11 @@ pull() {
   else
     local URL="$RELEASES_URL/download/$VERSION/m1-with-submodules.tar.gz"
     log_info "Downloading full source from $URL..."
-    curl -sSfL $URL -o "$PLUGINS_DIR/M1.tar.gz"
+    curl -sSfL $URL -o "$MOVEMENT_DIR/M1.tar.gz"
   fi
 
-  tar -xzf "$MOVEMENT_DIR/M1.tar.gz" -C "$MOVEMENT_DIR"
+  mkdir -p "$MOVEMENT_DIR/M1"
+  tar -xzf "$MOVEMENT_DIR/M1.tar.gz" --strip-components=1 -C "$MOVEMENT_DIR/M1"
 
 }
 

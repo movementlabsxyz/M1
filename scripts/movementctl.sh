@@ -77,6 +77,7 @@ function start_mevm(){
 
   cd "$HOME/.movement/M1/ecosystem/evm-runtime"
   npm i
+  npm run deploy
 
   if [[ $RUN_IN_FOREGROUND == "true" ]]; then
     npm run start
