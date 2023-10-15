@@ -1,28 +1,14 @@
-//! Implements static handlers specific to this VM.
-//! To be served via `[HOST]/ext/vm/[VM ID]/static`.
-
-use std::io;
-
+// Implements API services for the static handlers.
+use super::static_service::{StaticService, PingResponse};
 use avalanche_types::proto::http::Element;
 use avalanche_types::subnet::rpc::http::handle::Handle;
 use bytes::Bytes;
-use jsonrpc_core::{BoxFuture, IoHandler, Result};
-use jsonrpc_derive::rpc;
 
-use crate::api::de_request;
 
-/// Defines static handler RPCs for this VM.
-#[rpc]
-pub trait Rpc {
-    #[rpc(name = "ping", alias("timestampvm.ping"))]
-    fn ping(&self) -> BoxFuture<Result<crate::api::PingResponse>>;
-}
-
-/// Implements API services for the static handlers.
 #[derive(Default)]
-pub struct StaticService {}
+pub struct StaticServiceProvider {}
 
-impl StaticService {
+impl StaticServiceProvider {
     #[must_use]
     pub fn new() -> Self {
         Self {}
@@ -31,28 +17,28 @@ impl StaticService {
 
 
 
-impl Rpc for StaticService {
-    fn ping(&self) -> BoxFuture<Result<crate::api::PingResponse>> {
+impl StaticService for StaticServiceProvider {
+    fn ping(&self) -> BoxFuture<Result<PingResponse>> {
         log::debug!("ping called");
         Box::pin(async move { Ok(crate::api::PingResponse { success: true }) })
     }
 }
 #[derive(Clone)]
-pub struct StaticHandler {
+pub struct StaticServiceAvalancheHandler {
     pub handler: IoHandler,
 }
 
-impl StaticHandler {
+impl StaticServiceAvalancheHandler {
     #[must_use]
-    pub fn new(service: StaticService) -> Self {
+    pub fn new(service: StaticServiceProvider) -> Self {
         let mut handler = jsonrpc_core::IoHandler::new();
-        handler.extend_with(Rpc::to_delegate(service));
+        handler.extend_with(StaticService::to_delegate(service));
         Self { handler }
     }
 }
 
 #[tonic::async_trait]
-impl Handle for StaticHandler {
+impl Handle for StaticServiceAvalancheHandler {
     async fn request(
         &self,
         req: &Bytes,

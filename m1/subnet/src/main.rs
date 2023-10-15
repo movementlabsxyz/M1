@@ -7,6 +7,10 @@ mod vm;
 mod state;
 mod block;
 mod api;
+pub mod util;
+pub mod executor;
+pub mod rpc;
+pub mod state;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
