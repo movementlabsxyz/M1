@@ -4,6 +4,7 @@ members = [
     "subnet",
     "movement",
     "movement-benchmark",
+    "movement-sdk"
 ]
 
 [workspace.package]
