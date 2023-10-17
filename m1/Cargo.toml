@@ -4,7 +4,7 @@ members = [
     "subnet",
     "movement",
     "movement-benchmark",
-    "movement-sdk",
+    "util/movement-sdk",
     "standalone-sui-subnet"
 ]
 

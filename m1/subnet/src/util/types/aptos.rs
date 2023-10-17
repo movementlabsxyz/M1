@@ -14,6 +14,7 @@ pub struct AptosBlock {
 }
 
 impl AptosBlock {
+
     pub fn new(
         transactions : Vec<Transaction>,
         block_id : HashValue,
@@ -27,6 +28,16 @@ impl AptosBlock {
             parent_block_id,
             next_epoch,
             timestamp,
+        }
+    }
+
+    pub fn genesis() -> Self {
+        AptosData {
+            transactions : vec![],
+            block_id : HashValue::zero(),
+            parent_block_id : HashValue::zero(),
+            next_epoch : 0,
+            timestamp : 0,
         }
     }
 

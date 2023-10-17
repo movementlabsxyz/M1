@@ -221,6 +221,12 @@ impl State {
         
     }
 
+    // Set preferred
+    pub async fn set_preferred(&mut self, blk_id: &ids::Id) -> io::Result<()> {
+        self.preferred = blk_id.clone();
+        Ok(())
+    }
+
     // Accept block should only accept a fully built block
     pub async fn accept_block(&mut self, block: &Block) -> io::Result<()> {
         block.set_status(status::Status::Accepted);
@@ -229,6 +235,7 @@ impl State {
         self.remove_verified(blk_id).await;
     }
 
+    // Reject block should write a block to the db with a rejected status
     pub async fn reject_block(&mut self, block : &Block) -> io::Result<()> {
         block.set_status(status::Status::Rejected);
         self.write_block(block).await?; // blocks are written to the db when rejected for further rejection

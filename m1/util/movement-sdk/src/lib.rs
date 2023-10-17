@@ -1,11 +1,3 @@
-pub mod sequencer_layer;
-pub mod proposer_layer;
-pub mod data_availability_layer;
-pub mod execution_layer;
-pub mod storage_layer;
-pub mod settlement_layer;
-pub mod interchain_layer;
-
 // Top-level definition of traits.
 // Complex extensions and integrations should be defined in the submodules.
 #[async_trait]

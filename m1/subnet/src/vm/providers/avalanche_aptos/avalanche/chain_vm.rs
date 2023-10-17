@@ -8,6 +8,7 @@ use super::super::{
     },
     initialized::Initialized,
 };
+use avalanche_types::subnet::rpc::snowman::block::{BatchedChainVm, ChainVm, Getter, Parser};
 
 // Bubble up to the generic
 impl AvalancheAptos<Initialized> {
@@ -44,7 +45,7 @@ impl ChainVm for AvalancheAptosVm {
         &self,
     ) -> io::Result<<Self as ChainVm>::Block> {
 
-        match self.get_runtime() {
+        match self.get_runtime().await? {
             AvalancheAptosRuntime::Initialized(initialized) => {
                 initialized.build_block().await
             }

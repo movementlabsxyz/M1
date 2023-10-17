@@ -8,16 +8,16 @@ use super::super::{
     },
     initialized::Initialized,
 };
+use avalanche_types::subnet::rpc::snowman::block::{BatchedChainVm, ChainVm, Getter, Parser};
 
-// Implement on the initialized state
-impl Initialized {
+impl AvalancheAptos<Initialized> {
 
-    pub async fn get_block(
+    async fn get_block(
         &self,
         block_id: ids::Id,
     ) -> Result<AvalancheBlock, anyhow::Error> {
 
-        let state = self.state.clone();
+        let state = self.state.state.clone();
         let mut block = state.get_block(&blk_id).await?;
         let mut new_state = state.clone();
 
@@ -26,21 +26,6 @@ impl Initialized {
             block,
             new_state
         ))
-
-    }
-
-}
-
-// Bubble that up to the generic
-impl <S : Initialized> AvalancheAptos<S> {
-
-    async fn get_block(
-        &self,
-        block_id: ids::Id,
-    ) -> Result<AvalancheBlock, anyhow::Error> {
-
-        let block = self.get_block(block_id).await?;
-        Ok(block)
 
     }
 
@@ -56,9 +41,9 @@ impl Getter for AvalancheAptosVm {
         block_id: ids::Id,
     ) -> io::Result<<Self as Getter>::Block> {
 
-        match self.get_runtime() {
+        match self.get_runtime().await? {
             AvalancheAptosRuntime::Initialized(initialized) => {
-                initialized.get_block(blk_id).await
+                initialized.get_block(block_id).await
             },
             _ => Err(anyhow::anyhow!("AvalancheAptosVm is not initialized")),
         }

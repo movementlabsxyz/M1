@@ -8,16 +8,17 @@ use super::super::{
     },
     initialized::Initialized,
 };
+use avalanche_types::subnet::rpc::snowman::block::{BatchedChainVm, ChainVm, Getter, Parser};
 
-// Implement on the initialized state
-impl Initialized {
+// Bubble that up to the generic
+impl AvalancheAptos<Initialized> {
 
-    pub async fn parse_block(
+    async fn parse_block(
         &self,
-        bytes : &[u8]
-    )->Result<AvalancheBlock, anyhow::Error> {
+        bytes: &[u8],
+    ) -> Result<AvalancheBlock, anyhow::Error> {
 
-        let state = self.state.clone();
+        let state = self.state.state.clone();
         let mut new_block = AvalancheBlock::from_slice(bytes, state.clone())?;
         new_block.block.set_status(choices::status::Status::Processing);
         
@@ -37,21 +38,6 @@ impl Initialized {
 
 }
 
-// Bubble that up to the generic
-impl <S : Initialized> AvalancheAptos<S> {
-
-    async fn parse_block(
-        &self,
-        bytes: &[u8],
-    ) -> Result<AvalancheBlock, anyhow::Error> {
-
-        let block = self.parse_block(bytes).await?;
-        Ok(block)
-
-    }
-
-}
-
 
 #[async_trait]
 impl Parser for AvalancheAptosVm {
@@ -62,8 +48,14 @@ impl Parser for AvalancheAptosVm {
         bytes: &[u8],
     ) -> io::Result<<Self as Parser>::Block> {
         
-        let block = self.parse_block(bytes).await?;
-        Ok(block)
+        match self.get_runtime().await? {
+            AvalancheAptosRuntime::Initialized(initialized) => {
+                initialized.parse_block(bytes).await
+            }
+            _ => {
+                Err(io::Error::new(io::ErrorKind::Other, "Uninitialized"))
+            }
+        }
 
     }
 

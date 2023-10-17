@@ -29,14 +29,4 @@ impl Uninitialized {
         }
     }
 
-    pub async fn initialize(self) -> Result<Initialized, anyhow::Error> {
-
-        let initialized_executor = self.executor.initialize(self.state.config.clone()).await?;
-
-        Ok(Initialized::new(
-            initialized_executor,
-            self.state,
-        ))
-    }
-
 }
