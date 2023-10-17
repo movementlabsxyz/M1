@@ -1711,6 +1711,8 @@ impl CommonVm for Vm
 
         self.init_aptos().await;
         let mut vm_state = self.state.write().await;
+
+        // 
         let genesis = "hello world";
         let has_last_accepted = state.has_last_accepted_block().await?;
         if has_last_accepted {
@@ -1736,6 +1738,8 @@ impl CommonVm for Vm
             let genesis_blk_id = genesis_block.id();
             vm_state.preferred = genesis_blk_id;
         }
+
+        
         log::info!("successfully initialized Vm");
         Ok(())
     }

@@ -12,3 +12,6 @@
 	path = aptos-pre-core
 	url = https://github.com/movemntdev/aptos-core
 	branch = m1-pre-core
+[submodule "sui"]
+	path = sui
+	url = https://github.com/movemntdev/sui

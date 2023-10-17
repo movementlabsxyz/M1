@@ -74,6 +74,7 @@ impl Initialized {
 
 }
 
+
 #[async_trait]
 impl InitializedExecutor for Initialized {
     type ExecutionResult = (AptosBlock, StateComputeResult);
