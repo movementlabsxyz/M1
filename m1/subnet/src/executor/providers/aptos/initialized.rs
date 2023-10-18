@@ -1,6 +1,6 @@
 use super::super::super::executor::Initialized as InitializedExecutor;
 use super::aptos::AptosState;
-use aptos_api::Context;
+use aptos_api::{Context, RawApi, transactions::TransactionsApi};
 use aptos_crypto::HashValue;
 use aptos_executor::block_executor::BlockExecutor;
 use aptos_executor_types::{BlockExecutorTrait, StateComputeResult};
@@ -78,6 +78,7 @@ impl Initialized {
 #[async_trait]
 impl InitializedExecutor for Initialized {
     type ExecutionResult = (AptosBlock, StateComputeResult);
+    type ExecutionResult = RawApi;
 
     pub async fn propose_block(
         &self, 
@@ -218,6 +219,14 @@ impl InitializedExecutor for Initialized {
 
         Ok(())
 
+    }
+
+    pub async fn get_api(&self) -> Result<Self::Api, anyhow::Error> {
+        Ok(self.api_service.clone())
+    }
+
+    pub async fn get_transactions_api(&self) -> Result<TransactionsApi, anyhow::Error> {
+        Ok(self.api_service.transactions_api)
     }
 
 }

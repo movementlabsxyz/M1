@@ -69,3 +69,29 @@ pub struct AptosHeader {
     oldest_block_height: u64,
     cursor: Option<String>,
 }
+
+impl AptosHeader {
+
+    pub fn new(
+        chain_id: u8,
+        ledger_version: u64,
+        ledger_oldest_version: u64,
+        ledger_timestamp_usec: u64,
+        epoch: u64,
+        block_height: u64,
+        oldest_block_height: u64,
+        cursor: Option<String>,
+    ) -> Self {
+        AptosHeader {
+            chain_id,
+            ledger_version,
+            ledger_oldest_version,
+            ledger_timestamp_usec,
+            epoch,
+            block_height,
+            oldest_block_height,
+            cursor,
+        }
+    }
+
+}

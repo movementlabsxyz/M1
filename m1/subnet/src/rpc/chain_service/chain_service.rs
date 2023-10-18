@@ -2,6 +2,9 @@ use jsonrpc_core::{BoxFuture, Result};
 use jsonrpc_derive::rpc;
 use serde::{Deserialize, Serialize};
 use aptos_api_types::U64;
+use aptos_api::response::{AptosResponseContent, BasicResponse};
+use crate::util::types::aptos::AptosHeader;
+use std::convert::TryInto;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct GetTableItemArgs {
@@ -169,4 +172,58 @@ pub trait ChainServiceRpc {
 
     #[rpc(name = "getLedgerInfo", alias("aptosvm.getLedgerInfo"))]
     fn get_ledger_info(&self) -> BoxFuture<Result<RpcRes>>;
+}
+
+
+impl <T> TryInto<RpcRes> for BasicResponse<T> {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> Result<RpcRes, Self::Error> {
+
+        let (header, content) = match self {
+            BasicResponse::Ok(
+                content,
+                chain_id,
+                ledger_version,
+                ledger_oldest_version,
+                ledger_timestamp_usec,
+                epoch,
+                block_height,
+                oldest_block_height,
+                cursor
+            ) => {
+
+                let header = AptosHeader::new(
+                    chain_id,
+                    ledger_version,
+                    ledger_oldest_version,
+                    ledger_timestamp_usec,
+                    epoch,
+                    block_height,
+                    oldest_block_height,
+                    Some(cursor) // Assuming cursor is an Option<String>
+                );
+
+                let content = match content { // Assuming AptosHeader has a field named content
+                    AptosResponseContent::Json(json_content) => {
+                        serde_json::to_string(&json_content.0)?
+                    }
+                    AptosResponseContent::Bcs(bytes_content) => {
+                        hex::encode(bytes_content.0)
+                    }
+                };
+
+                (header, content)
+
+            }
+            // Handle other variants of BasicResponse if there are any
+        };
+
+        Ok(RpcRes {
+            header: serde_json::to_string(&header)?,
+            data: content,
+        })
+
+    }
+
 }

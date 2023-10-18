@@ -1,3 +1,4 @@
+use aptos_api::transactions::TransactionsApi;
 use tonic::async_trait;
 use crate::util::types::block::Block;
 use avalanche_types::{choices, ids};
@@ -13,6 +14,7 @@ pub trait Uninitialized {
 #[async_trait]
 pub trait Initialized {
     type ExecutionResult;
+    type Api;
 
     async fn propose_block(
         &self, 
@@ -30,6 +32,10 @@ pub trait Initialized {
         Ok(())
     }
 
+    async fn get_api(&self) -> Result<Self::Api, anyhow::Error>;
+
+    async fn get_transactions_api(&self) -> Result<TransactionsApi, anyhow::Error>;
+
 }
 
 pub struct Executor<S> {
@@ -44,7 +50,7 @@ impl <S> Executor<S> {
     }
 }
 
-impl<S : Uninitialized> Executor<S> {
+impl <S : Uninitialized> Executor<S> {
 
     pub async fn initialize(self, config : S::Config) -> Result<Executor<S::Initialized>, anyhow::Error> {
         Ok(Executor::new(
@@ -76,4 +82,12 @@ impl <S : Initialized> Executor<S> {
         self.state.apply_block(block).await
     }
     
+    pub async fn get_api(&self) -> Result<S::Api, anyhow::Error> {
+        self.state.get_api().await
+    }
+
+    pub async fn get_transactions_api(&self) -> Result<TransactionsApi, anyhow::Error> {
+        self.state.get_transactions_api().await
+    }
+
 }

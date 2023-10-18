@@ -28,6 +28,7 @@ use avalanche_types::subnet::rpc::snow::engine::common::appsender::AppSender;
 use avalanche_types::subnet::rpc::snow::engine::common::appsender::client::AppSenderClient;
 use avalanche_types::subnet::rpc::database::manager::{DatabaseManager, Manager};
 use avalanche_types::subnet::rpc::snow;
+use aptos_api::{Context, get_raw_api_service, RawApi};
 
 pub const VERSION : &str = "0.0.1";
 
@@ -80,6 +81,7 @@ impl AvalancheAptos<Uninitialized> {
 
     pub async fn initialize(&self) -> Result<AvalancheAptos<Initialized>, anyhow::Error> {
         
+        // initialize the executor
         let initialized_executor = {
             let executor = self.state.executor;
             executor.initialize(
@@ -87,11 +89,18 @@ impl AvalancheAptos<Uninitialized> {
             ).await?
         };
     
+        // send the genesis
         self.genesis().await?;
+
+        // initialize the raw api
+        let context = Context::new(ChainId::test(),
+                                   db.1.reader.clone(),
+                                   sender, node_config.clone());
 
         let initialized = Initialized::new(
             initialized_executor,
-            self.state.state.clone()
+            self.state.state.clone(),
+
         );
 
         Ok(AvalancheAptos::new(initialized))
