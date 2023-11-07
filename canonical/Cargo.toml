@@ -30,6 +30,11 @@ futures = "0.3.17"
 rand = "0.8.4"
 bcs = "0.1.0"
 
+# aptos
+aptos-framework = { path = "../third-party/aptos-pre-core/aptos-move/framework" }
+aptos-vm = { path = "../third-party/aptos-pre-core/aptos-move/aptos-vm" }
+aptos-types = { path = "../third-party/aptos-pre-core/types" }
+
 # sui
 sui-adapter-latest = { path = "../sui/sui-execution/latest/sui-adapter" }
 sui-types = { path = "../sui/crates/sui-types" }
