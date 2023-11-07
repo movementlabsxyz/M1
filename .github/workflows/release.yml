@@ -118,10 +118,10 @@ jobs:
 
 
   pre-release-x86_64-mac:
-    if: false # not yet supported
+    if: true # testing
     needs: prepare-release
     runs-on: 
-      labels: movement-runner
+      labels: macos-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
@@ -133,14 +133,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential
-
-      - name: Install oxcross
-        run: |
-          git clone https://github.com/tpoechtrager/osxcross
-          cd osxcross
-          wget -nc https://s3.dockerproject.org/darwin/v2/MacOSX10.10.sdk.tar.xz
-          mv MacOSX10.10.sdk.tar.xz tarballs/
-          UNATTENDED=yes OSX_VERSION_MIN=10.7 ./build.sh
           
       - name: Set up Rust for Mac
         uses: actions-rs/toolchain@v1
@@ -226,21 +218,13 @@ jobs:
     if: false # not yet supported
     needs: prepare-release
     runs-on: 
-      labels: movement-runner
+      labels: macos-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
         with:
           submodules: 'recursive'
           token: ${{ secrets.CI_PAT }}
-
-      - name: Install oxcross
-        run: |
-          git clone https://github.com/tpoechtrager/osxcross
-          cd osxcross
-          wget -nc https://s3.dockerproject.org/darwin/v2/MacOSX10.10.sdk.tar.xz
-          mv MacOSX10.10.sdk.tar.xz tarballs/
-          UNATTENDED=yes OSX_VERSION_MIN=10.7 ./build.sh
           
       - name: Set up Rust for Mac ARM64
         uses: actions-rs/toolchain@v1
@@ -276,7 +260,7 @@ jobs:
 
 
   pre-release-x86_64-windows:
-    if: false # not yet supported
+    if: true # testing
     needs: prepare-release
     runs-on: 
       labels: movement-runner
