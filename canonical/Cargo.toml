@@ -31,9 +31,11 @@ rand = "0.8.4"
 bcs = "0.1.0"
 
 # aptos
-aptos-framework = { path = "../third-party/aptos-pre-core/aptos-move/framework" }
-aptos-vm = { path = "../third-party/aptos-pre-core/aptos-move/aptos-vm" }
-aptos-types = { path = "../third-party/aptos-pre-core/types" }
+aptos-framework = { path = "../third-party/aptos-core/aptos-move/framework" }
+aptos-vm = { path = "../third-party/aptos-core/aptos-move/aptos-vm" }
+aptos-types = { path = "../third-party/aptos-core/types" }
+aptos-executor = { path = "../third-party/aptos-core/execution/executor" }
+aptos-executor-types = { path = "../third-party/aptos-core/execution/executor-types" }
 
 # sui
 sui-adapter-latest = { path = "../sui/sui-execution/latest/sui-adapter" }
