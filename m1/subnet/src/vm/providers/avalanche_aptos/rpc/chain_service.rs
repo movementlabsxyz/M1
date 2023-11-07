@@ -12,6 +12,7 @@ use super::super::{
     },
     initialized::Initialized,
 };
+use aptos_api::{transactions::SubmitTransactionPost, bcs_payload};
 use jsonrpc_core::{BoxFuture, Result};
 
 
@@ -62,6 +63,21 @@ impl ChainServiceRpc for AvalancheAptos<Initialized> {
 
         // todo: this needs to be non-await
         let transactions_api = executor.get_transactions_api().await?;
+
+        let accept_type = if args.is_bsc_format.unwrap_or(false) {
+            AcceptType::Bcs
+        } else {
+            AcceptType::Json
+        };
+
+        let payload = SubmitTransactionPost::Bcs(
+            bcs_payload::Bcs(args.data.clone())
+        );
+
+        let submit_transaction_response = transactions_api.submit_transaction(
+            accept_type,
+            payload
+        ).await?;
 
         unimplemented!("submit_transaction")
     }

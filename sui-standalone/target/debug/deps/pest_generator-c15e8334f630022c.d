@@ -1,0 +1,10 @@
+/Users/l-monninger/Desktop/dev/movemnt/m1/sui-standalone/target/debug/deps/pest_generator-c15e8334f630022c.rmeta: /Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/pest_generator-2.7.4/src/lib.rs /Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/pest_generator-2.7.4/src/macros.rs /Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/pest_generator-2.7.4/src/docs.rs /Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/pest_generator-2.7.4/src/generator.rs
+
+/Users/l-monninger/Desktop/dev/movemnt/m1/sui-standalone/target/debug/deps/libpest_generator-c15e8334f630022c.rlib: /Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/pest_generator-2.7.4/src/lib.rs /Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/pest_generator-2.7.4/src/macros.rs /Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/pest_generator-2.7.4/src/docs.rs /Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/pest_generator-2.7.4/src/generator.rs
+
+/Users/l-monninger/Desktop/dev/movemnt/m1/sui-standalone/target/debug/deps/pest_generator-c15e8334f630022c.d: /Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/pest_generator-2.7.4/src/lib.rs /Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/pest_generator-2.7.4/src/macros.rs /Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/pest_generator-2.7.4/src/docs.rs /Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/pest_generator-2.7.4/src/generator.rs
+
+/Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/pest_generator-2.7.4/src/lib.rs:
+/Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/pest_generator-2.7.4/src/macros.rs:
+/Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/pest_generator-2.7.4/src/docs.rs:
+/Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/pest_generator-2.7.4/src/generator.rs:

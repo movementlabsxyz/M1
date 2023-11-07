@@ -1,3 +1,5 @@
+use async_trait::async_trait;
+
 // Top-level definition of traits.
 // Complex extensions and integrations should be defined in the submodules.
 #[async_trait]

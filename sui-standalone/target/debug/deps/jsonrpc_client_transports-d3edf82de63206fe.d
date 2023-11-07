@@ -1,0 +1,8 @@
+/Users/l-monninger/Desktop/dev/movemnt/m1/sui-standalone/target/debug/deps/jsonrpc_client_transports-d3edf82de63206fe.rmeta: /Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/jsonrpc-client-transports-18.0.0/src/lib.rs /Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/jsonrpc-client-transports-18.0.0/src/transports/mod.rs /Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/jsonrpc-client-transports-18.0.0/src/transports/duplex.rs /Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/jsonrpc-client-transports-18.0.0/src/transports/local.rs
+
+/Users/l-monninger/Desktop/dev/movemnt/m1/sui-standalone/target/debug/deps/jsonrpc_client_transports-d3edf82de63206fe.d: /Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/jsonrpc-client-transports-18.0.0/src/lib.rs /Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/jsonrpc-client-transports-18.0.0/src/transports/mod.rs /Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/jsonrpc-client-transports-18.0.0/src/transports/duplex.rs /Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/jsonrpc-client-transports-18.0.0/src/transports/local.rs
+
+/Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/jsonrpc-client-transports-18.0.0/src/lib.rs:
+/Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/jsonrpc-client-transports-18.0.0/src/transports/mod.rs:
+/Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/jsonrpc-client-transports-18.0.0/src/transports/duplex.rs:
+/Users/l-monninger/.cargo/registry/src/index.crates.io-6f17d22bba15001f/jsonrpc-client-transports-18.0.0/src/transports/local.rs:

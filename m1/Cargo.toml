@@ -4,8 +4,6 @@ members = [
     "subnet",
     "movement",
     "movement-benchmark",
-    "util/movement-sdk",
-    "standalone-sui-subnet"
 ]
 
 [workspace.package]

@@ -1,0 +1,1 @@
+{"rustc":3988632443258116178,"features":"","target":0,"profile":0,"path":0,"deps":[[14760794324230163220,"build_script_build",false,10835709300346469321]],"local":[{"RerunIfChanged":{"output":"debug/build/rayon-core-fb02357000e56ea7/output","paths":["build.rs"]}}],"rustflags":[],"metadata":0,"config":0,"compile_kind":0}

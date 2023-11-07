@@ -1,0 +1,31 @@
+[workspace]
+resolver = "2"
+members = [
+    "standalone-sui-subnet"
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["Liam Monninger <liam@movementlabs.xyz>"]
+homepage = "https://www.movementlabs.xyz"
+publish = false
+repository = "https://github.com/movemntdev/m2"
+rust-version = "1.70"
+
+# testing
+
+[workspace.dependencies]
+# general
+anyhow = "1.0.44"
+futures = "0.3.17"
+rand = "0.8.4"
+bcs = "0.1.0"
+
+# sui
+sui-adapter-latest = { path = "../sui/sui-execution/latest/sui-adapter" }
+sui-types = { path = "../sui/crates/sui-types" }
+
+# movement
+movement-sdk = { path = "../movement-sdk/movement-sdk" }
