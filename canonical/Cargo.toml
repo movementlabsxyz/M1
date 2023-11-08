@@ -24,6 +24,9 @@ rust-version = "1.70"
 # testing
 
 [workspace.dependencies]
+# internal
+canonical-types = { path = "../canonical-types" }
+
 # general
 anyhow = "1.0.44"
 futures = "0.3.17"
@@ -36,10 +39,15 @@ aptos-vm = { path = "../third-party/aptos-core/aptos-move/aptos-vm" }
 aptos-types = { path = "../third-party/aptos-core/types" }
 aptos-executor = { path = "../third-party/aptos-core/execution/executor" }
 aptos-executor-types = { path = "../third-party/aptos-core/execution/executor-types" }
+aptos-storage-interface = { path = "../third-party/aptos-core/storage/storage-interface" }
 
 # sui
-sui-adapter-latest = { path = "../sui/sui-execution/latest/sui-adapter" }
-sui-types = { path = "../sui/crates/sui-types" }
+sui-adapter-latest = { path = "../third-party/sui/sui-execution/latest/sui-adapter" }
+sui-types = { path = "../third-party/sui/crates/sui-types" }
 
 # movement
 movement-sdk = { path = "../movement-sdk/movement-sdk" }
+
+# patches
+[replace]
+"move-abigen:0.1.0" = { path = "../third-party/sui/external-crates/move/move-prover/move-abigen" }

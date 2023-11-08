@@ -31,6 +31,9 @@ rand = { workspace = true }
 bcs = { workspace = true }
 movement-sdk = { workspace = true }
 
+# aptos
+aptos-storage-interface = { workspace = true }
+
 # sui
 # todo: conflicting rocksdb means we can't use workspace
 # todo: likely movement-sdk will move into its own workspace

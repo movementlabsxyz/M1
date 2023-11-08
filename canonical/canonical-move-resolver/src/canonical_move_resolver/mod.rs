@@ -1,3 +1,6 @@
+pub mod aptos;
+pub mod sui;
+
 /// This is where the common resolver should be defined. 
 /// Essentially, it will be composed of a Sui resolver and an Aptos resolver.
 /// First, we will check for an Aptos struct.
