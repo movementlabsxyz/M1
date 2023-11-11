@@ -55,6 +55,8 @@ use aptos_types::transaction::Transaction::UserTransaction;
 use aptos_types::validator_signer::ValidatorSigner;
 use aptos_vm::AptosVM;
 use aptos_vm_genesis::{GENESIS_KEYPAIR, test_genesis_change_set_and_validators};
+use aptos_node::indexer::bootstrap_indexer;
+use aptos_indexer_grpc_fullnode::runtime::bootstrap as bootstrap_indexer_grpc;
 
 use crate::{block::Block, state};
 use crate::api::chain_handlers::{AccountStateArgs, BlockArgs, ChainHandler, ChainService, GetTransactionByVersionArgs, PageArgs, RpcEventHandleReq, RpcEventNumReq, RpcReq, RpcRes, RpcTableReq};
@@ -1338,7 +1340,7 @@ impl Vm {
         // set up the mempool
         let (mempool_client_sender,
             mut mempool_client_receiver) = futures_mpsc::channel::<MempoolClientRequest>(10);
-        let sender = MempoolClientSender::from(mempool_client_sender);
+        let sender = MempoolClientSender::from(mempool_client_sender.clone());
         let node_config = NodeConfig::default();
         let context = Context::new(ChainId::test(),
                                    db.1.reader.clone(),
@@ -1366,6 +1368,12 @@ impl Vm {
                     MempoolClientRequest::GetTransactionByHash(_, _) => {}
                 }
             }
+        });
+
+        // start the indexer service
+        tokio::task::spawn(async move {
+            bootstrap_indexer_grpc(&node_config, ChainId::test(), db.1.reader.clone(), mempool_client_sender.clone()).unwrap();
+            bootstrap_indexer(&node_config, ChainId::test(), db.1.reader.clone(), MempoolClientSender::from(mempool_client_sender.clone())).unwrap();
         });
 
 
@@ -1476,6 +1484,20 @@ impl ChainVm for Vm
     async fn last_accepted(&self) -> io::Result<ids::Id> {
         self.last_accepted().await
     }
+
+    async fn verify_height_index(&self) -> io::Result<()> {
+        Ok(())
+    }
+
+    // Returns an error as a no-op for now.
+    async fn get_block_id_at_height(&self, _height: u64) -> io::Result<ids::Id> {
+        Err(Error::new(ErrorKind::NotFound, "block id not found"))
+    }
+
+    async fn state_sync_enabled(&self) -> io::Result<bool> {
+        Ok(false)
+    }
+
 }
 
 #[tonic::async_trait]
