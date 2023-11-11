@@ -1,0 +1,372 @@
+name: Release
+
+permissions: write-all
+
+on:
+  # push:
+   # branches:
+      # - main
+  workflow_run:
+    workflows: ["Cargo Test"]
+    types: 
+      - completed
+
+jobs:
+
+  prepare-release:
+    runs-on: 
+        labels: movement-runner
+    outputs:
+      release_tag:  ${{ steps.create_tag.outputs.tag }}
+      release_url: ${{ steps.create_release.outputs.upload_url }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }} 
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+          token: ${{ secrets.CI_PAT }}
+      - name: Bump version and push tag
+        id: create_tag
+        uses: anothrNick/github-tag-action@1.64.0 # Don't use @master or @v1 unless you're happy to test the latest version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # if you don't want to set write permissions use a PAT token
+          WITH_V: false
+          DEFAULT_BUMP: patch
+
+      - name: Archive Repository
+        run: |
+          mkdir -p $RUNNER_TEMP/assets
+          cp -r . $RUNNER_TEMP/assets/m1-with-submodules
+          tar -czvf $RUNNER_TEMP/assets/m1-with-submodules.tar.gz -C $RUNNER_TEMP/assets m1-with-submodules
+          cp $RUNNER_TEMP/assets/m1-with-submodules.tar.gz $GITHUB_WORKSPACE/m1-with-submodules.tar.gz
+          ls -al $GITHUB_WORKSPACE
+
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{ steps.create_tag.outputs.tag }}
+          release_name:  Release ${{ steps.create_tag.outputs.tag }}
+          body: Release ${{ steps.create_tag.outputs.tag }}
+          draft: false
+          prerelease: true
+
+      - name: Check
+        run: |
+          ls -al $GITHUB_WORKSPACE
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./m1-with-submodules.tar.gz
+          asset_name: m1-with-submodules.tar.gz
+          asset_content_type: application/gzip
+
+
+  pre-release-x86_64-linux:
+    needs: prepare-release
+    runs-on:
+      labels: movement-runner
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+          token: ${{ secrets.CI_PAT }}
+
+      - name: Setup
+        uses: ./.github/actions/setup-linux-x86_64
+
+      - name: Debugging Info
+        run: |
+          echo $PATH
+          gcc --version
+          ld --version
+          
+      - name: Build binaries
+        run: |
+          cd "$GITHUB_WORKSPACE/m1"
+          cargo clean
+          RUSTFLAGS="--cfg tokio_unstable" cargo build --release
+          
+      - name: Upload subnet
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare-release.outputs.release_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          asset_path: ./m1/target/release/subnet
+          asset_name: subnet-x86_64-linux
+          asset_content_type: application/octet-stream
+
+      - name: Upload movement
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare-release.outputs.release_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          asset_path: ./m1/target/release/movement
+          asset_name: movement-x86_64-linux
+          asset_content_type: application/octet-stream
+
+
+  pre-release-x86_64-mac:
+    if: true # testing
+    needs: prepare-release
+    runs-on: 
+      labels: macos-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+          token: ${{ secrets.CI_PAT }}
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+          
+      - name: Set up Rust for Mac
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: 1.70.0
+          target: x86_64-apple-darwin
+
+      - name: Build Mac binaries
+        run: |
+          cd "$GITHUB_WORKSPACE/m1"
+          cargo build --release --target x86_64-apple-darwin
+
+      - name: Upload subnet
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare-release.outputs.release_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          asset_path: ./m1/target/release/subnet
+          asset_name: subnet-x86_64-mac
+          asset_content_type: application/octet-stream
+
+      - name: Upload movement
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare-release.outputs.release_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          asset_path: ./m1/target/release/movement
+          asset_name: movement-x86_64-mac
+          asset_content_type: application/octet-stream
+
+          
+  pre-release-aarch64-linux:
+    if: true # testing
+    needs: prepare-release
+    runs-on: 
+      labels: buildjet-8vcpu-ubuntu-2204-arm
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+          token: ${{ secrets.CI_PAT }}
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+          
+      - name: Set up Rust for Mac
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: 1.70.0
+
+      - name: Build Mac binaries
+        run: |
+          cd "$GITHUB_WORKSPACE/m1"
+          cargo build --release
+          
+      - name: Upload subnet
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare-release.outputs.release_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          asset_path: ./m1/target/release/subnet
+          asset_name: subnet-aarch64-linux
+          asset_content_type: application/octet-stream
+
+      - name: Upload movement
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare-release.outputs.release_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          asset_path: ./m1/target/release/movement
+          asset_name: movement-aarch64-linux
+          asset_content_type: application/octet-stream
+
+  pre-release-aarch64-mac:
+    if: true # testing
+    needs: prepare-release
+    runs-on: 
+      labels: macos-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+          token: ${{ secrets.CI_PAT }}
+          
+      - name: Set up Rust for Mac ARM64
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: 1.70.0
+          target: aarch64-apple-darwin
+
+      - name: Build Mac ARM64 binaries
+        run: |
+          cd "$GITHUB_WORKSPACE/m1"
+          cargo build --release --target aarch64-apple-darwin
+          
+      - name: Upload subnet
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare-release.outputs.release_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          asset_path: ./m1/target/release/subnet
+          asset_name: subnet-aarch64-mac
+          asset_content_type: application/octet-stream
+
+      - name: Upload movement
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare-release.outputs.release_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          asset_path: ./m1/target/release/movement
+          asset_name: movement-aarch64-mac
+          asset_content_type: application/octet-stream
+
+
+  pre-release-x86_64-windows:
+    if: true # testing
+    needs: prepare-release
+    runs-on: 
+      labels: windows-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+          token: ${{ secrets.CI_PAT }}
+
+      - name: Add mingw
+        run: apt-get install -y mingw-w64
+          
+      - name: Set up Rust for Windows
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: 1.70.0
+          target: x86_64-pc-windows-gnu
+
+      - name: Build Windows binaries
+        run: |
+          cd "$GITHUB_WORKSPACE/m1"
+          cargo build --release --target x86_64-pc-windows-gnu
+
+      - name: Upload subnet
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare-release.outputs.release_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          asset_path: ./m1/target/release/subnet
+          asset_name: subnet-x86_64-windows
+          asset_content_type: application/octet-stream
+
+      - name: Upload movement
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare-release.outputs.release_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
+          asset_path: ./m1/target/release/movement
+          asset_name: movement-x86_64-windows
+          asset_content_type: application/octet-stream
+     
+          
+  build-and-docker:
+    needs: 
+      - prepare-release
+      - pre-release-x86_64-linux
+    runs-on:
+      labels: movement-runner
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+  
+    - name: Login to Docker Hub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+  
+    - name: ClI-only container
+      env:
+        DOCKER_HUB_REPOSITORY: mvlbs/m1-cli # Change to your Docker Hub repository name
+        IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }} # Or any other tag you'd like
+      run: |
+        docker buildx create --use
+        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/cli.dockerfile --platform linux/amd64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t $DOCKER_HUB_REPOSITORY:latest . --push
+
+    - name: Full developer container
+      env:
+        DOCKER_HUB_REPOSITORY: mvlbs/m1-dev # Change to your Docker Hub repository name
+        IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }} # Or any other tag you'd like
+      run: |
+        docker buildx create --use
+        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/dev.dockerfile --platform linux/amd64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t $DOCKER_HUB_REPOSITORY:latest . --push
+
+    - name: General container # for now this is just the dev container
+      env:
+        DOCKER_HUB_REPOSITORY: mvlbs/m1 # Change to your Docker Hub repository name
+        IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }} # Or any other tag you'd like
+      run: |
+        docker buildx create --use
+        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/dev.dockerfile --platform linux/amd64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t $DOCKER_HUB_REPOSITORY:latest . --push
+    
+  run-tests:
+    needs:
+      - prepare-release
+      - build-and-docker
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        repository: movemntdev/movement-hack
+
+    - name: Execute install script
+      run: |
+        bash <(curl -fsSL https://raw.githubusercontent.com/movemntdev/M1/main/scripts/install.sh) --version ${{ needs.prepare-release.outputs.release_tag }}
+        echo "~/.movement/bin" >> $GITHUB_PATH
+
+    - name: Navigate and Run Movement Test
+      run: |
+        echo $GITHUB_PATH
+        cd examples/movement/data_structures
+        movement move test

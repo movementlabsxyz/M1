@@ -1,0 +1,19 @@
+# ENSURES COMMON COMMIT CONVENTION WORKS
+name: Lint Commit Messages
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Lint Commit Messages
+        uses: wagoid/commitlint-github-action@v4
