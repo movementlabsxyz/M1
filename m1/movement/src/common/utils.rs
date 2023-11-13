@@ -406,7 +406,7 @@ pub async fn fund_account(
 ) -> CliTypedResult<Vec<HashValue>> {
     let response = reqwest::Client::new()
         .post(format!(
-            "{}mint?amount={}&auth_key={}",
+            "{}v1/mint?amount={}&auth_key={}",
             faucet_url, num_octas, address
         ))
         .body("{}")
