@@ -3,7 +3,7 @@ FROM ubuntu:latest
 ARG VERSION=0.0.0
 
 # Update package list and install curl
-RUN apt-get update && apt-get install -y curl wget git
+RUN apt-get update && apt-get install -y curl wget git libpq-dev
 
 # Install curl and other dependencies required for Node.js installation
 RUN apt-get update && apt-get install -y curl && apt-get clean
