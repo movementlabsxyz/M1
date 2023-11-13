@@ -19,6 +19,6 @@
 	path = ecosystem/subnet-request-proxy
 	url = https://github.com/movemntdev/subnet-request-proxy
 [submodule "aptos-pre-core-v2"]
-	path = aptos-pre-core-v2
+	path = aptos-core-1.7
 	url = https://github.com/movemntdev/aptos-core
 	branch = m1-pre-core-v2
