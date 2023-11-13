@@ -324,29 +324,29 @@ jobs:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
   
-    - name: ClI-only container
+    - name: CLI-only container
       env:
         DOCKER_HUB_REPOSITORY: mvlbs/m1-cli # Change to your Docker Hub repository name
         IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }} # Or any other tag you'd like
       run: |
         docker buildx create --use
-        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/cli.dockerfile --platform linux/amd64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t $DOCKER_HUB_REPOSITORY:latest . --push
+        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/cli.dockerfile --platform linux/amd64,linux/arm64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t $DOCKER_HUB_REPOSITORY:latest . --push
 
     - name: Full developer container
       env:
         DOCKER_HUB_REPOSITORY: mvlbs/m1-dev # Change to your Docker Hub repository name
-        IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }} # Or any other tag you'd like
+        IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }}
       run: |
         docker buildx create --use
-        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/dev.dockerfile --platform linux/amd64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t $DOCKER_HUB_REPOSITORY:latest . --push
+        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/dev.dockerfile --platform linux/amd64,linux/arm64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t $DOCKER_HUB_REPOSITORY:latest . --push
 
     - name: General container # for now this is just the dev container
       env:
         DOCKER_HUB_REPOSITORY: mvlbs/m1 # Change to your Docker Hub repository name
-        IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }} # Or any other tag you'd like
+        IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }}
       run: |
         docker buildx create --use
-        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/dev.dockerfile --platform linux/amd64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t $DOCKER_HUB_REPOSITORY:latest . --push
+        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/dev.dockerfile --platform linux/amd64,linux/arm64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t $DOCKER_HUB_REPOSITORY:latest . --push
     
   run-tests:
     needs:
