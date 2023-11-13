@@ -17,4 +17,4 @@
 [submodule "aptos-pre-core-v2"]
 	path = third-party/aptos-core-1.7
 	url = https://github.com/movemntdev/aptos-core
-	branch = m1-pre-core-v2
+	branch = testnet
