@@ -370,3 +370,5 @@ jobs:
         echo $GITHUB_PATH
         cd examples/movement/data_structures
         movement move test
+        cd ../mini_dex
+        movement move test
