@@ -406,7 +406,7 @@ main() {
   # show the configuration
   show_config
 
-  if [[ "$FARCH-$OS" != x86_64-linux ]]; then
+  if [[ "$FARCH-$OS" != x86_64-linux && "$FARCH-$OS" != aarch64-linux ]]; then
     log_error "$FARCH-$OS is not yet supported. Please use the --build option."
     exit 1
   fi
