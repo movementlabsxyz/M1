@@ -312,6 +312,7 @@ jobs:
     needs: 
       - prepare-release
       - pre-release-x86_64-linux
+      - pre-release-aarch64-linux
     runs-on:
       labels: movement-runner
     steps:
