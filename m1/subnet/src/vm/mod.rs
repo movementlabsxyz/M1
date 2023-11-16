@@ -56,11 +56,15 @@ use aptos_types::validator_signer::ValidatorSigner;
 use aptos_vm::AptosVM;
 use aptos_vm_genesis::{GENESIS_KEYPAIR, test_genesis_change_set_and_validators};
 use aptos_node::indexer::bootstrap_indexer;
-use aptos_indexer_grpc_fullnode::runtime::bootstrap as bootstrap_indexer_grpc;
+// use aptos_indexer_grpc_fullnode::runtime::bootstrap as bootstrap_indexer_grpc;
+use aptos_indexer_grpc_fullnode::runtime::FullnodeDataService;
+use aptos_protos::internal::fullnode::v1::fullnode_data_server::{FullnodeData, FullnodeDataServer};
+use std::net::ToSocketAddrs;
 
 use crate::{block::Block, state};
 use crate::api::chain_handlers::{AccountStateArgs, BlockArgs, ChainHandler, ChainService, GetTransactionByVersionArgs, PageArgs, RpcEventHandleReq, RpcEventNumReq, RpcReq, RpcRes, RpcTableReq};
 use crate::api::static_handlers::{StaticHandler, StaticService};
+use tonic::{transport::Server, Request, Response, Status};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const MOVE_DB_DIR: &str = ".move-chain-data";
@@ -1341,14 +1345,29 @@ impl Vm {
         let (mempool_client_sender,
             mut mempool_client_receiver) = futures_mpsc::channel::<MempoolClientRequest>(10);
         let sender = MempoolClientSender::from(mempool_client_sender.clone());
-        let node_config = NodeConfig::default();
+        let mut node_config = NodeConfig::default();
+
+
+        node_config.indexer.enabled = true;
+        node_config.indexer_grpc.enabled = true;
+
+        // indexer_grpc config
+        // let processor_task_count = node_config.indexer_grpc.processor_task_count.unwrap();
+        // let processor_batch_size = node_config.indexer_grpc.processor_batch_size.unwrap();
+        // let output_batch_size = node_config.indexer_grpc.output_batch_size.unwrap();
+        // let address = node_config.indexer_grpc.address.clone().unwrap();
+        node_config.indexer_grpc.processor_batch_size = Some(4);
+        node_config.indexer_grpc.processor_task_count = Some(4);
+        node_config.indexer_grpc.output_batch_size = Some(4);
+        node_config.indexer_grpc.address = Some(String::from("0.0.0.0"));
+
         let context = Context::new(ChainId::test(),
                                    db.1.reader.clone(),
                                    sender, node_config.clone());
 
         // initialze the raw api
         self.api_context = Some(context.clone());
-        let service = get_raw_api_service(Arc::new(context));
+        let service = get_raw_api_service(Arc::new(context.clone()));
         self.api_service = Some(service);
         self.core_mempool = Some(Arc::new(RwLock::new(CoreMempool::new(&node_config))));
         self.check_pending_tx().await;
@@ -1370,12 +1389,40 @@ impl Vm {
             }
         });
 
-        // start the indexer service
-        tokio::task::spawn(async move {
-            bootstrap_indexer_grpc(&node_config, ChainId::test(), db.1.reader.clone(), mempool_client_sender.clone()).unwrap();
-            bootstrap_indexer(&node_config, ChainId::test(), db.1.reader.clone(), MempoolClientSender::from(mempool_client_sender.clone())).unwrap();
-        });
+        // start the indexer services (this is already sent to the background, so I think we're good)
+        // bootstrap_indexer_grpc(&node_config, ChainId::test(), db.1.reader.clone(), mempool_client_sender.clone()).unwrap();
+        let indexer_context = Arc::new(context.clone());
+        let server = FullnodeDataService {
+            context: indexer_context,
+            processor_task_count: 4,
+            processor_batch_size: 4,
+            output_batch_size: 4,
+        };
 
+        tokio::spawn(async move {
+            println!("Does this show?")
+        });
+    
+        println!("Starting server");
+        tokio::spawn(async move {
+
+            println!("Starting server internal");
+            match Server::builder()
+                .add_service(FullnodeDataServer::new(server))
+                .serve(String::from("0.0.0.0:8090").to_socket_addrs().unwrap().next().unwrap())
+                .await
+            {
+                Ok(_) => {
+                    println!("Server started successfully.");
+                },
+                Err(e) => {
+                    eprintln!("Failed to start server");
+                    // io::stdout().flush().unwrap(); // Ensuring the output is flushed
+                }
+            }
+
+        });
+        bootstrap_indexer(&node_config, ChainId::test(), db.1.reader.clone(), MempoolClientSender::from(mempool_client_sender.clone())).unwrap();
 
     }
 }

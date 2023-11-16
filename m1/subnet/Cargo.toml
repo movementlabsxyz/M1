@@ -49,3 +49,4 @@ aptos-vm-genesis = { workspace = true }
 bcs = { workspace = true }
 aptos-node = { workspace = true, features = ["indexer"] }
 aptos-indexer-grpc-fullnode = { workspace = true }
+aptos-protos = { workspace = true }
