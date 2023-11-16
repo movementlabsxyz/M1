@@ -4,6 +4,7 @@ members = [
     "subnet",
     "movement",
     "movement-benchmark",
+    "tests/e2e"
 ]
 
 [workspace.package]

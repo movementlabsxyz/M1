@@ -1720,6 +1720,7 @@ impl CommonVm for Vm
         _fxs: &[snow::engine::common::vm::Fx],
         app_sender: Self::AppSender,
     ) -> io::Result<()> {
+        log::info!("initializing M1 Vm");
         let mut vm_state = self.state.write().await;
         vm_state.ctx = ctx.clone();
         let current = db_manager.current().await?;

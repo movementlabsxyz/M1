@@ -50,3 +50,6 @@ bcs = { workspace = true }
 aptos-node = { workspace = true, features = ["indexer"] }
 aptos-indexer-grpc-fullnode = { workspace = true }
 aptos-protos = { workspace = true }
+
+# differs from workspace
+clap = { version = "4.4.8", features = ["cargo", "derive"] } 
