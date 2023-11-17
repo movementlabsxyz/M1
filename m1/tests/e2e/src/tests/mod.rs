@@ -110,7 +110,7 @@ async fn e2e() {
     let resp = cli
         .start(StartRequest {
             exec_path: avalanchego_exec_path,
-            num_nodes: Some(3),
+            num_nodes: Some(5),
             plugin_dir: plugins_dir,
             global_node_config: Some(
                 serde_json::to_string(&GlobalConfig {
@@ -219,5 +219,16 @@ async fn e2e() {
         .unwrap();
     let network_id = resp.result.unwrap().network_id;
     log::info!("network Id: {}", network_id);
+
+    // keep alive by sleeping for duration provided by SUBNET_TIMEOUT environment variable
+    // use sensible default
+    let timeout = Duration::from_secs(
+        std::env::var("SUBNET_TIMEOUT")
+            .unwrap_or_else(|_| "0".to_string())
+            .parse::<u64>()
+            .unwrap(),
+    );
+    log::info!("sleeping for {} seconds", timeout.as_secs());
+    thread::sleep(timeout);
 
 }

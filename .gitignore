@@ -43,7 +43,7 @@ awscpu
 
 .coverage
 
-bin/
+# bin/
 build/
 vendor
 

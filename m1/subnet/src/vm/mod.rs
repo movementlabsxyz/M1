@@ -56,6 +56,7 @@ use aptos_types::validator_signer::ValidatorSigner;
 use aptos_vm::AptosVM;
 use aptos_vm_genesis::{GENESIS_KEYPAIR, test_genesis_change_set_and_validators};
 use aptos_node::indexer::bootstrap_indexer;
+use aptos_indexer::runtime::run_forever;
 // use aptos_indexer_grpc_fullnode::runtime::bootstrap as bootstrap_indexer_grpc;
 use aptos_indexer_grpc_fullnode::runtime::FullnodeDataService;
 use aptos_protos::internal::fullnode::v1::fullnode_data_server::{FullnodeData, FullnodeDataServer};
@@ -65,9 +66,13 @@ use crate::{block::Block, state};
 use crate::api::chain_handlers::{AccountStateArgs, BlockArgs, ChainHandler, ChainService, GetTransactionByVersionArgs, PageArgs, RpcEventHandleReq, RpcEventNumReq, RpcReq, RpcRes, RpcTableReq};
 use crate::api::static_handlers::{StaticHandler, StaticService};
 use tonic::{transport::Server, Request, Response, Status};
+use uuid::Uuid;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const MOVE_DB_DIR: &str = ".move-chain-data";
+pub fn get_db_name(suffix : &str) -> String {
+    format!("{}-{}", MOVE_DB_DIR, suffix)
+}
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AptosData(
@@ -1306,7 +1311,9 @@ impl Vm {
         Ok(())
     }
 
-    async fn init_aptos(&mut self) {
+    async fn init_aptos(&mut self, uuid : &str) {
+
+        let db_name = get_db_name(uuid);
 
         // generate the test genesis
         let (genesis, validators) = test_genesis_change_set_and_validators(Some(1));
@@ -1320,7 +1327,7 @@ impl Vm {
         let genesis_txn = Transaction::GenesisTransaction(WriteSetPayload::Direct(genesis));
         let p = format!("{}/{}",
                         dirs::home_dir().unwrap().to_str().unwrap(),
-                        MOVE_DB_DIR);
+                        db_name);
         if !fs::metadata(p.clone().as_str()).is_ok() {
             fs::create_dir_all(p.as_str()).unwrap();
         }
@@ -1392,8 +1399,9 @@ impl Vm {
         // start the indexer services (this is already sent to the background, so I think we're good)
         // bootstrap_indexer_grpc(&node_config, ChainId::test(), db.1.reader.clone(), mempool_client_sender.clone()).unwrap();
         let indexer_context = Arc::new(context.clone());
+        let indexer_config = node_config.indexer.clone();
         let server = FullnodeDataService {
-            context: indexer_context,
+            context: indexer_context.clone(),
             processor_task_count: 4,
             processor_batch_size: 4,
             output_batch_size: 4,
@@ -1406,14 +1414,14 @@ impl Vm {
         println!("Starting server");
         tokio::spawn(async move {
 
-            println!("Starting server internal");
+            println!("Starting indexer gRPC service.");
             match Server::builder()
                 .add_service(FullnodeDataServer::new(server))
                 .serve(String::from("0.0.0.0:8090").to_socket_addrs().unwrap().next().unwrap())
                 .await
             {
                 Ok(_) => {
-                    println!("Server started successfully.");
+                    println!("Indexer ");
                 },
                 Err(e) => {
                     eprintln!("Failed to start server");
@@ -1422,7 +1430,11 @@ impl Vm {
             }
 
         });
-        bootstrap_indexer(&node_config, ChainId::test(), db.1.reader.clone(), MempoolClientSender::from(mempool_client_sender.clone())).unwrap();
+        tokio::spawn(async move {
+            println!("Starting indexer server.");
+            run_forever(indexer_config, indexer_context.clone()).await;
+        });
+        // bootstrap_indexer(&node_config, ChainId::test(), db.1.reader.clone(), MempoolClientSender::from(mempool_client_sender.clone())).unwrap();
 
     }
 }
@@ -1720,7 +1732,8 @@ impl CommonVm for Vm
         _fxs: &[snow::engine::common::vm::Fx],
         app_sender: Self::AppSender,
     ) -> io::Result<()> {
-        log::info!("initializing M1 Vm");
+        let uuid = Uuid::new_v4().to_string();
+        log::info!("initializing M1 Vm {}", uuid);
         let mut vm_state = self.state.write().await;
         vm_state.ctx = ctx.clone();
         let current = db_manager.current().await?;
@@ -1734,7 +1747,8 @@ impl CommonVm for Vm
         self.app_sender = Some(app_sender);
         drop(vm_state);
 
-        self.init_aptos().await;
+        
+        self.init_aptos(&uuid).await;
         let mut vm_state = self.state.write().await;
         let genesis = "hello world";
         let has_last_accepted = state.has_last_accepted_block().await?;

@@ -8,6 +8,6 @@ cd m1
 ./scripts/tests.debug.sh
 ```
 
-@lmonninger continues to plan to expand this e2e testing suite over the course of the day to provide better automated checks against the indexer and help others debug.
+@lmonninger plans to continue to expand this e2e testing suite over the course of the day to provide better automated checks against the indexer and help others debug.
 
 For now, contributors should attempt the continued streaming failure against the indexer when using grpcurl.
