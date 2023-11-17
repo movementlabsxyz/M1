@@ -56,7 +56,8 @@ async fn e2e() {
         .to_str()
         .unwrap()
         .to_string();
-    let vm_id = subnet::vm_name_to_id(&vm_id).unwrap();
+    // ! for now, we hardcode the id to be subnet for orchestration
+    let vm_id = subnet::vm_name_to_id("subnet").unwrap();
 
     let (mut avalanchego_exec_path, _) = crate::get_avalanchego_path();
     let plugins_dir = if !avalanchego_exec_path.is_empty() {
@@ -121,6 +122,7 @@ async fn e2e() {
             blockchain_specs: vec![BlockchainSpec {
                 vm_name: String::from("subnet"),
                 genesis: genesis_file_path.to_string(),
+                blockchain_alias : String::from("subnet"),
                 ..Default::default()
             }],
             ..Default::default()

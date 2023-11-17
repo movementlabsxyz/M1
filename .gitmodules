@@ -12,7 +12,7 @@
 	path = ecosystem/evm-runtime
 	url = https://github.com/movemntdev/move-evm-swap-backend
 [submodule "ecosystem/subnet-request-proxy"]
-	path = ecosystem/subnet-request-proxy
+	path = m1/subnet-request-proxy
 	url = https://github.com/movemntdev/subnet-request-proxy
 [submodule "aptos-pre-core-v2"]
 	path = third-party/aptos-core-1.7
