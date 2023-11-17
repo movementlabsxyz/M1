@@ -8,6 +8,31 @@ This will run an `avalanche-network-runner` local cluster with the M1 subnet. Th
 - `0.0.0.0:9650`: the Avalanche node RPC.
 - `0.0.0.0:8090`: the gRPC indexer stream.
 
+Eventually, you should see an output like this to the terminal:
+```shell
+[node3] ------------inner_build_block 98dbf4c1----
+[node4] ------------inner_build_block 98dbf4c1----
+[node5] ------------inner_build_block 98dbf4c1----
+[node4] -----accept----1---
+[node5] -----accept----1---
+[node3] -----accept----1---
+[node2] -----accept----1---
+[node1] ------------inner_build_block 98dbf4c1----
+[node1] -----accept----1---
+[node1] [2023-11-17T14:34:47Z INFO  subnet::vm] submit_transaction length 257
+[node1] ----------notify_block_ready----success------------------
+[node1] ----build_block pool tx count-------1------
+[node1] --------vm_build_block------mo5UvUGgwVEEbCcgeb9JRRXvpr4UeT4yUFufS2R9UA7kXvSNQ---
+[node4] ------------inner_build_block 850f6c4d----
+[node1] ------------inner_build_block 850f6c4d----
+[node1] -----accept----1---
+[node4] -----accept----1---
+[node2] ------------inner_build_block 850f6c4d----
+[node2] -----accept----1---
+[node5] ------------inner_build_block 850f6c4d----
+[node3] ------------inner_build_block 850f6c4d----
+```
+
 ## `subnet-request-proxy`
 Running these without any supporting services will suffice for core protocol debugging. However, you will often want to check the e2e behavior of things like CLI and the JavaScript SDK. For that, you will need to start the `subnet-request-proxy` which is responsible for serving an Aptos-compatible API. 
 

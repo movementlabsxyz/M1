@@ -1356,6 +1356,16 @@ impl Vm {
 
 
         node_config.indexer.enabled = true;
+        // indexer config
+        node_config.indexer.processor = Some("default_processor".to_string());
+        node_config.indexer.check_chain_id = Some(false);
+        node_config.indexer.skip_migrations = Some(false);
+        node_config.indexer.fetch_tasks = Some(4);
+        node_config.indexer.processor_tasks = Some(4);
+        node_config.indexer.emit_every = Some(4);
+        node_config.indexer.batch_size = Some(8);
+        node_config.indexer.gap_lookback_versions = Some(4);
+
         node_config.indexer_grpc.enabled = true;
 
         // indexer_grpc config
