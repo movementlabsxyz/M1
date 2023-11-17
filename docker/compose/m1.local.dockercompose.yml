@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  node_service:
+    build:
+      context: ../..
+      dockerfile: services/local/subnet-request-proxy.dockerfile
+    ports:
+      - "3000:3000" # Replace with actual port numbers
+    networks:
+      - app-network
+    environment:
+      SUBNET_SOCKET_ADDRESS: 0.0.0.0:9650
+
+  ubuntu_service:
+    build:
+      context: ../..
+      dockerfile: services/local/anr.dockerfile
+    ports:
+      - "9650:9650"
+      - "8090:8090"
+      - "8070:8070"
+    networks:
+      - app-network
+
+  postgresql_service:
+    image: postgres:latest
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
