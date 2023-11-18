@@ -8,8 +8,8 @@ pub mod sui;
 
 // todo: skeleton
 pub struct CommonResolver<'state> {
-    aptos_resolver : AptosResolver<'state>;
-    sui_resolver : SuiResolver<'state>;
+    aptos_resolver : AptosResolver<'state>,
+    sui_resolver : SuiResolver<'state>
 }
 
 // todo: skeleton
