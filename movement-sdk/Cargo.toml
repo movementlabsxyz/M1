@@ -1,0 +1,24 @@
+[workspace]
+resolver = "2"
+members = [
+    "movement-sdk",
+    "movement-sdk-avalanche"
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["Liam Monninger <liam@movementlabs.xyz>"]
+homepage = "https://www.movementlabs.xyz"
+publish = false
+repository = "https://github.com/movemntdev/m2"
+rust-version = "1.70"
+
+[workspace.dependencies]
+async-trait = { version = "0.1" } 
+anyhow = { version = "1" }     # For flexible error handling
+avalanche-types = { version = "0.1.3", features = ["subnet", "codec_base64"] }
+movement-sdk = { path = "movement-sdk" }
+tokio = { version = "1.21.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
