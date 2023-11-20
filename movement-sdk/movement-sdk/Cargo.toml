@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-async-trait = "0.1" 
-anyhow = "1"        # For flexible error handling
+async-trait = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
