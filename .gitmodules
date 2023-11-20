@@ -1,20 +1,23 @@
 [submodule "aptos-core"]
-	path = third-party/aptos-core
+	path = vendors/aptos-core
 	url = https://github.com/movemntdev/aptos-core
 	branch = m1
 [submodule "x25519-dalek"]
-	path = third-party/x25519-dalek
+	path = vendors/x25519-dalek
 	url = https://github.com/movemntdev/x25519-dalek
 [submodule "ed25519-dalek"]
-	path = third-party/ed25519-dalek
+	path = vendors/ed25519-dalek
 	url = https://github.com/movemntdev/ed25519-dalek
 [submodule "ecosystem/evm-runtime"]
 	path = ecosystem/evm-runtime
 	url = https://github.com/movemntdev/move-evm-swap-backend
 [submodule "ecosystem/subnet-request-proxy"]
-	path = ecosystem/subnet-request-proxy
+	path = m1/subnet-request-proxy
 	url = https://github.com/movemntdev/subnet-request-proxy
 [submodule "aptos-pre-core-v2"]
-	path = third-party/aptos-core-1.7
+	path = vendors/aptos-core-1.7
 	url = https://github.com/movemntdev/aptos-core
 	branch = testnet
+[submodule "m1/third-party/sui"]
+	path = vendors/sui
+	url = https://github.com/movemntdev/sui

@@ -1,0 +1,40 @@
+[package]
+name = "canonical-move-natives"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+avalanche-types = { version = "0.0.398", features = ["subnet", "codec_base64"] }
+tokio = { version = "1.25.0", features = ["fs", "rt-multi-thread"] }
+tonic = { version = "0.8.3", features = ["gzip"] }
+serde = { version = "1.0.152", features = ["derive"] }
+serde_json = "1.0.93" # https://github.com/serde-rs/json/releases
+serde_with = { version = "2.2.0", features = ["hex"] }
+log = "0.4.17"
+dirs = "5.0.1"
+hex = "0.4.3"
+bytes = "1.4.0"
+env_logger = "0.10.0"
+base64 = { version = "0.21.0" }
+chrono = "0.4.23"
+derivative = "2.2.0"
+jsonrpc-core = "18.0.0"
+jsonrpc-core-client = { version = "18.0.0" }
+jsonrpc-derive = "18.0.0"
+async-channel = "1.9.0"
+
+anyhow = { workspace = true }
+futures = { workspace = true }
+rand = { workspace = true }
+bcs = { workspace = true }
+movement-sdk = { workspace = true }
+
+# sui
+# todo: conflicting rocksdb means we can't use workspace
+# todo: likely movement-sdk will move into its own workspace
+# todo: once that happens, we can move sui into its own workspace
+# todo: we will have to reconcile the two when we begin on the canonical VM
+sui-adapter-latest = { workspace = true }
+sui-types = { workspace = true }
