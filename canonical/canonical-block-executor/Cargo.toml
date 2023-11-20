@@ -38,3 +38,4 @@ movement-sdk = { workspace = true }
 # todo: we will have to reconcile the two when we begin on the canonical VM
 sui-adapter-latest = { workspace = true }
 sui-types = { workspace = true }
+sui-core = { workspace = true }

@@ -44,6 +44,7 @@ aptos-storage-interface = { path = "../vendors/aptos-core/storage/storage-interf
 # sui
 sui-adapter-latest = { path = "../vendors/sui/sui-execution/latest/sui-adapter" }
 sui-types = { path = "../vendors/sui/crates/sui-types" }
+sui-core = { path = "../vendors/sui/crates/sui-core" }
 
 # movement
 movement-sdk = { path = "../movement-sdk/movement-sdk" }

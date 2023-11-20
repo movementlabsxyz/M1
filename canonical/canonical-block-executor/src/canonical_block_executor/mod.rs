@@ -2,12 +2,14 @@ use movement_sdk::{ExecutionLayer};
 use canonical_move_resolver::CanonicalMoveResolver;
 use canonical_types::{Transaction, Block};
 
+pub mod sui_block_executor;
+
 // todo: this will likely be a wrapper around some kind of 
 // todo: type-state pattern structs that handle the bootstrapping
 // todo: or else we will move that to a higher order
 // todo: good thing to consider for the movement_sdk
 pub struct CanonicalBlockExecutionLayer<'state> {
-    move_resolver : CanonicalMoveResolver<'state>;
+    move_resolver : CanonicalMoveResolver<'state>
 }
 
 impl <'state> CanonicalBlockExecutionLayer<'state> {

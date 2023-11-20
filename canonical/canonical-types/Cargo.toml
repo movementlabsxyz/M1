@@ -32,9 +32,7 @@ bcs = { workspace = true }
 movement-sdk = { workspace = true }
 
 # sui
-# todo: conflicting rocksdb means we can't use workspace
-# todo: likely movement-sdk will move into its own workspace
-# todo: once that happens, we can move sui into its own workspace
-# todo: we will have to reconcile the two when we begin on the canonical VM
 sui-adapter-latest = { workspace = true }
 sui-types = { workspace = true }
+
+aptos-types = { workspace = true}
