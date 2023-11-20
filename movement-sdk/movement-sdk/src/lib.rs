@@ -1,9 +1,15 @@
 use async_trait::async_trait;
+use core::fmt::Debug;
+use serde::{Deserialize, Serialize};
+
+pub trait Layer : Debug + Clone {
+
+}
 
 // Top-level definition of traits.
 // Complex extensions and integrations should be defined in the submodules.
 #[async_trait]
-pub trait SequencerLayer {
+pub trait SequencerLayer : Layer {
 
     type Transaction;
     type TransactionId;
@@ -23,29 +29,29 @@ pub trait SequencerLayer {
 }
 
 #[async_trait]
-pub trait ProposerLayer {
+pub trait ProposerLayer : Layer {
 
     type Transaction;
     type Block;
     type BlockId;
 
-    // Gets the next transaction from the previous layer.
+    /// Gets the next transaction from the previous layer.
     async fn get_next_transaction(
         &self
     ) -> Result<Option<Self::Transaction>, anyhow::Error>;
 
-    // Constructs a block from some transactions
+    /// Constructs a block from some transactions
     async fn build_block(
         &self,
     ) -> Result<Self::Block, anyhow::Error>;
 
-    // Sends a constructed block to the next layer.
+    /// Sends a constructed block to the next layer.
     async fn send_block(
         &self,
         block: Self::Block
     ) -> Result<(), anyhow::Error>;
 
-    // Gets a constructed and sent block
+    /// Gets a constructed and sent block
     async fn get_block(
         &self,
         block_id: Self::BlockId
@@ -55,23 +61,29 @@ pub trait ProposerLayer {
 }
 
 #[async_trait]
-pub trait DataAvailabilityLayer {
+pub trait DataAvailabilityLayer : Layer {
 
     type Block;
     type BlockId;
 
-    // Gets the next block from the previous layer.
+    /// Gets the next block from the previous layer.
     async fn get_next_block(
         &self
     ) -> Result<Option<Self::Block>, anyhow::Error>;
 
-    // Sends a block to the next layer or place retrievable from the next layer, i.e., the execution layer.
-    async fn send_block(
+    /// Accepts a block, effectively sending it to the next layer or place retrievable from the next layer, i.e., the execution layer.
+    async fn accept_block(
         &self,
         block: Self::Block
     ) -> Result<(), anyhow::Error>;
 
-    // Gets a block that was sent to the next layer.
+    /// Rejects a block (sometimes this won't be used).
+    async fn reject_block(
+        &self,
+        block: Self::Block
+    ) -> Result<(), anyhow::Error>;
+
+    /// Gets a block that was either accepted or rejected by the data availability layer.
     async fn get_block(
         &self,
         block_id: Self::BlockId
@@ -80,7 +92,7 @@ pub trait DataAvailabilityLayer {
 }
 
 #[async_trait]
-pub trait ExecutionLayer {
+pub trait ExecutionLayer : Layer {
 
     type Block;
     type BlockId;
@@ -112,7 +124,7 @@ pub trait ExecutionLayer {
 }
 
 #[async_trait]
-pub trait StorageLayer {
+pub trait StorageLayer : Layer {
 
     type Block;
     type BlockId;
@@ -146,7 +158,7 @@ pub trait StorageLayer {
 }
 
 #[async_trait]
-pub trait SettlementLayer {
+pub trait SettlementLayer : Layer {
 
     type Block;
     type BlockId;
@@ -172,7 +184,7 @@ pub trait SettlementLayer {
 }
 
 #[async_trait]
-pub trait MessagingLayer {
+pub trait MessagingLayer : Layer {
 
     type Message;
 
