@@ -32,6 +32,20 @@ anyhow = "1.0.44"
 futures = "0.3.17"
 rand = "0.8.4"
 bcs = "0.1.0"
+tempfile = "3.2.0"
+tracing = "0.1.37"
+tracing-appender = "0.2.2"
+tracing-subscriber = { version = "0.3.15", default-features = false, features = [
+  "std",
+  "smallvec",
+  "fmt",
+  "ansi",
+  "time",
+  "json",
+  "registry",
+  "env-filter",
+] }
+ctor = "0.2.5"
 
 # aptos
 aptos-framework = { path = "../vendors/aptos-core/aptos-move/framework" }
@@ -45,10 +59,9 @@ aptos-storage-interface = { path = "../vendors/aptos-core/storage/storage-interf
 sui-adapter-latest = { path = "../vendors/sui/sui-execution/latest/sui-adapter" }
 sui-types = { path = "../vendors/sui/crates/sui-types" }
 sui-core = { path = "../vendors/sui/crates/sui-core" }
+sui-swarm-config = { path = "../vendors/sui/crates/sui-swarm-config" }
+sui-test-transaction-builder = { path = "../vendors/sui/crates/sui-test-transaction-builder" }
 
 # movement
 movement-sdk = { path = "../movement-sdk/movement-sdk" }
 
-# patches
-[replace]
-"move-abigen:0.1.0" = { path = "../vendors/sui/external-crates/move/move-prover/move-abigen" }

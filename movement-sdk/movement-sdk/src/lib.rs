@@ -1,10 +1,24 @@
 use async_trait::async_trait;
 use core::fmt::Debug;
-use serde::{Deserialize, Serialize};
 
+/// Marker trait for all Layers.
 pub trait Layer : Debug + Clone {
 
 }
+
+#[async_trait]
+pub trait VerifierLayer : Layer {
+
+    type Block;
+    type BlockId;
+
+    async fn is_valid_block(
+        &self,
+        block: Self::Block
+    ) -> Result<(bool, Self::Block), anyhow::Error>;
+
+}
+
 
 // Top-level definition of traits.
 // Complex extensions and integrations should be defined in the submodules.

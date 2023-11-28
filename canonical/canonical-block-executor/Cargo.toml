@@ -24,12 +24,17 @@ jsonrpc-core = "18.0.0"
 jsonrpc-core-client = { version = "18.0.0" }
 jsonrpc-derive = "18.0.0"
 async-channel = "1.9.0"
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+ctor = { workspace = true }
 
+# general
 anyhow = { workspace = true }
 futures = { workspace = true }
 rand = { workspace = true }
 bcs = { workspace = true }
 movement-sdk = { workspace = true }
+tempfile = { workspace = true }
 
 # sui
 # todo: conflicting rocksdb means we can't use workspace
@@ -39,3 +44,5 @@ movement-sdk = { workspace = true }
 sui-adapter-latest = { workspace = true }
 sui-types = { workspace = true }
 sui-core = { workspace = true }
+sui-swarm-config = { workspace = true }
+sui-test-transaction-builder = { workspace = true}
