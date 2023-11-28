@@ -17,6 +17,7 @@ jobs:
         with:
           submodules: 'recursive'
           token: ${{ secrets.CI_PAT }}
+          ref: ${{ github.event.inputs.branch }}
 
       - name: Set up Rust
         uses: actions-rs/toolchain@v1

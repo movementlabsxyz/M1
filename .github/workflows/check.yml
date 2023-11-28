@@ -3,6 +3,8 @@ name: Cargo Check
 on:
   push:
     branches:
+      - dev
+      - stage
       - main
 
 jobs:
