@@ -45,3 +45,13 @@ jobs:
         working-directory: ./m1  
         run: cargo check
 
+  tigger-test:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Trigger test
+        uses: ./github/actions/trigger-workflow
+        with:
+          workflowFileName: test.yml
+          token: ${{ secrets.CI_PAT }}

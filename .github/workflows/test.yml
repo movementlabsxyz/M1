@@ -1,10 +1,7 @@
 name: Cargo Test
 
 on:
-  workflow_run:
-    workflows: ["Cargo Check"]
-    types: 
-      - completed
+  workflow_dispatch:
 
 jobs:
   test:

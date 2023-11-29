@@ -1,0 +1,27 @@
+name: 'Trigger Workflow'
+description: 'Triggers another GitHub Actions workflow; useful for ensuring the workflow runs based off of the appropriate branch.'
+
+inputs:
+  token:
+    description: 'Personal Access Token (PAT) with permissions to trigger workflows'
+    required: true
+  workflowFileName:
+    description: 'The file name of the workflow to trigger'
+    required: true
+  workflowInputs:
+    description: 'Inputs for the triggered workflow in JSON format'
+    required: false
+    default: '{}'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Trigger another workflow
+      run: |
+        curl \
+          -X POST \
+          -H "Authorization: token ${{ inputs.token }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/${{ github.repository }}/actions/workflows/${{ inputs.workflowFileName }}/dispatches \
+          -d '{"ref":"${{ github.ref_name }}", "inputs": ${{ inputs.workflowInputs }}}'
+      shell: bash
