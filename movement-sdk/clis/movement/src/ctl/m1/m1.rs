@@ -2,6 +2,6 @@ use async_trait::async_trait;
 use clap::Subcommand;
 
 #[derive(Subcommand, Debug)]
-pub enum Ctl {
+pub enum M1 {
 
 }
