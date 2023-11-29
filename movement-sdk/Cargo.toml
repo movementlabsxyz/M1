@@ -2,7 +2,10 @@
 resolver = "2"
 members = [
     "movement-sdk",
-    "movement-sdk-avalanche"
+    "movement-sdk-avalanche",
+
+    # clis
+    "clis/movement"
 ]
 
 [workspace.package]
