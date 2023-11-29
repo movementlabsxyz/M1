@@ -23,6 +23,7 @@ jobs:
       - name: Setup
         uses: ./.github/actions/setup-linux-x86_64
 
+      # run the ANR-based subnet tests
       - name: Build and Test Subnet
         run: |
           cd ./m1
