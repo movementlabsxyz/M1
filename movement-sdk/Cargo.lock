@@ -1387,6 +1387,7 @@ dependencies = [
  "async-trait",
  "clap",
  "serde",
+ "tokio",
 ]
 
 [[package]]
