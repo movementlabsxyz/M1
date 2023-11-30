@@ -25,5 +25,5 @@ runs:
         echo "Ref: ${{ github.ref_name }}"
         echo "Inputs: ${{ inputs.workflowInputs }}"
 
-        gh workflow run ${{ inputs.workflowFileName }} --ref ${{ github.ref_name }} -f ${{ inputs.workflowInputs }}
+        gh workflow run ${{ inputs.workflowFileName }} --ref ${{ github.ref_name }}
       shell: bash
