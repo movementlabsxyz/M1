@@ -15,7 +15,7 @@ jobs:
         with:
           submodules: 'recursive'
           token: ${{ secrets.CI_PAT }}
-          # ref: ${{ github.event.inputs.branch }}
+          ref: ${{ github.ref }}
 
       - name: Setup
         uses: ./.github/actions/setup-linux-x86_64
