@@ -26,6 +26,12 @@ jobs:
         with:
           submodules: 'recursive'
           token: ${{ secrets.CI_PAT }}
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Set up Branch Name
+        id: branch_name
+        run: echo "BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_ENV
+
       - name: Bump version and push tag
         id: create_tag
         uses: anothrNick/github-tag-action@1.64.0 # Don't use @master or @v1 unless you're happy to test the latest version
@@ -47,11 +53,11 @@ jobs:
         id: create_release
         uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.create_tag.outputs.tag }}
-          release_name:  Release ${{ steps.create_tag.outputs.tag }}
-          body: Release ${{ steps.create_tag.outputs.tag }}
+          release_name: ${{ env.BRANCH_NAME == 'main' && 'Release ' || 'Release ' + env.BRANCH_NAME + '-' }}${{ steps.create_tag.outputs.tag }}
+          body: ${{ env.BRANCH_NAME == 'main' && 'Release ' || 'Release ' + env.BRANCH_NAME + '-' }}${{ steps.create_tag.outputs.tag }}
           draft: false
           prerelease: true
 

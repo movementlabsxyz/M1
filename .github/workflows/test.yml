@@ -1,10 +1,7 @@
 name: Cargo Test
 
 on:
-  workflow_run:
-    workflows: ["Cargo Check"]
-    types: 
-      - completed
+  workflow_dispatch:
 
 jobs:
   test:
@@ -18,14 +15,16 @@ jobs:
         with:
           submodules: 'recursive'
           token: ${{ secrets.CI_PAT }}
+          ref: ${{ github.ref }}
 
       - name: Setup
         uses: ./.github/actions/setup-linux-x86_64
 
+      # run the ANR-based subnet tests
       - name: Build and Test Subnet
         run: |
           cd ./m1
-          cargo test
+          ./scripts/tests.debug.sh
 
       - name: Update Badge
         run: |

@@ -3,6 +3,8 @@ name: Cargo Check
 on:
   push:
     branches:
+      - dev
+      - stage
       - main
 
 jobs:
@@ -43,3 +45,20 @@ jobs:
         working-directory: ./m1  
         run: cargo check
 
+  tigger-test:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+          token: ${{ secrets.CI_PAT }}
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Trigger test
+        uses: ./.github/actions/trigger-workflow
+        with:
+          workflowFileName: test.yml
+          token: ${{ secrets.CI_PAT }}
