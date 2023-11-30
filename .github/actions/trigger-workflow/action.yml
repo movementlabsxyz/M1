@@ -17,6 +17,7 @@ runs:
   using: 'composite'
   steps:
 
+    # for some reason this only works with gh-cli
     - name: Trigger another workflow
       run: |
         echo ${{ inputs.token }} | gh auth login --with-token

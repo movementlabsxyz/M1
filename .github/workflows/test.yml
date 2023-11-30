@@ -7,7 +7,7 @@ jobs:
   test:
     runs-on: 
       labels: movement-runner
-    if: ${{ github.event.workflow_run.conclusion == 'success' }} 
+
     steps:
 
       - name: Checkout Repository
@@ -34,3 +34,9 @@ jobs:
             sed -i 's/badge\/tests-[a-zA-Z]*/badge\/tests-Failing-red/g' README.md
           fi
         if: ${{ always() }}
+
+      - name: Trigger release
+        uses: ./.github/actions/trigger-workflow
+        with:
+          workflowFileName: release.yml
+          token: ${{ secrets.CI_PAT }}

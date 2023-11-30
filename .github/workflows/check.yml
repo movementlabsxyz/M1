@@ -20,12 +20,6 @@ jobs:
           submodules: 'recursive'
           token: ${{ secrets.CI_PAT }}
 
-      - name: Trigger test
-        uses: ./.github/actions/trigger-workflow
-        with:
-          workflowFileName: test.yml
-          token: ${{ secrets.CI_PAT }}
-
       - name: Setup
         uses: ./.github/actions/setup-linux-x86_64
 
@@ -50,6 +44,12 @@ jobs:
       - name: Run Cargo Check
         working-directory: ./m1  
         run: cargo check
+
+      - name: Trigger test
+        uses: ./.github/actions/trigger-workflow
+        with:
+          workflowFileName: test.yml
+          token: ${{ secrets.CI_PAT }}
 
       
 

@@ -1,16 +1,12 @@
 name: Code Coverage
 
 on:
-  workflow_run:
-    workflows: ["Cargo Check"]
-    types: 
-      - completed
+  workflow_dispatch:
 
 jobs:
   coverage:
     runs-on:
       labels: movement-runner
-    if: ${{ github.event.workflow_run.conclusion == 'success' }} 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
