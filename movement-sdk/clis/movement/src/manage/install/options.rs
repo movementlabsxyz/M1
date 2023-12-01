@@ -1,4 +1,4 @@
-#[derive(Debug, StructOpt)]
+#[derive(Debug)]
 pub struct Options {
 
 }
