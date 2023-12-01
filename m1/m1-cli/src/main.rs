@@ -9,7 +9,7 @@
 #[global_allocator]
 static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
-use movement::{move_tool, Tool};
+pub use movement::{move_tool, Tool};
 use clap::Parser;
 use std::process::exit;
 

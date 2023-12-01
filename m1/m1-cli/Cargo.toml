@@ -1,5 +1,5 @@
 [package]
-name = "movement"
+name = "m1-cli"
 description = "Movement tool for management of nodes and interacting with the blockchain. Based on the Movement CLI."
 version = "1.0.13"
 
