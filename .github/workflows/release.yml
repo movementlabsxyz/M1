@@ -50,8 +50,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.create_tag.outputs.tag }}
-          release_name: ${{ env.BRANCH_NAME == 'main' && 'Release ' || 'Release ' + env.BRANCH_NAME + '-' }}${{ steps.create_tag.outputs.tag }}
-          body: ${{ env.BRANCH_NAME == 'main' && 'Release ' || 'Release ' + env.BRANCH_NAME + '-' }}${{ steps.create_tag.outputs.tag }}
+          release_name: ${{ env.BRANCH_NAME == 'main' && 'Release ' || 'Release ' }}${{ env.BRANCH_NAME == 'main' && '' || env.BRANCH_NAME + '-' }}${{ steps.create_tag.outputs.tag }}
+          body: ${{ env.BRANCH_NAME == 'main' && 'Release ' || 'Release ' }}${{ env.BRANCH_NAME == 'main' && '' || env.BRANCH_NAME + '-' }}${{ steps.create_tag.outputs.tag }}
           draft: false
           prerelease: true
 
