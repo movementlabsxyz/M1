@@ -6,6 +6,6 @@ pub trait Command<T> {
 
     async fn get_name(&self) -> String;
     
-    async fn execute(&self) -> Result<T, anyhow::Error>;
+    async fn execute(self) -> Result<T, anyhow::Error>;
 
 }

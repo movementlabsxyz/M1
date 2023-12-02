@@ -1,15 +1,19 @@
 #![forbid(unsafe_code)]
 
-#[cfg(unix)]
-#[global_allocator]
-static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
-
-use clap::Parser;
-use std::process::exit;
+use clap::*;
+use movement::Movement;
+use movement::common::cli::Command;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), anyhow::Error> {
    
    // todo: parse clap 
+   let movement = Movement::parse();
+
+   let res = movement.command.execute().await;
+   
+   println!("res: {:?}", res);
+
+   Ok(())
 
 }

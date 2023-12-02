@@ -13,3 +13,11 @@ dirs = { workspace = true }
 reqwest = { workspace = true }
 tempfile = { workspace = true }
 semver = { workspace = true }
+serde_json = { workspace = true }
+const-str = { workspace = true }
+
+# sui
+sui = { path = "../../../vendors/sui/crates/sui" }
+
+# aptos
+aptos = { path = "../../../vendors/aptos-core/crates/aptos" }

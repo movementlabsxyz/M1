@@ -18,27 +18,29 @@ pub struct MovementGitHubRelease {
     pub owner : String,
     pub repo : String,
     pub version : Version,
-    pub asset : String
+    pub asset : String,
+    pub suffix : String
 }
 
 impl MovementGitHubRelease {
 
-    pub fn new(owner : String, repo : String, version : Version, asset : String) -> Self {
+    pub fn new(owner : String, repo : String, version : Version, asset : String, suffix : String) -> Self {
         Self {
             owner,
             repo,
             version,
-            asset
+            asset,
+            suffix
         }
     }
 
     pub fn os_arch_release_url(&self) -> String {
         match &self.version {
             Version::Latest => {
-                format!("https://github.com/{}/{}/releases/latest/download/{}-{}-{}", self.owner, self.repo, self.asset, std::env::consts::OS, std::env::consts::ARCH)
+                format!("https://github.com/{}/{}/releases/latest/download/{}-{}-{}{}", self.owner, self.repo, self.asset, std::env::consts::OS, std::env::consts::ARCH, self.suffix)
             },
             Version::Version(version) => {
-                format!("https://github.com/{}/{}/releases/download/{}/{}-{}-{}", self.owner, self.repo, version, self.asset, std::env::consts::OS, std::env::consts::ARCH)
+                format!("https://github.com/{}/{}/releases/download/{}/{}-{}-{}{}", self.owner, self.repo, version, self.asset, std::env::consts::OS, std::env::consts::ARCH, self.suffix)
             }
         }
     }

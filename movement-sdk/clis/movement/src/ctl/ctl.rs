@@ -7,6 +7,10 @@ use super::{
 };
 
 #[derive(Subcommand, Debug)]
+#[clap(
+    rename_all = "kebab-case",
+    about = "Control Movement services"
+)]
 pub enum Ctl {
     #[clap(subcommand)]
     Start(Start),
