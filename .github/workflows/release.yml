@@ -13,7 +13,6 @@ jobs:
     outputs:
       release_tag:  ${{ steps.create_tag.outputs.tag }}
       release_url: ${{ steps.create_release.outputs.upload_url }}
-    if: ${{ github.event.workflow_run.conclusion == 'success' }} 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
