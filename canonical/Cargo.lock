@@ -315,7 +315,7 @@ dependencies = [
  "aptos-metrics-core",
  "aptos-types",
  "bcs 0.1.4",
- "clap 4.4.7",
+ "clap 4.4.10",
  "dashmap",
  "itertools 0.10.5",
  "move-core-types 0.0.4-canonical-aptos",
@@ -391,7 +391,7 @@ dependencies = [
  "better_any",
  "blake2-rfc",
  "blst",
- "clap 4.4.7",
+ "clap 4.4.10",
  "codespan-reporting",
  "curve25519-dalek",
  "flate2",
@@ -447,7 +447,7 @@ dependencies = [
  "aptos-types",
  "aptos-vm-types",
  "bcs 0.1.4",
- "clap 4.4.7",
+ "clap 4.4.10",
  "move-binary-format 0.0.3-canonical-aptos",
  "move-core-types 0.0.4-canonical-aptos",
  "move-model 0.1.0-canonical-aptos",
@@ -602,7 +602,7 @@ dependencies = [
  "anyhow",
  "aptos-types",
  "bcs 0.1.4",
- "clap 4.4.7",
+ "clap 4.4.10",
  "heck 0.3.3",
  "move-core-types 0.0.4-canonical-aptos",
  "once_cell",
@@ -2068,9 +2068,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.4.7"
+version = "4.4.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac495e00dcec98c83465d5ad66c5c4fabd652fd6686e7c6269b117e729a6f17b"
+checksum = "41fffed7514f420abec6d183b1d3acfd9099c79c3a10a06ade4f8203f1411272"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -2078,9 +2078,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.4.7"
+version = "4.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c77ed9a32a62e6ca27175d00d29d05ca32e396ea1eb5fb01d8256b669cec7663"
+checksum = "63361bae7eef3771745f02d8d892bec2fee5f6e34af316ba556e7f97a7069ff1"
 dependencies = [
  "anstream",
  "anstyle",
@@ -5201,7 +5201,7 @@ version = "0.0.1-canonical-aptos"
 dependencies = [
  "anyhow",
  "bcs 0.1.4",
- "clap 4.4.7",
+ "clap 4.4.10",
  "codespan-reporting",
  "difference",
  "hex",
@@ -5229,7 +5229,7 @@ version = "0.0.1-canonical-sui"
 dependencies = [
  "anyhow",
  "bcs 0.1.6",
- "clap 4.4.7",
+ "clap 4.4.10",
  "codespan-reporting",
  "hex",
  "move-binary-format 0.0.3-canonical-sui",
@@ -5292,7 +5292,7 @@ version = "0.1.0-canonical-aptos"
 dependencies = [
  "anyhow",
  "bcs 0.1.4",
- "clap 4.4.7",
+ "clap 4.4.10",
  "codespan",
  "colored",
  "move-binary-format 0.0.3-canonical-aptos",
@@ -5311,7 +5311,7 @@ version = "0.1.0-canonical-sui"
 dependencies = [
  "anyhow",
  "bcs 0.1.6",
- "clap 4.4.7",
+ "clap 4.4.10",
  "codespan",
  "colored",
  "move-binary-format 0.0.3-canonical-sui",
@@ -5328,7 +5328,7 @@ name = "move-disassembler"
 version = "0.1.0-canonical-aptos"
 dependencies = [
  "anyhow",
- "clap 4.4.7",
+ "clap 4.4.10",
  "colored",
  "move-binary-format 0.0.3-canonical-aptos",
  "move-bytecode-source-map 0.1.0-canonical-aptos",
@@ -5346,7 +5346,7 @@ version = "0.1.0-canonical-sui"
 dependencies = [
  "anyhow",
  "bcs 0.1.6",
- "clap 4.4.7",
+ "clap 4.4.10",
  "colored",
  "hex",
  "move-binary-format 0.0.3-canonical-sui",
@@ -5557,7 +5557,7 @@ version = "0.1.0-canonical-aptos"
 dependencies = [
  "anyhow",
  "bcs 0.1.4",
- "clap 4.4.7",
+ "clap 4.4.10",
  "colored",
  "dirs-next",
  "itertools 0.10.5",
@@ -5591,7 +5591,7 @@ name = "move-package"
 version = "0.1.0-canonical-sui"
 dependencies = [
  "anyhow",
- "clap 4.4.7",
+ "clap 4.4.10",
  "colored",
  "move-abigen 0.1.0-canonical-sui",
  "move-binary-format 0.0.3-canonical-sui",
@@ -5633,7 +5633,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "atty",
- "clap 4.4.7",
+ "clap 4.4.10",
  "codespan",
  "codespan-reporting",
  "futures 0.3.28",
@@ -5667,7 +5667,7 @@ name = "move-prover"
 version = "0.1.0-canonical-sui"
 dependencies = [
  "anyhow",
- "clap 4.4.7",
+ "clap 4.4.10",
  "codespan-reporting",
  "itertools 0.10.5",
  "log",
@@ -6375,7 +6375,7 @@ dependencies = [
  "axum",
  "bytes",
  "cfg-if",
- "clap 4.4.7",
+ "clap 4.4.10",
  "eyre",
  "fastcrypto",
  "futures 0.3.28",
@@ -10127,7 +10127,7 @@ dependencies = [
 name = "sui-protocol-config"
 version = "0.1.0-canonical-sui"
 dependencies = [
- "clap 4.4.7",
+ "clap 4.4.10",
  "insta",
  "schemars",
  "serde 1.0.190",
@@ -10154,7 +10154,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bcs 0.1.6",
- "clap 4.4.7",
+ "clap 4.4.10",
  "colored",
  "fastcrypto",
  "futures 0.3.28",
@@ -10213,7 +10213,7 @@ dependencies = [
  "byteorder",
  "bytes",
  "chrono",
- "clap 4.4.7",
+ "clap 4.4.10",
  "eyre",
  "fastcrypto",
  "futures 0.3.28",
@@ -10531,7 +10531,7 @@ dependencies = [
  "atomic_float",
  "bytes",
  "bytes-varint",
- "clap 4.4.7",
+ "clap 4.4.10",
  "crossterm",
  "futures 0.3.28",
  "once_cell",
