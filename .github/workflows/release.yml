@@ -42,7 +42,19 @@ jobs:
           cp $RUNNER_TEMP/assets/m1-with-submodules.tar.gz $GITHUB_WORKSPACE/m1-with-submodules.tar.gz
           ls -al $GITHUB_WORKSPACE
 
-
+      - name: Set Release Info
+        id: set_release_info
+        run: |
+          if [ "${{ env.BRANCH_NAME }}" = "main" ]; then
+            echo "::set-output name=release_name::Release-${{ steps.create_tag.outputs.tag }}"
+            echo "::set-output name=body::Release-${{ steps.create_tag.outputs.tag }}"
+          else
+            echo "::set-output name=release_name::Release-${{ env.BRANCH_NAME }}-${{ steps.create_tag.outputs.tag }}"
+            echo "::set-output name=body::Release-${{ env.BRANCH_NAME }}-${{ steps.create_tag.outputs.tag }}"
+          fi
+        env:
+          BRANCH_NAME: ${{ github.ref_name }}
+      
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -50,10 +62,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.create_tag.outputs.tag }}
-          release_name: ${{ env.BRANCH_NAME == 'main' && 'Release ' || 'Release ' }}${{ env.BRANCH_NAME == 'main' && '' || env.BRANCH_NAME + '-' }}${{ steps.create_tag.outputs.tag }}
-          body: ${{ env.BRANCH_NAME == 'main' && 'Release ' || 'Release ' }}${{ env.BRANCH_NAME == 'main' && '' || env.BRANCH_NAME + '-' }}${{ steps.create_tag.outputs.tag }}
+          release_name: ${{ steps.set_release_info.outputs.release_name }}
+          body: ${{ steps.set_release_info.outputs.body }}
           draft: false
           prerelease: true
+        
 
       - name: Check
         run: |
