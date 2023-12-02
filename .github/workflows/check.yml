@@ -27,6 +27,13 @@ jobs:
           workflowFileName: test.yml
           token: ${{ secrets.CI_PAT }}
 
+      # for testing purposes
+      - name: Trigger release
+        uses: ./.github/actions/trigger-workflow
+        with:
+          workflowFileName: release.yml
+          token: ${{ secrets.CI_PAT }}
+
       - name: Setup
         uses: ./.github/actions/setup-linux-x86_64
 
