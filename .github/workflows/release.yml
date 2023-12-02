@@ -93,8 +93,12 @@ jobs:
       - name: Build binaries
         run: |
           cd "$GITHUB_WORKSPACE/m1"
-          cargo clean
-          RUSTFLAGS="--cfg tokio_unstable" cargo build --release
+          cargo build --release
+
+      - name: Build Mac binaries
+        run: |
+          cd "$GITHUB_WORKSPACE/movement-sdk"
+          cargo build --release
           
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
@@ -112,7 +116,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.prepare-release.outputs.release_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
-          asset_path: ./m1/target/release/movement
+          asset_path: ./movement-sdk/target/release/movement
           asset_name: movement-x86_64-linux
           asset_content_type: application/octet-stream
 
@@ -146,6 +150,11 @@ jobs:
           cd "$GITHUB_WORKSPACE/m1"
           cargo build --release --target x86_64-apple-darwin
 
+      - name: Build Mac binaries
+        run: |
+          cd "$GITHUB_WORKSPACE/movement-sdk"
+          cargo build --release --target x86_64-apple-darwin
+
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
         env:
@@ -162,7 +171,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.prepare-release.outputs.release_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
-          asset_path: ./m1/target/release/movement
+          asset_path: ./movement-sdk/target/release/movement
           asset_name: movement-x86_64-mac
           asset_content_type: application/octet-stream
 
@@ -194,6 +203,11 @@ jobs:
         run: |
           cd "$GITHUB_WORKSPACE/m1"
           cargo build --release
+
+      - name: Build Mac binaries
+        run: |
+          cd "$GITHUB_WORKSPACE/movement-sdk"
+          cargo build --release
           
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
@@ -211,7 +225,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.prepare-release.outputs.release_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
-          asset_path: ./m1/target/release/movement
+          asset_path: ./movement-sdk/target/release/movement
           asset_name: movement-aarch64-linux
           asset_content_type: application/octet-stream
 
@@ -238,6 +252,11 @@ jobs:
         run: |
           cd "$GITHUB_WORKSPACE/m1"
           cargo build --release --target aarch64-apple-darwin
+
+      - name: Build Mac binaries
+        run: |
+          cd "$GITHUB_WORKSPACE/movement-sdk"
+          cargo build --release --target aarch64-apple-darwin
           
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
@@ -255,7 +274,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.prepare-release.outputs.release_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
-          asset_path: ./m1/target/release/movement
+          asset_path: ./movement-sdk/target/release/movement
           asset_name: movement-aarch64-mac
           asset_content_type: application/octet-stream
 
@@ -287,6 +306,11 @@ jobs:
           cd "$GITHUB_WORKSPACE/m1"
           cargo build --release --target x86_64-pc-windows-gnu
 
+      - name: Build Mac binaries
+        run: |
+          cd "$GITHUB_WORKSPACE/movement-sdk"
+          cargo build --release --target x86_64-pc-windows-gnu
+
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
         env:
@@ -303,7 +327,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.prepare-release.outputs.release_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
-          asset_path: ./m1/target/release/movement
+          asset_path: ./movement-sdk/target/release/movement
           asset_name: movement-x86_64-windows
           asset_content_type: application/octet-stream
      
@@ -331,7 +355,8 @@ jobs:
         IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }} # Or any other tag you'd like
       run: |
         docker buildx create --use
-        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/cli.dockerfile --platform linux/amd64,linux/arm64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t $DOCKER_HUB_REPOSITORY:latest . --push
+        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/cli.dockerfile --platform linux/amd64,linux/arm64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG $(if [ "${{ github.ref }}" = "refs/heads/main" ]; then echo "-t $DOCKER_HUB_REPOSITORY:latest"; fi) . --push
+      
 
     - name: Full developer container
       env:
@@ -339,7 +364,8 @@ jobs:
         IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }}
       run: |
         docker buildx create --use
-        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/dev.dockerfile --platform linux/amd64,linux/arm64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t $DOCKER_HUB_REPOSITORY:latest . --push
+        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/dev.dockerfile --platform linux/amd64,linux/arm64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG $(if [ "${{ github.ref }}" = "refs/heads/main" ]; then echo "-t $DOCKER_HUB_REPOSITORY:latest"; fi) . --push
+      
 
     - name: General container # for now this is just the dev container
       env:
@@ -347,8 +373,8 @@ jobs:
         IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }}
       run: |
         docker buildx create --use
-        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/dev.dockerfile --platform linux/amd64,linux/arm64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG -t $DOCKER_HUB_REPOSITORY:latest . --push
-    
+        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/dev.dockerfile --platform linux/amd64,linux/arm64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG $(if [ "${{ github.ref }}" = "refs/heads/main" ]; then echo "-t $DOCKER_HUB_REPOSITORY:latest"; fi) . --push
+      
   run-tests:
     needs:
       - prepare-release
