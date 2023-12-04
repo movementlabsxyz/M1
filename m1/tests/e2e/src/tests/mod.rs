@@ -122,7 +122,7 @@ async fn e2e() {
             blockchain_specs: vec![BlockchainSpec {
                 vm_name: String::from("subnet"),
                 genesis: genesis_file_path.to_string(),
-                // blockchain_alias : String::from("subnet"), // todo: this doesn't always work oddly enough, need to debug
+                blockchain_alias : String::from("subnet"), // todo: this doesn't always work oddly enough, need to debug
                 ..Default::default()
             }],
             ..Default::default()
