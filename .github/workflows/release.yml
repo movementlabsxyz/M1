@@ -7,7 +7,7 @@ on:
    # branches:
       # - main
   workflow_run:
-    workflows: ["Cargo Test"]
+    workflows: ["Cargo Check"]
     types: 
       - completed
 
