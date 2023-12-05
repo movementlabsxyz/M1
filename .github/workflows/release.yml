@@ -145,27 +145,18 @@ jobs:
           submodules: 'recursive'
           token: ${{ secrets.CI_PAT }}
 
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential
-          
-      - name: Set up Rust for Mac
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: 1.70.0
-          target: x86_64-apple-darwin
+      - name: Setup
+        uses: ./.github/actions/setup-macos-x86_64
 
       - name: Build Mac binaries
         run: |
           cd "$GITHUB_WORKSPACE/m1"
-          cargo build --release --target x86_64-apple-darwin
+          cargo build --release
 
       - name: Build Mac binaries
         run: |
           cd "$GITHUB_WORKSPACE/movement-sdk"
-          cargo build --release --target x86_64-apple-darwin
+          cargo build --release
 
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
@@ -200,16 +191,8 @@ jobs:
           submodules: 'recursive'
           token: ${{ secrets.CI_PAT }}
 
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential
-          
-      - name: Set up Rust for Mac
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: 1.70.0
+      - name: Setup
+        uses: ./.github/actions/setup-linux-aarch64
 
       - name: Build Mac binaries
         run: |
@@ -242,10 +225,10 @@ jobs:
           asset_content_type: application/octet-stream
 
   pre-release-aarch64-mac:
-    if: true # testing
+    # this is expensive, so only run on stage and main
+    if: github.ref == 'refs/heads/stage' || github.ref == 'refs/heads/main'
     needs: prepare-release
-    runs-on: 
-      labels: macos-latest
+    runs-on: macos-latest-xlarge
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
@@ -253,43 +236,14 @@ jobs:
           submodules: 'recursive'
           token: ${{ secrets.CI_PAT }}
           
-      - name: Set up Rust for Mac ARM64
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: 1.70.0
-          target: aarch64-apple-darwin
+      - name: Setup
+        uses: ./.github/actions/setup-macos-aarch64
 
       - name: Build Mac ARM64 binaries
         run: |
           cd "$GITHUB_WORKSPACE/m1"
           cargo build --release --target aarch64-apple-darwin
-
-      - name: Build Mac binaries
-        run: |
-          cd "$GITHUB_WORKSPACE/movement-sdk"
-          cargo build --release --target aarch64-apple-darwin
-          
-      - name: Upload subnet
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.prepare-release.outputs.release_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
-          asset_path: ./m1/target/release/subnet
-          asset_name: subnet-aarch64-mac
-          asset_content_type: application/octet-stream
-
-      - name: Upload movement
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.prepare-release.outputs.release_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this reference for more info: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepsid
-          asset_path: ./movement-sdk/target/release/movement
-          asset_name: movement-aarch64-mac
-          asset_content_type: application/octet-stream
-
+        
 
   pre-release-x86_64-windows:
     if: true # testing
@@ -302,17 +256,10 @@ jobs:
         with:
           submodules: 'recursive'
           token: ${{ secrets.CI_PAT }}
-
-      - name: Add mingw
-        run: apt-get install -y mingw-w64
-          
-      - name: Set up Rust for Windows
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: 1.70.0
-          target: x86_64-pc-windows-gnu
-
+      
+      - name: Setup Windows
+        uses: ./.github/actions/setup-windows-x86_64
+      
       - name: Build Windows binaries
         run: |
           cd "$GITHUB_WORKSPACE/m1"

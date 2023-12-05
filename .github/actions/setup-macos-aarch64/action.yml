@@ -1,0 +1,30 @@
+name: 'Setup macOS x86_64'
+description: 'Sets up the environment for macOS builds with Rust'
+
+runs:
+  using: 'composite'
+  steps:
+
+    - name: Install build essentials
+      run: |
+        brew update
+        brew install llvm postgresql unzip
+      shell: bash
+
+    - name: Install OpenSSL
+      run: brew install openssl
+      shell: bash
+
+    - name: Install Protoc
+      uses: arduino/setup-protoc@v1.3.0
+      with:
+        version: "3.20.1"
+      
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: 1.70
+
+    - name: Export LLVM path
+      run: echo "LLVM_SYS_130_PREFIX=$(brew --prefix llvm)" >> $GITHUB_ENV
