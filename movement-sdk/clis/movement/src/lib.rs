@@ -1,5 +1,5 @@
+pub mod foo;
 pub mod common;
-
 pub mod manage;
 pub mod ctl;
 // pub mod aptos;
@@ -9,6 +9,7 @@ pub mod canonical;
 use clap::*;
 
 use async_trait::async_trait;
+use foo::Foo;
 use manage::Manage;
 use ctl::Ctl;
 use sui::sui_commands::SuiCommand;
@@ -23,6 +24,8 @@ const VERSION: &str = const_str::concat!(env!("CARGO_PKG_VERSION"));
 #[derive(Parser)]
 #[clap(rename_all = "kebab-case")]
 pub enum MovementCommand {
+    #[clap(subcommand)]
+    Foo(Foo),
     #[clap(subcommand)]
     Manage(Manage),
     #[clap(subcommand)]

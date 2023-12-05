@@ -3,12 +3,20 @@ use serde::{Serialize, Deserialize};
 use serde_json;
 use super::m1::M1Manifest;
 use super::super::movement_releases::Release;
+use super::super::movement_artifacts::Artifact;
 use std::fs;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ManifestElementStatus {
+    Installed,
+    Uninstalling,
+    Broken
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ManifestElement {
-    pub release : Release,
-    pub path : Option<PathBuf>
+    pub artifact : Artifact
+    pub status : ManifestElementStatus,
 }
 
 impl ManifestElement {
