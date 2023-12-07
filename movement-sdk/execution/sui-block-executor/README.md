@@ -57,7 +57,7 @@ fn execute_transaction_to_effects(
 - `certificate_deny_set`: this isn't actually used anywhere in Sui's source. We can ignore it and leave it empty.
 - `epoch_id`: this is used to determine the epoch id of the transaction. We don't need a notion of epochs right now. But, you'll see that the executor has a `Box<dyn EpochProvider>` which is used to obtain the epoch id. We can ignore this for now and set it to whatever works.
 - `epoch_timestamp_ms`: this is used to determine the epoch timestamp of the transaction. We don't need a notion of epochs right now. But, you'll see that the executor has a `Box<dyn EpochProvider>` which is used to obtain the epoch timestamp. We can ignore this for now and set it to whatever works.
-- `input_objects` : this is slightly more involved and will probably where we actually have to do some optimization after putting something naive together. The input objects can actually be derived from the [transaction](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/crates/sui-core/src/authority.rs#L963). However, essentially, the reason `execute_transaction_to_effects` requires input objects is because the versions of the objects will have changed from when the transaction was submitted. The `AuthorityStore` handles this by [reading new input objects from its state](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/crates/sui-core/src/authority.rs#L963). To help us separate concerns here, you'll see that the `sui-block-executor` has a `Box<dyn InputObjectProvider>` which is used to obtain the input objects. 
+- `input_objects` : this is slightly more involved and will probably be where we actually have to do some optimization after putting something naive together. The input objects can actually be derived from the [transaction](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/crates/sui-core/src/authority.rs#L963). However, essentially, the reason `execute_transaction_to_effects` requires input objects is because the versions of the objects will have changed from when the transaction was submitted. The `AuthorityStore` handles this by [reading new input objects from its state](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/crates/sui-core/src/authority.rs#L963). To help us separate concerns here, you'll see that the `sui-block-executor` has a `Box<dyn InputObjectProvider>` which is used to obtain the input objects. 
 - `gas_coins`: this comes from the [transaction data itself](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/crates/sui-core/src/authority.rs#L1366).
 - `gas_status`: this also can come from the [transaction data itself](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/crates/sui-transaction-checks/src/lib.rs#L50). it relies on a reference gas price and protocol config. We currently abstract this away with a `Box<dyn GasStatusProvider>`.
 - `transaction_kind`: this comes from the [transaction data itself](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/crates/sui-core/src/authority.rs#L1366).
@@ -78,7 +78,7 @@ We need to deterministically group transactions into execution groups that can b
 
 Obtaining shared objects can be accomplished via the transaction directly. 
 
-The simplest way to solve this problem is to brute-force through possible groupings in transaction order which is `$O(n^2 * ||S||)$`. However, practically the sizes of the sets will be much smaller than `||S||` and the number of transactions in a block should be on the order of 100s.
+The simplest way to solve this problem is to brute-force through possible groupings in transaction order which is $O(n^2 * ||S||)$. However, practically the sizes of the sets will be much smaller than $||S||$ and the number of transactions in a block should be on the order of 100s.
 
 ```python
 function find_parallel_groups(sets):
@@ -103,7 +103,7 @@ function find_parallel_groups(sets):
 > 4. Insert the transaction hash as if it were the last element in the set.
 > 5. Run each separate subtree from the root in parallel, by doing an in-order traversal to obtain the transaction hash then executing the corresponding transaction. 
 > The ordering of the elements in the sets ensures that intersecting sets will have the same path/subtree in the trie from the root.
-> The complexity should be `$O(n * ||S|| *log(||S||))` I believe, which would be better in almost all cases because `||S||` is likely to be smaller than `n`. However, I haven't had time to verify this.
+> The complexity should be $O(n * ||S|| *log(||S||))$ I believe, which would be better in almost all cases because $||S||$ is likely to be smaller than $n$. However, I haven't had time to verify this.
 
 A more optimistic alternative is to use something similar to Block-STM with reruns on collisions. However, this can be entertained at a later date.
 

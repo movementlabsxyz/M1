@@ -12,3 +12,19 @@ pub struct Block(Vec<SenderSignedData>);
 /// In most cases, this should be internally constructed.
 #[derive(Debug, Clone)]
 pub struct VerifiedExecutableBlock(Vec<VerifiedExecutableTransaction>);
+
+#[derive(Debug, Clone)]
+pub struct VerifiedExecutableExecutionGroups(Vec<Vec<VerifiedExecutableTransaction>>);
+
+impl VerifiedExecutableBlock {
+
+    pub fn new(transactions : Vec<VerifiedExecutableTransaction>) -> Self {
+        Self(transactions)
+    }
+
+    pub fn get_max_parrallel_groups(&self) -> VerifiedExecutableExecutionGroups {
+        unimplemented!();
+    }
+
+
+}

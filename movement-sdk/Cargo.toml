@@ -1,14 +1,17 @@
 [workspace]
 resolver = "2"
 members = [
+    # framework
     "movement-sdk",
     # "movement-sdk-avalanche",
+
+    # execution
+    "execution/sui-block-executor",
 
     # types
     "types/sui-helper-types",
 
     # clis
-    # "clis/aptos",
     "clis/movement"
 ]
 
@@ -23,12 +26,17 @@ repository = "https://github.com/movemntdev/m2"
 rust-version = "1.70"
 
 [workspace.dependencies]
+# internal
+movement-sdk = { path = "movement-sdk" }
+sui-helper-types = { path = "types/sui-helper-types" }
+
+
 async-trait = { version = "0.1" } 
 anyhow = { version = "1" }     # For flexible error handling
 avalanche-types = { version = "0.1.3", features = ["subnet", "codec_base64"] }
-movement-sdk = { path = "movement-sdk" }
 # aptos = { path = "clis/aptos" }
 
+futures = "0.3"
 tokio = { version = "1.21.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["raw_value"] }

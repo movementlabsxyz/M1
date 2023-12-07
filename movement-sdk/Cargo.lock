@@ -12930,6 +12930,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "sui-block"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "movement-sdk",
+ "sui-helper-types",
+ "sui-types",
+ "tokio",
+]
+
+[[package]]
 name = "sui-config"
 version = "0.0.0-canonical-sui"
 dependencies = [
@@ -13133,6 +13145,9 @@ dependencies = [
 name = "sui-helper-types"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "async-trait",
+ "futures",
  "sui-types",
 ]
 
