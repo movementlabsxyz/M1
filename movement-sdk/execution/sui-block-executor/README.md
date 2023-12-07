@@ -5,7 +5,7 @@ The `sui-block-executor` is a block-based execution layer providing Move VM exec
 Essentially, the `sui-block-executor` performs the duty of...
 1. Transforming [`Vec<SenderSignedData>`](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/crates/sui-types/src/transaction.rs#L2019) into a [`Vec<VerifiedExecutableTransaction>`](https://github.com/MystenLabs/sui/blob/main/crates/sui-types/src/executable_transaction.rs#L55), and then, 
 2. Executing each element in said vector in deterministic order via [`execute_transaction_to_effects`](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/sui-execution/src/latest.rs#L79). 
-3. `execute_transaction_to_effects` both returns the `TransactionEffects` and applies them to the backing store which the `AuthorityStore` implements (by implementing the [required traits](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/crates/sui-types/src/storage/mod.rs#L489)). Take a look here to see for example how they are not used directly in the [`AuthorityStore`'s execution_driver](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/crates/sui-core/src/execution_driver.rs#L103). However, there's additional complexity here that is addressed below with which we are not yet sure whether we will need to deal.
+3. `execute_transaction_to_effects` both returns the `TransactionEffects` and applies them to a temporary store within the `AuthorityStore` (which implements `BackingStore` via [required traits](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/crates/sui-types/src/storage/mod.rs#L489)). These effects must be committed--which is discussed further below. 
 
 > Perhaps the most analogous path in the existing Sui source to what needs to be developed is the [`process_certificate` method from the `AuthorityStore`](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/crates/sui-core/src/authority.rs#L1339). This is a good point of reference for many parts of this project, hence it is included in the reading material. 
 
@@ -48,7 +48,7 @@ fn execute_transaction_to_effects(
 ```
 
 - `&dyn BackingStore`: arguably the most important of the parameters. We essentially want to do this over RocksDB on our own. There may be several crates for this developed over time, but `canonical-sui-backing-store` is where we will start.
-- `protocol_config`: this is struct pops up all over the Sui crate and was originally a big part of the cause for hesitancy in implementing the Sui block-executor at this level--owing to the presumed entanglement of consensus in parts of the object runtime specifically attributable to this config. However, it turns out that consensus parameters are not in fact used. Instead, what this is [used for at this level](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/sui-execution/v1/sui-adapter/src/programmable_transactions/execution.rs#L639) are things such as...
+- `protocol_config`: this is a struct that pops up all over the Sui crate and was originally a big part of the cause for hesitancy in implementing the Sui block-executor at this level--owing to the presumed entanglement of consensus in parts of the object runtime specifically attributable to this config. However, it turns out that consensus parameters are not in fact used. Instead, what this is [used for at this level](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/sui-execution/v1/sui-adapter/src/programmable_transactions/execution.rs#L639) are things such as...
     - shared object deletion settings,
     - Move binary format settings,
     - Max package size.
@@ -68,7 +68,11 @@ fn execute_transaction_to_effects(
 ### Dealing with `TransactionEffects`
 The [`AuthorityPerEpochStore`](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/crates/sui-core/src/authority/authority_per_epoch_store.rs#L628) is really the engine of a lot of how Sui execution comes together for the Sui network. However, it unfortunately is also very entangled and asynchronous.
 
-Though `TransactionEffects` are applied via calling `execute_transaction_to_effects` the `AuthorityPerEpochStore` relies on these effects to inform processes which [affect execution within and between epochs](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/crates/sui-core/src/authority/authority_per_epoch_store.rs#L1172). For the most part, it seems like we can ignore this as we are not concerned with consensus details. However, a second glance should be made at the `AuthorityPerEpochStore` whenever it appears something is not working correctly concerning issues related to the absence, presence, etc. of checkpoint and epoch indicators. 
+The effects are then asynchronously committed to the epoch store using the returned [`TransactionEffects`](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/crates/sui-core/src/authority.rs#L1213) and later make their way into persistent state. This process involves a lot of interdependencies in Sui. However, we do not necessarily have to implement this directly. Take a look here to see for example how they are not used directly in the [`AuthorityStore`'s execution_driver](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/crates/sui-core/src/execution_driver.rs#L103). However, there's additional complexity here that is addressed below with which we are not yet sure whether we will need to deal.
+
+To accomplish this, we must build a subsystem [similar to](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/crates/sui-core/src/authority.rs#L1213). However, ours can be synchronous.
+
+This is an ongoing area of research.
 
 ## Sui Object Runtime
 `execute_transaction_to_effects` takes care of the Sui object runtime provided, so long as you are constructing the executor with a MoveVM similar to that produced by [`new_move_vm`](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/sui-execution/src/latest.rs#L55C35-L55C35). In fact `new_move_vm` gives a good entry point for extending the function table, which should be enough for the appropriate integration.
@@ -76,7 +80,7 @@ Though `TransactionEffects` are applied via calling `execute_transaction_to_effe
 ## Sui-like Concurrency
 We need to deterministically group transactions into execution groups that can be safely and maximally executed in parallel based on their sets of shared objects.
 
-Obtaining shared objects can be accomplished via the transaction directly. 
+Obtaining shared objects can be accomplished via the [transaction data directly](https://github.com/MystenLabs/sui/blob/552158d9eae200314499809d8977f732f6c2cee7/crates/sui-core/src/authority.rs#L963C78-L963C78). 
 
 The simplest way to solve this problem is to brute-force through possible groupings in transaction order which is $O(n^2 * ||S||)$. However, practically the sizes of the sets will be much smaller than $||S||$ and the number of transactions in a block should be on the order of 100s.
 

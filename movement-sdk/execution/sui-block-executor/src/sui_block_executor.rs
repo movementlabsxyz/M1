@@ -1,39 +1,54 @@
+use std::fmt::Debug;
+
 use sui_helper_types::{
     providers::{
         gas_info::GasInfoProvider,
         input_object::InputObjectProvider,
         epoch::EpochProvider,
         verified_executable_transaction::VerifiedExecutableBlockProvider,
-        object_version_provider::ObjectVersionProvider
+        object_version::ObjectVersionProvider
     },
     block::{Block, VerifiedExecutableBlock}
 };
 
-use movement_sdk::ExecutionLayer;
+use movement_sdk::{Layer, ExecutionLayer};
 use sui_types::storage::BackingStore;
+use std::sync::Arc;
+use sui_types::executable_transaction::VerifiedExecutableTransaction;
 
 /// Sui block executor struct.
 /// ? Feel free to change the ref types to whatever you want.
-#[derive(Debug, Clone)]
+
+#[derive(Clone)]
 pub struct SuiBlockExecutor {
-    backing_store : Box<dyn BackingStore + Send + Sync>,
-    epoch_provider : Box<dyn EpochProvider + Send + Sync>,
-    gas_info_provider : Box<dyn GasInfoProvider + Send + Sync>,
-    input_object_provider : Box<dyn InputObjectProvider + Send + Sync>,
-    verified_executable_block_provider : Box<dyn VerifiedExecutableBlockProvider + Send + Sync>,
-    object_version_provider : Box<dyn ObjectVersionProvider + Send + Sync>
+    backing_store : Arc<dyn BackingStore + Send + Sync>,
+    epoch_provider : Arc<dyn EpochProvider + Send + Sync>,
+    gas_info_provider : Arc<dyn GasInfoProvider + Send + Sync>,
+    input_object_provider : Arc<dyn InputObjectProvider + Send + Sync>,
+    verified_executable_block_provider : Arc<dyn VerifiedExecutableBlockProvider + Send + Sync>,
+    object_version_provider : Arc<dyn ObjectVersionProvider + Send + Sync>
+}
+
+
+impl Debug for SuiBlockExecutor {
+    
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SuiBlockExecutor")
+            .finish()
+    }
+
 }
 
 impl SuiBlockExecutor {
 
     /// Creates a new sui block executor.
     pub fn new(
-        backing_store : Box<dyn BackingStore + Send + Sync>,
-        epoch_provider : Box<dyn EpochProvider + Send + Sync>,
-        gas_info_provider : Box<dyn GasInfoProvider + Send + Sync>,
-        input_object_provider : Box<dyn InputObjectProvider + Send + Sync>,
-        verified_executable_block_provider : Box<dyn VerifiedExecutableBlockProvider + Send + Sync>,
-        object_version_provider : Box<dyn ObjectVersionProvider + Send + Sync>
+        backing_store : Arc<dyn BackingStore + Send + Sync>,
+        epoch_provider : Arc<dyn EpochProvider + Send + Sync>,
+        gas_info_provider : Arc<dyn GasInfoProvider + Send + Sync>,
+        input_object_provider : Arc<dyn InputObjectProvider + Send + Sync>,
+        verified_executable_block_provider : Arc<dyn VerifiedExecutableBlockProvider + Send + Sync>,
+        object_version_provider : Arc<dyn ObjectVersionProvider + Send + Sync>
     ) -> Self {
         Self {
             backing_store,
@@ -47,13 +62,17 @@ impl SuiBlockExecutor {
 
     async fn execute_transaction_group(
         &self,
-        transaction_group : Vec<VerifiedExecutableBlock>
+        transaction_group : Vec<VerifiedExecutableTransaction>
     ) -> Result<(), anyhow::Error> {
         for transaction in transaction_group {
             // todo: use execute_transaction_to_effects
         }
         unimplemented!();
     }
+
+}
+
+impl Layer for SuiBlockExecutor {
 
 }
 
@@ -81,15 +100,15 @@ impl ExecutionLayer for SuiBlockExecutor {
         let verified_executable_block = self.verified_executable_block_provider.verified_executable_block(&block).await?;
 
         // get the max parallel groups
-        let max_parallel_groups = verified_executable_block.get_max_parrallel_groups();
+        let max_parallel_groups = verified_executable_block.get_max_parallel_groups();
 
         // set up the object versions for the transactions
-        let sequencer_parallel_groups = self.object_version_provider.sequence_objects_for_transactions(max_parallel_groups).await?;
+        let sequencer_parallel_groups = self.object_version_provider.assign_shared_object_versions(max_parallel_groups).await?;
 
         // execute the transaction groups in parallel
-        futures::future::try_join_all!(
+        futures::future::try_join_all(
             sequencer_parallel_groups.into_iter().map(|transaction_group| self.execute_transaction_group(transaction_group))
-        )?;
+        ).await?;
 
         unimplemented!(); // ! Worry about this for now.
 

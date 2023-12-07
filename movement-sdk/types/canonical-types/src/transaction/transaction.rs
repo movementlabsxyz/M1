@@ -1,5 +1,5 @@
 use aptos_types::transaction::{Transaction as AptosTransaction};
-use sui_types::transaction::{Transaction as SuiTransaction};
+use sui_types::transaction::SenderSignedData as SuiTransaction;
 
 #[derive(Clone, Debug)]
 pub enum Transaction {

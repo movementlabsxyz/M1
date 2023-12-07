@@ -1,5 +1,5 @@
 [package]
-name = "sui-block-authority-providers"
+name = "canonical-block-executor"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,12 +7,10 @@ edition = "2021"
 
 [dependencies]
 # internal
-sui-helper-types = { workspace = true }
-
-# sui
-sui-types = { workspace = true }
+movement-sdk = { workspace = true }
 
 # general
-futures = {workspace = true}
-async-trait = { workspace = true }
 anyhow = { workspace = true }
+async-trait = { workspace = true }
+tokio = { workspace = true }
+aptos-helper-types = { workspace = true }

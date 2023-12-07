@@ -536,6 +536,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "aptos-block-executor"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "aptos-executor",
+ "aptos-helper-types",
+ "aptos-types",
+ "aptos-vm",
+ "async-trait",
+ "movement-sdk",
+ "tokio",
+]
+
+[[package]]
 name = "aptos-block-partitioner"
 version = "0.1.0-canonical-aptos"
 dependencies = [
@@ -1276,6 +1290,17 @@ name = "aptos-global-constants"
 version = "0.1.0-canonical-aptos"
 
 [[package]]
+name = "aptos-helper-types"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "aptos-crypto",
+ "aptos-types",
+ "async-trait",
+ "futures",
+]
+
+[[package]]
 name = "aptos-id-generator"
 version = "0.1.0-canonical-aptos"
 
@@ -1382,7 +1407,7 @@ version = "0.1.0-canonical-aptos"
 dependencies = [
  "anyhow",
  "aptos-bitvec",
- "aptos-block-executor",
+ "aptos-block-executor 0.1.0-canonical-aptos",
  "aptos-cached-packages",
  "aptos-crypto",
  "aptos-framework",
@@ -2469,7 +2494,7 @@ version = "0.1.0-canonical-aptos"
 dependencies = [
  "anyhow",
  "aptos-aggregator",
- "aptos-block-executor",
+ "aptos-block-executor 0.1.0-canonical-aptos",
  "aptos-block-partitioner",
  "aptos-crypto",
  "aptos-crypto-derive",
@@ -4013,6 +4038,17 @@ name = "camino"
 version = "1.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c59e92b5a388f549b863a7bea62612c09f24c8393560709a54558a9abdfb3b9c"
+
+[[package]]
+name = "canonical-block-executor"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "aptos-helper-types",
+ "async-trait",
+ "movement-sdk",
+ "tokio",
+]
 
 [[package]]
 name = "captcha"
@@ -12666,6 +12702,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
+name = "standalone-sui-subnet"
+version = "0.1.0"
+dependencies = [
+ "aptos-crypto",
+ "aptos-helper-types",
+ "aptos-types",
+ "sui-helper-types",
+ "sui-types",
+]
+
+[[package]]
 name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12930,11 +12977,23 @@ dependencies = [
 ]
 
 [[package]]
-name = "sui-block"
+name = "sui-block-authority-providers"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "futures",
+ "sui-helper-types",
+ "sui-types",
+]
+
+[[package]]
+name = "sui-block-executor"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "futures",
  "movement-sdk",
  "sui-helper-types",
  "sui-types",

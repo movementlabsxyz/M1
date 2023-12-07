@@ -1,5 +1,5 @@
 [package]
-name = "sui-block"
+name = "sui-block-executor"
 version = "0.1.0"
 edition = "2021"
 
@@ -13,10 +13,12 @@ movement-sdk = { workspace = true }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 tokio = { workspace = true }
+futures = { workspace = true }
 
 # internal
 sui-helper-types = { workspace = true }
 sui-types = { workspace = true }
+
 
 # sui
 # todo: conflicting rocksdb means we can't use workspace

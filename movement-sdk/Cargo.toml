@@ -7,9 +7,16 @@ members = [
 
     # execution
     "execution/sui-block-executor",
+    "execution/aptos-block-executor",
+    "execution/canonical-block-executor",
 
     # types
     "types/sui-helper-types",
+    "types/canonical-types",
+    "types/aptos-helper-types",
+
+    # sui helpers
+    "sui-helpers/sui-block-authority-providers",
 
     # clis
     "clis/movement"
@@ -28,7 +35,14 @@ rust-version = "1.70"
 [workspace.dependencies]
 # internal
 movement-sdk = { path = "movement-sdk" }
+aptos-helper-types = { path = "types/aptos-helper-types" }
 sui-helper-types = { path = "types/sui-helper-types" }
+canonical-types = { path = "types/canonical-types" }
+sui-block-executor = { path = "execution/sui-block-executor" }
+aptos-block-executor = { path = "execution/aptos-block-executor" }
+canonical-block-executor = { path = "execution/canonical-block-executor" }
+sui-block-authority-providers = { path = "sui-helpers/sui-block-authority-providers" }
+
 
 
 async-trait = { version = "0.1" } 
@@ -64,6 +78,7 @@ aptos-types = { path = "../vendors/aptos-core/types" }
 aptos-executor = { path = "../vendors/aptos-core/execution/executor" }
 aptos-executor-types = { path = "../vendors/aptos-core/execution/executor-types" }
 aptos-storage-interface = { path = "../vendors/aptos-core/storage/storage-interface" }
+aptos-crypto = { path = "../vendors/aptos-core/crates/aptos-crypto" }
 
 # sui
 sui-adapter-latest = { path = "../vendors/sui/sui-execution/latest/sui-adapter" }
