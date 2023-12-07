@@ -1,4 +1,6 @@
 # Canonical Execution Layer and Supporting Layers
+DEPRECATED: This workspace is deprecated. Please see the work out of the `movement-sdk` workspace.
+
 <!-- Provide a 1-3 sentence description of the project. For example: "A web application designed to streamline the workflow of remote teams by integrating task management, communication, and reporting tools." -->
 © 2023, Movement Labs. All rights reserved.
 
