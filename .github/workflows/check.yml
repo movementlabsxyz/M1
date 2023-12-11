@@ -3,6 +3,8 @@ name: Cargo Check
 on:
   push:
     branches:
+      - dev
+      - stage
       - main
 
 jobs:
@@ -16,6 +18,22 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: 'recursive'
+          token: ${{ secrets.CI_PAT }}
+
+      # for testing purposes
+      - name: Trigger test
+        if: false
+        uses: ./.github/actions/trigger-workflow
+        with:
+          workflowFileName: test.yml
+          token: ${{ secrets.CI_PAT }}
+
+      # for testing purposes
+      - name: Trigger release
+        if: false
+        uses: ./.github/actions/trigger-workflow
+        with:
+          workflowFileName: release.yml
           token: ${{ secrets.CI_PAT }}
 
       - name: Setup
@@ -42,4 +60,13 @@ jobs:
       - name: Run Cargo Check
         working-directory: ./m1  
         run: cargo check
+
+      - name: Trigger test
+        uses: ./.github/actions/trigger-workflow
+        with:
+          workflowFileName: test.yml
+          token: ${{ secrets.CI_PAT }}
+
+      
+
 

@@ -1,16 +1,13 @@
 name: Cargo Test
 
 on:
-  workflow_run:
-    workflows: ["Cargo Check"]
-    types: 
-      - completed
+  workflow_dispatch:
 
 jobs:
   test:
     runs-on: 
       labels: movement-runner
-    if: ${{ github.event.workflow_run.conclusion == 'success' }} 
+
     steps:
 
       - name: Checkout Repository
@@ -18,14 +15,16 @@ jobs:
         with:
           submodules: 'recursive'
           token: ${{ secrets.CI_PAT }}
+          ref: ${{ github.ref }}
 
       - name: Setup
         uses: ./.github/actions/setup-linux-x86_64
 
+      # run the ANR-based subnet tests
       - name: Build and Test Subnet
         run: |
           cd ./m1
-          cargo test
+          ./scripts/tests.debug.sh
 
       - name: Update Badge
         run: |
@@ -35,3 +34,9 @@ jobs:
             sed -i 's/badge\/tests-[a-zA-Z]*/badge\/tests-Failing-red/g' README.md
           fi
         if: ${{ always() }}
+
+      - name: Trigger release
+        uses: ./.github/actions/trigger-workflow
+        with:
+          workflowFileName: release.yml
+          token: ${{ secrets.CI_PAT }}

@@ -18,4 +18,4 @@ cargo build -p subnet --bin subnet
 ./target/debug/subnet --help
 
 ./target/debug/subnet genesis "hello world"
-./target/debug/subnet vm-id timestampvm
+./target/debug/subnet vm-id subnet

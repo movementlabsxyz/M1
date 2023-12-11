@@ -1,22 +1,19 @@
 name: Code Coverage
 
 on:
-  workflow_run:
-    workflows: ["Cargo Check"]
-    types: 
-      - completed
+  workflow_dispatch:
 
 jobs:
   coverage:
     runs-on:
       labels: movement-runner
-    if: ${{ github.event.workflow_run.conclusion == 'success' }} 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
         with:
           submodules: 'recursive'
           token: ${{ secrets.CI_PAT }}
+          ref: ${{ github.event.inputs.branch }}
 
       - name: Set up Rust
         uses: actions-rs/toolchain@v1

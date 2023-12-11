@@ -1,0 +1,30 @@
+name: 'Trigger Workflow'
+description: 'Triggers another GitHub Actions workflow; useful for ensuring the workflow runs based off of the appropriate branch.'
+
+inputs:
+  token:
+    description: 'Personal Access Token (PAT) with permissions to trigger workflows'
+    required: true
+  workflowFileName:
+    description: 'The file name of the workflow to trigger'
+    required: true
+  workflowInputs:
+    description: 'Inputs for the triggered workflow in JSON format'
+    required: false
+    default: '{}'
+
+runs:
+  using: 'composite'
+  steps:
+
+    # for some reason this only works with gh-cli
+    - name: Trigger another workflow
+      run: |
+        echo ${{ inputs.token }} | gh auth login --with-token
+        echo "Repository: ${{ github.repository }}"
+        echo "Workflow File Name: ${{ inputs.workflowFileName }}"
+        echo "Ref: ${{ github.ref_name }}"
+        echo "Inputs: ${{ inputs.workflowInputs }}"
+
+        gh workflow run ${{ inputs.workflowFileName }} --ref ${{ github.ref_name }}
+      shell: bash

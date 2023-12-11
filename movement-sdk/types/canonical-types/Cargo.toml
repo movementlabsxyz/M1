@@ -1,0 +1,13 @@
+[package]
+name = "standalone-sui-subnet"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+aptos-types = { workspace = true }
+sui-types = { workspace = true }
+sui-helper-types = { workspace = true }
+aptos-crypto = { workspace = true }
+aptos-helper-types = { workspace = true }

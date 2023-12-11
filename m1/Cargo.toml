@@ -2,8 +2,6 @@
 resolver = "2"
 members = [
     "subnet",
-    "movement",
-    "movement-benchmark",
     "tests/e2e"
 ]
 

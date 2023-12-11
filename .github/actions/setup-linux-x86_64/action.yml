@@ -8,10 +8,13 @@ runs:
     - name: Install build essentials
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential lld libpq-dev
-        # Install Protocol Buffers Compiler (protoc)
-        sudo apt-get install -y protobuf-compiler
+        sudo apt-get install -y build-essential lld libpq-dev unzip
       shell: bash
+
+    - name: Install Protoc
+      uses: arduino/setup-protoc@v1.3.0
+      with:
+        version: "3.20.1"
       
     - name: Set up Rust
       uses: actions-rs/toolchain@v1
