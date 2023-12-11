@@ -1,0 +1,26 @@
+name: 'Setup Windows x86_64'
+description: 'Sets up the environment for Windows builds with Rust'
+
+runs:
+  using: 'composite'
+  steps:
+
+    - name: Install build essentials
+      run: |
+        choco install llvm postgresql unzip
+      shell: pwsh
+
+    - name: Install OpenSSL
+      run: choco install openssl
+      shell: pwsh
+
+    - name: Install Protoc
+      uses: arduino/setup-protoc@v1.3.0
+      with:
+        version: "3.20.1"
+
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: 1.70

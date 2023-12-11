@@ -22,6 +22,7 @@ jobs:
 
       # for testing purposes
       - name: Trigger test
+        if: false
         uses: ./.github/actions/trigger-workflow
         with:
           workflowFileName: test.yml
@@ -29,6 +30,7 @@ jobs:
 
       # for testing purposes
       - name: Trigger release
+        if: false
         uses: ./.github/actions/trigger-workflow
         with:
           workflowFileName: release.yml

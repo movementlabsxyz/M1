@@ -20,4 +20,4 @@ cargo build -p subnet \
 ./target/release/subnet --help
 
 ./target/release/subnet genesis "hello world"
-./target/release/subnet vm-id timestampvm
+./target/release/subnet vm-id subnet

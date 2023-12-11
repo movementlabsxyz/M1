@@ -1,0 +1,23 @@
+name: 'Setup Linux x86_64'
+description: 'Sets up the environment for Linux x86_64 builds with Rust'
+
+runs:
+  using: 'composite'
+  steps:
+      
+    - name: Install build essentials
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential lld libpq-dev unzip
+      shell: bash
+
+    - name: Install Protoc
+      uses: arduino/setup-protoc@v1.3.0
+      with:
+        version: "3.20.1"
+      
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: 1.70
