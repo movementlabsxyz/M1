@@ -21,3 +21,7 @@
 [submodule "m1/vendors/sui"]
 	path = vendors/sui
 	url = https://github.com/movemntdev/sui
+[submodule "vendors/aptos-core-v2"]
+	path = vendors/aptos-core-v2
+	url = https://github.com/movemntdev/aptos-core
+	branch = v2
