@@ -18,6 +18,10 @@
 	path = vendors/aptos-core-1.7
 	url = https://github.com/movemntdev/aptos-core
 	branch = testnet
+[submodule "aptos-core-v2"]
+	path = vendors/aptos-core-v2
+	url = https://github.com/movemntdev/aptos-core
+	branch = v2
 [submodule "m1/vendors/sui"]
 	path = vendors/sui
 	url = https://github.com/movemntdev/sui
