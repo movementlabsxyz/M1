@@ -143,7 +143,7 @@ pub struct Vm {
 
     pub signer: Option<ValidatorSigner>,
 
-    pub executor: Option<Arc<RwLock<BlockExecutor<AptosVM, Transaction>>>>,
+    pub executor: Option<Arc<RwLock<BlockExecutor<AptosVM>>>>,
 
     pub build_status: Arc<RwLock<u8>>,
     // 0 done 1 building
@@ -990,7 +990,7 @@ impl Vm {
         core_pool.add_txn(signed_transaction.clone(),
                           0,
                           signed_transaction.clone().sequence_number(),
-                          TimelineState::NonQualified);
+                          TimelineState::NonQualified, false);
         drop(core_pool);
     }
     async fn get_pending_tx(&self, count: u64) -> Vec<SignedTransaction> {
