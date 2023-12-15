@@ -67,6 +67,7 @@ use crate::api::chain_handlers::{AccountStateArgs, BlockArgs, ChainHandler, Chai
 use crate::api::static_handlers::{StaticHandler, StaticService};
 use tonic::{transport::Server, Request, Response, Status};
 use uuid::Uuid;
+use aptos_types::block_executor::partitioner::{ExecutableBlock, ExecutableTransactions};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const MOVE_DB_DIR: &str = ".move-chain-data";
@@ -1275,8 +1276,14 @@ impl Vm {
    
         // execute the block
         let output = executor
-            .execute_block((block_id, block_tx.clone()), parent_block_id)
-            .unwrap();
+            .execute_block(
+                ExecutableBlock::new(
+                    block_id,
+                    ExecutableTransactions::Unsharded(block_tx.clone()),
+                ), 
+                parent_block_id, 
+                None
+            ).unwrap();
 
         // sign for the the ledger
         let ledger_info = LedgerInfo::new(

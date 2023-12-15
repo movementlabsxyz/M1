@@ -16,14 +16,14 @@ repository = "https://github.com/movemntdev/m2"
 rust-version = "1.70"
 
 [workspace.dependencies]
-avalanche-types = {git="https://github.com/ava-labs/avalanche-rs",package="avalanche-types", rev= "eee26d756b4e39c42d68b314c08028da11435e2d", features = ["subnet", "codec_base64"] }
+avalanche-types = {git="https://github.com/ava-labs/avalanche-rs",package="avalanche-types", rev= "eee26d756b4e39c42d68b314c08028da11435e2d", features = ["subnet", "codec_base64", "jsonrpc_client"] }
 anyhow = "1.0.62"
 futures = "0.3.28"
 rand = { version =  "0.7.3" }
 bcs = { git = "https://github.com/aptos-labs/bcs.git", rev = "d31fab9d81748e2594be5cd5cdf845786a30562d" }
 
 
-
+actix-web = "4"
 async-trait = "0.1.53"
 base64 = "0.13.0"
 backoff = { version = "0.4.0", features = ["tokio"] }
