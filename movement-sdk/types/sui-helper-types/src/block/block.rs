@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use sui_types::base_types::ObjectID;
 use sui_types::digests::SenderSignedDataDigest;
 use sui_types::message_envelope::VerifiedEnvelope;
@@ -37,63 +39,49 @@ impl VerifiedExecutableBlock {
     }
 
     pub fn get_max_parallel_groups(&self) -> VerifiedExecutableExecutionGroups {
-        let mut groups: Vec<Vec<VerifiedExecutableTransaction>> = vec![];
-        let mut group_id = 0;
-        let mut processed_cnt = 0;
-        // (objectId, is_mutable)
-        let mut objects_in_groups: Vec<Vec<(ObjectID, bool)>> = vec![];
-        let mut processed_digests: Vec<SenderSignedDataDigest> = vec![];
+        let mut groups: Vec<Vec<VerifiedExecutableTransaction>> = Vec::new();
+        let mut objects_in_groups: Vec<HashSet<(ObjectID, bool)>> = Vec::new();
+        let mut processed_digests: HashSet<SenderSignedDataDigest> = HashSet::new();
+        for executable_transaction in self.clone().into_iter() {
+            let sender_signed_data = executable_transaction.clone().into_message();
 
-        let tx_cnt = self.clone().into_iter().len();
-        loop {
-            for executable_transaction in self.clone().into_iter() {
-                let sender_signed_data = executable_transaction.clone().into_message();
+            // Skip if transaction is already processed
+            if processed_digests.contains(&sender_signed_data.full_message_digest()) {
+                continue;
+            }
 
-                // check if transaction is already pushed in groups
-                if let Some(_found) = processed_digests.iter().find(|&&tx_digest| tx_digest == sender_signed_data.full_message_digest()) {
+            let TransactionData::V1(tx_data_v1) = sender_signed_data.transaction_data();
+            let shared_objects = tx_data_v1.shared_input_objects();
+
+            // Find a group where the transaction can be added without conflict
+            let mut group_id = 0;
+            while group_id < objects_in_groups.len() {
+                let is_conflict = shared_objects.iter().any(|obj| {
+                    objects_in_groups[group_id].contains(&(obj.id, true)) && obj.mutable
+                });
+
+                if !is_conflict {
                     break;
                 }
-
-                let transaction_data = sender_signed_data.transaction_data();
-                let TransactionData::V1(tx_data_v1) = transaction_data;
-                let shared_objects = tx_data_v1.shared_input_objects();
-                    
-                // check out if any shared objects are conflicted in the group
-                let mut mut_obj_duplicated = false;
-                for obj in shared_objects.iter() {
-                    if let Some (_found) = objects_in_groups[group_id].iter().find(|&obj_in_group| obj_in_group.0 == obj.id && obj_in_group.1 && obj.mutable) {
-                        mut_obj_duplicated = true;
-                        break
-                    }
-                }
-
-                // if no object conflicts, then the transaction can go in the group
-                if !mut_obj_duplicated {
-                    for obj in shared_objects.iter() {
-                        objects_in_groups[group_id].push((obj.id, obj.mutable));
-                    }
-                    
-                    // add a tx into group
-                    groups[group_id].push(executable_transaction.clone());    
-
-                    // set transaction as processed
-                    processed_digests.push(sender_signed_data.full_message_digest());
-
-                    // increase processed_count
-                    processed_cnt += 1;
-                }
+                group_id += 1;
             }
-            // start new group
-            group_id += 1;
 
-            // if all transactions are included in groups, then exit from the loop
-            if processed_cnt == tx_cnt {
-                break
+            // If no suitable group, create a new one
+            if group_id == objects_in_groups.len() {
+                groups.push(Vec::new());
+                objects_in_groups.push(HashSet::new());
             }
+
+            // Add the transaction to the group
+            for obj in shared_objects {
+                objects_in_groups[group_id].insert((obj.id, obj.mutable));
+            }
+            groups[group_id].push(executable_transaction.clone());
+            processed_digests.insert(sender_signed_data.full_message_digest());
         }
-
         VerifiedExecutableExecutionGroups(groups)
     }
+    
 
 
 }
