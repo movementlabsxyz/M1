@@ -51,13 +51,19 @@ impl VerifiedExecutableBlock {
             }
 
             let TransactionData::V1(tx_data_v1) = sender_signed_data.transaction_data();
-            let shared_objects = tx_data_v1.shared_input_objects();
+            //let shared_objects = tx_data_v1.shared_input_objects();
+            let input_objects = tx_data_v1.input_objects();
+            if input_objects.is_err() {
+                continue;
+            }
+
+            let input_objects = input_objects.unwrap();
 
             // Find a group where the transaction can be added without conflict
             let mut group_id = 0;
             while group_id < objects_in_groups.len() {
-                let is_conflict = shared_objects.iter().any(|obj| {
-                    objects_in_groups[group_id].contains(&(obj.id, true)) && obj.mutable
+                let is_conflict = input_objects.iter().any(|obj| {
+                    objects_in_groups[group_id].contains(&(obj.object_id(), true)) && obj.is_mutable()
                 });
 
                 if !is_conflict {
@@ -73,8 +79,8 @@ impl VerifiedExecutableBlock {
             }
 
             // Add the transaction to the group
-            for obj in shared_objects {
-                objects_in_groups[group_id].insert((obj.id, obj.mutable));
+            for obj in input_objects {
+                objects_in_groups[group_id].insert((obj.object_id(), obj.is_mutable()));
             }
             groups[group_id].push(executable_transaction.clone());
             processed_digests.insert(sender_signed_data.full_message_digest());
