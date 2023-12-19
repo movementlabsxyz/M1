@@ -11,6 +11,7 @@ sui-helper-types = { workspace = true }
 
 # sui
 sui-types = { workspace = true }
+typed-store = { workspace = true }
 
 # general
 futures = {workspace = true}

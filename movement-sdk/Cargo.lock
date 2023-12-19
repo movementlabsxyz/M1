@@ -12985,6 +12985,7 @@ dependencies = [
  "futures",
  "sui-helper-types",
  "sui-types",
+ "typed-store",
 ]
 
 [[package]]
