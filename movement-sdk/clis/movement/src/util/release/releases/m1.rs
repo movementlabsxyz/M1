@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
-use super::{Release, movement_releases::MovementGitHubRelease};
-use crate::common::util::Version;
+use super::{Release, release::MovementGitHubRelease};
+use crate::util::util::Version;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct M1GitHubReleases {

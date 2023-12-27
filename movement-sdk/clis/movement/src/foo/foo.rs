@@ -1,6 +1,6 @@
 use clap::Subcommand;
 use async_trait::async_trait;
-use crate::common::cli::Command;
+use crate::util::cli::Command;
 
 #[derive(Debug, Clone, Subcommand)]
 pub enum Release {

@@ -11,9 +11,6 @@
 [submodule "ecosystem/evm-runtime"]
 	path = ecosystem/evm-runtime
 	url = https://github.com/movemntdev/move-evm-swap-backend
-[submodule "m1/subnet-request-proxy"]
-	path = m1/subnet-request-proxy
-	url = https://github.com/movemntdev/subnet-request-proxy
 [submodule "aptos-pre-core-v2"]
 	path = vendors/aptos-core-1.7
 	url = https://github.com/movemntdev/aptos-core
@@ -21,3 +18,7 @@
 [submodule "m1/vendors/sui"]
 	path = vendors/sui
 	url = https://github.com/movemntdev/sui
+[submodule "m1/subnet-request-proxy-js"]
+	path = m1/subnet-request-proxy-js
+	url = https://github.com/movemntdev/subnet-request-proxy
+	branch = parameterized

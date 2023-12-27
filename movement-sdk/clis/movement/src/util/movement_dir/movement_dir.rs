@@ -25,12 +25,12 @@ impl MovementDir {
     }
 
     pub fn update_manifest_file(&self) -> Result<(), anyhow::Error> {
-        self.manifest.update_manifest_file()?;
+        // self.manifest.update_manifest_file()?;
         Ok(())
     }
 
     pub async fn get_all_defined(&self) -> Result<(), anyhow::Error> {
-        self.manifest.get_all_defined().await?;
+        // self.manifest.get_all_defined().await?;
         Ok(())
     }
 

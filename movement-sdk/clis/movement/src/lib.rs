@@ -1,5 +1,5 @@
 pub mod foo;
-pub mod common;
+pub mod util;
 pub mod manage;
 pub mod ctl;
 // pub mod aptos;
@@ -8,13 +8,12 @@ pub mod canonical;
 
 use clap::*;
 
-use async_trait::async_trait;
 use foo::Foo;
 use manage::Manage;
 use ctl::Ctl;
 use sui::sui_commands::SuiCommand;
 use aptos::Tool;
-use crate::common::cli::Command;
+use crate::util::cli::Command;
 // use crate::aptos::Aptos;
 // use crate::sui::Sui;
 
