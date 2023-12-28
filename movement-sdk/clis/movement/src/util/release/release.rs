@@ -24,6 +24,7 @@ pub enum Release {
     File(File),
     MovementGitHubPlatformRelease(MovementGitHubPlatformRelease),
     MovementGitHubRelease(MovementGitHubRelease),
+    Noop,
     Unknown
 }
 
@@ -44,6 +45,9 @@ impl ReleaseOperations for Release {
             },
             Release::MovementGitHubRelease(release) => {
                 release.get(location).await
+            },
+            Release::Noop => {
+                Ok(())
             },
             _ => {
                 anyhow::bail!("Cannot get an unsupported release type.");

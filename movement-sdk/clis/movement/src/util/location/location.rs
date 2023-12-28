@@ -24,5 +24,6 @@ pub struct TryLocationBytes(Vec<u8>);
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Location {
     StagedFiles(StagedFiles),
-    TryLocationBytes(TryLocationBytes)
+    TryLocationBytes(TryLocationBytes),
+    Unknown
 }

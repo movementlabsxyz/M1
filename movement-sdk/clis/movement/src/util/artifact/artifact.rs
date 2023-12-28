@@ -28,14 +28,14 @@ impl Artifact {
 
     async fn install(&self) -> Result<(), anyhow::Error> {
 
-        self.builder.build(&self.release, &self.version, &self.location).await?;
+        self.builder.build(&self).await?;
         Ok(())
 
     }
 
     async fn uninstall(&self) -> Result<(), anyhow::Error> {
         
-        self.builder.remove(&self.release, &self.version, &self.location).await?;
+        self.builder.remove(&self).await?;
         Ok(())
 
     }

@@ -10,7 +10,8 @@ pub trait CheckerOperations {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Checker {
-
+    Noop,
+    Unknown
 }
 
 #[async_trait::async_trait]
