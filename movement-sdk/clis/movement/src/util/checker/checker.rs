@@ -8,7 +8,7 @@ pub trait CheckerOperations {
 
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Checker {
     Noop,
     Unknown

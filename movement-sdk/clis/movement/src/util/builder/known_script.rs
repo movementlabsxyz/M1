@@ -1,16 +1,16 @@
-use super::BuilderOperations;
+use super::{Builder, BuilderOperations};
 use crate::util::{
     artifact::Artifact,  
     release::ReleaseOperations
 };
-use std::{collections::HashMap, path::PathBuf};
+use std::path::PathBuf;
 use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct KnownScriptPart {
     pub command : String,
     pub args : Vec<String>,
-    pub env : HashMap<String, String>,
+    pub env : Vec<(String, String)>,
     pub working_directory : PathBuf
 }
 
@@ -19,7 +19,7 @@ impl KnownScriptPart {
     pub fn new(
         command : String, 
         args : Vec<String>, 
-        env : HashMap<String, String>, 
+        env : Vec<(String, String)>, 
         working_directory : PathBuf
     ) -> Self {
         Self {
@@ -34,7 +34,9 @@ impl KnownScriptPart {
 
         let mut command = std::process::Command::new(&self.command);
         command.args(&self.args);
-        command.envs(&self.env);
+        for (key, value) in self.env.iter() {
+            command.env(key, value);
+        };
         command.current_dir(&self.working_directory);
 
         let status = command.status().expect("Failed to execute process.");
@@ -50,7 +52,7 @@ impl KnownScriptPart {
 }
 
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct KnownScript {
     pub build_command : KnownScriptPart,
     pub remove_command : KnownScriptPart
@@ -102,6 +104,7 @@ pub mod test {
         builder::Builder,
         checker::Checker
     };
+    use std::collections::BTreeSet;
 
     #[tokio::test]
     async fn test_known_script() -> Result<(), anyhow::Error> {
@@ -114,13 +117,13 @@ pub mod test {
             KnownScriptPart::new(
                 "sh".to_string(),
                 vec!["-c".to_string(), full_command],
-                HashMap::new(),
+                vec![],
                 PathBuf::from(".")
             ),
             KnownScriptPart::new(
                 "rm".to_string(),
                 vec![path.to_str().unwrap().to_string()],
-                HashMap::new(),
+                vec![],
                 PathBuf::from(".")
             )
         );
@@ -130,7 +133,8 @@ pub mod test {
             Location::Unknown,
             Version::Latest,
             Builder::Noop,
-            Checker::Noop
+            Checker::Noop,
+            BTreeSet::new()
         );
 
         known_script.build(&artifact).await?;
@@ -143,4 +147,10 @@ pub mod test {
         Ok(())
     }
 
+}
+
+impl Into<Builder> for KnownScript {
+    fn into(self) -> Builder {
+        Builder::KnownScript(self)
+    }
 }

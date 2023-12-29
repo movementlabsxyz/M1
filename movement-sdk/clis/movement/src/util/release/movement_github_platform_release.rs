@@ -2,20 +2,18 @@ use serde::{Serialize, Deserialize};
 use super::{ReleaseOperations, Release};
 use super::http_get_release::HttpGET;
 use crate::util::util::Version;
-use crate::util::location::{
-    Location,
-    StagedFiles
-};
-use semver::Version as SemVerVersion;
-use tempfile::tempdir;
+use crate::util::location::Location;
+use crate::util::sys::{Arch, OS};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct MovementGitHubPlatformRelease {
     pub owner : String,
     pub repo : String,
     pub version : Version,
     pub asset : String,
-    pub suffix : String
+    pub suffix : String,
+    pub arch : Arch,
+    pub os : OS
 }
 
 impl MovementGitHubPlatformRelease {
@@ -26,17 +24,19 @@ impl MovementGitHubPlatformRelease {
             repo,
             version,
             asset,
-            suffix
+            suffix,
+            arch : Arch::current(),
+            os : OS::current(),
         }
     }
 
-    pub fn os_arch_release_url(&self) -> String {
+    pub fn release_url(&self) -> String {
         match &self.version {
             Version::Latest => {
-                format!("https://github.com/{}/{}/releases/latest/download/{}-{}-{}{}", self.owner, self.repo, self.asset, std::env::consts::ARCH, std::env::consts::OS, self.suffix)
+                format!("https://github.com/{}/{}/releases/latest/download/{}-{}-{}{}", self.owner, self.repo, self.asset, self.arch.to_string(), self.os.to_string(), self.suffix)
             },
             Version::Version(version) => {
-                format!("https://github.com/{}/{}/releases/download/{}/{}-{}-{}{}", self.owner, self.repo, version, self.asset, std::env::consts::ARCH, std::env::consts::OS, self.suffix)
+                format!("https://github.com/{}/{}/releases/download/{}/{}-{}-{}{}", self.owner, self.repo, version, self.asset, self.arch.to_string(), self.os.to_string(), self.suffix)
             }
         }
     }
@@ -48,16 +48,31 @@ impl ReleaseOperations for MovementGitHubPlatformRelease {
 
     async fn get(&self, location : &Location) -> Result<(), anyhow::Error> {
 
-        let http_get = HttpGET::new(self.os_arch_release_url());
+        let http_get = HttpGET::new(self.release_url());
         http_get.get(location).await
 
     }
 
+    fn with_version(mut self, version : &Version) -> Self {
+        self.version = version.clone();
+        self
+    }
+
+    fn with_arch(mut self, arch : &Arch) -> Self {
+        self.arch = arch.clone();
+        self
+    }
+
+    fn with_os(mut self, os : &OS) -> Self {
+        self.os = os.clone();
+        self
+    }
+
 }
 
-impl Into<Release> for MovementGitHubPlatformRelease {
-    fn into(self) -> Release {
-        Release::MovementGitHubPlatformRelease(self)
+impl From<MovementGitHubPlatformRelease> for Release {
+    fn from(release : MovementGitHubPlatformRelease) -> Self {
+        Release::MovementGitHubPlatformRelease(release)
     }
 }
 
@@ -65,6 +80,9 @@ impl Into<Release> for MovementGitHubPlatformRelease {
 mod tests {
 
     use super::*;
+    use semver::Version as SemVerVersion;
+    use crate::util::location::StagedFiles;
+    use tempfile::tempdir;
 
     #[tokio::test]
     async fn test_get_hello() -> Result<(), anyhow::Error> {

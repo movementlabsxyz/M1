@@ -8,8 +8,9 @@ use crate::util::location::{
 };
 use semver::Version as SemVerVersion;
 use tempfile::tempdir;
+use crate::util::sys::{Arch, OS};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct MovementGitHubRelease {
     pub owner : String,
     pub repo : String,
@@ -51,6 +52,19 @@ impl ReleaseOperations for MovementGitHubRelease {
         let http_get = HttpGET::new(self.os_arch_release_url());
         http_get.get(location).await
 
+    }
+
+    fn with_version(mut self, version : &Version) -> Self {
+        self.version = version.clone();
+        self
+    }
+
+    fn with_arch(mut self, arch : &Arch) -> Self {
+        self
+    }
+
+    fn with_os(mut self, os : &OS) -> Self {
+        self
     }
 
 }

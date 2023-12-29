@@ -2,8 +2,10 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use super::{ReleaseOperations, Release};
 use crate::util::location::Location;
+use crate::util::util::Version;
+use crate::util::sys::{Arch, OS};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct File(PathBuf);
 
 impl File {
@@ -45,6 +47,18 @@ impl ReleaseOperations for File {
   
         Ok(())
 
+    }
+
+    fn with_version(mut self, version : &Version) -> Self {
+        self
+    }
+
+    fn with_arch(mut self, arch : &Arch) -> Self {
+        self
+    }
+
+    fn with_os(mut self, os : &OS) -> Self {
+        self
     }
 
 }
