@@ -1,6 +1,7 @@
 use serde::{Serialize, Deserialize};
 use super::known_script::KnownScript;
 use crate::util::artifact::{Artifact, self};
+use super::download_release::DownloadRelease;
 
 #[async_trait::async_trait]
 pub trait BuilderOperations {
@@ -21,7 +22,7 @@ pub enum Builder {
     KnownScript(KnownScript), 
     RustBuild,
     FromArchive,
-    ReleaseOnly,
+    DownloadRelease(DownloadRelease),
     Pipeline,
     Noop,
     Unknown
@@ -42,7 +43,7 @@ impl BuilderOperations for Builder {
             Builder::FromArchive => {
                 todo!()
             },
-            Builder::ReleaseOnly => {
+            Builder::DownloadRelease(release) => {
                 todo!()
             },
             Builder::Pipeline => {
@@ -70,7 +71,7 @@ impl BuilderOperations for Builder {
             Builder::FromArchive => {
                 todo!()
             },
-            Builder::ReleaseOnly => {
+            Builder::DownloadRelease(release) => {
                 todo!()
             },
             Builder::Pipeline => {

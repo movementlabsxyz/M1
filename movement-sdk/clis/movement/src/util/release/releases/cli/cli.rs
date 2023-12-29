@@ -34,12 +34,14 @@ pub mod test {
         sys::{Arch, OS}
     };
 
+    use std::path::PathBuf;
     #[tokio::test]
-    async fn test_with_version() -> Result<(), anyhow::Error> {
+    async fn test_latest() -> Result<(), anyhow::Error> {
 
         // todo: right now not all architectures and os's are supported
         // todo: we're going to use linux and x86_64 for now
         // todo: in the future we should change this to just detect
+        let dir = tempfile::tempdir()?;
         let cli_release = ReleaseBuilder::m1_repo()
         .with_arch(
             &Arch::X86_64,
@@ -47,7 +49,10 @@ pub mod test {
         .with_os(
             &OS::Linux,
         );
-        let location = Location::temp_staged_single()?;
+        let location = Location::temp(
+            "test.txt".to_string(), 
+            &PathBuf::from("test.txt")
+        );
 
         cli_release.get(&location).await?;
     

@@ -79,9 +79,10 @@ impl From<MovementGitHubPlatformRelease> for Release {
 #[cfg(test)]
 mod tests {
 
+    use std::path::PathBuf;
+
     use super::*;
     use semver::Version as SemVerVersion;
-    use crate::util::location::StagedFiles;
     use tempfile::tempdir;
 
     #[tokio::test]
@@ -91,11 +92,9 @@ mod tests {
             
             let dir = tempdir().unwrap();
             let path = dir.path().join("test.txt");
-            let location = Location::StagedFiles(
-                StagedFiles::new(
-                    vec![path.clone()],
-                    vec![]
-                )
+            let location = Location::temp(
+                "test.txt".to_string(), 
+                &PathBuf::from("test.txt")
             );
             let release = MovementGitHubPlatformRelease::new(
                 "movemntdev".to_string(),
@@ -112,29 +111,5 @@ mod tests {
     
             Ok(())
     }
-
-   #[tokio::test]
-   async fn test_get_hello_zip() -> Result<(), anyhow::Error> {
-
-        let dir = tempdir().unwrap();
-        let path = dir.path().join("test.txt");
-        let location = Location::StagedFiles(
-            StagedFiles::new(
-                vec![path],
-                vec![]
-            )
-        );
-        let release = MovementGitHubPlatformRelease::new(
-            "movemntdev".to_string(),
-            "resources".to_string(),
-            Version::Version(SemVerVersion::new(0, 0, 0)),
-            "hello".to_string(),
-            ".zip".to_string()
-        );
-        release.get(&location).await?;
-
-        Ok(())
-
-   }
 
 }

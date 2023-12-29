@@ -44,19 +44,8 @@ impl ReleaseOperations for HttpGET {
     async fn get(&self, location : &Location) -> Result<(), anyhow::Error> {
 
         match location {
-            Location::StagedFiles(release_dest)=>{
-
-                // use the 0th path in the release target paths
-                match release_dest.release_target_paths.get(0) {
-                    Some(path) => {
-                        // download the release file to the path
-                        self.download_to_path(&path).await
-                    },
-                    None => {
-                        anyhow::bail!("Cannot get a file release to a non-release location.");
-                    }
-                }
-
+            Location::TempDir(temp)=>{
+                self.download_to_path(&temp.get_release_tempfile_path()).await
             }
             _ => {
                 anyhow::bail!("Cannot get a file release to a non-release location.");
@@ -104,13 +93,10 @@ mod test {
         let dir = tempdir().unwrap();
         let path = dir.path().join("test.txt");
 
-        let location = 
-            Location::StagedFiles(
-                location::StagedFiles::new(
-                    vec![path.clone()],
-                    vec![]
-                )
-            );
+        let location = Location::temp(
+            "test.txt".to_string(), 
+            &PathBuf::from("test.txt")
+        );
     
         release.get(&location).await.unwrap();
 

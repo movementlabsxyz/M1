@@ -2,10 +2,7 @@ use serde::{Serialize, Deserialize};
 use super::{ReleaseOperations, Release};
 use super::http_get_release::HttpGET;
 use crate::util::util::Version;
-use crate::util::location::{
-    Location,
-    StagedFiles
-};
+use crate::util::location::Location;
 use semver::Version as SemVerVersion;
 use tempfile::tempdir;
 use crate::util::sys::{Arch, OS};
@@ -79,6 +76,7 @@ impl Into<Release> for MovementGitHubRelease {
 mod tests {
 
     use super::*;
+    use std::path::PathBuf;
 
     #[tokio::test]
     async fn test_get_hello() -> Result<(), anyhow::Error> {
@@ -87,11 +85,9 @@ mod tests {
         
         let dir = tempdir().unwrap();
         let path = dir.path().join("test.txt");
-        let location = Location::StagedFiles(
-            StagedFiles::new(
-                vec![path.clone()],
-                vec![]
-            )
+        let location = Location::temp(
+            "test.txt".to_string(), 
+            &PathBuf::from("test.txt")
         );
         let release = MovementGitHubRelease::new(
             "movemntdev".to_string(),
