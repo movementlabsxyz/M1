@@ -83,21 +83,21 @@ impl Artifact {
         }
     }
 
-    async fn install(&self) -> Result<(), anyhow::Error> {
+    pub async fn install(&self) -> Result<(), anyhow::Error> {
 
         self.builder.build(&self).await?;
         Ok(())
 
     }
 
-    async fn uninstall(&self) -> Result<(), anyhow::Error> {
+    pub async fn uninstall(&self) -> Result<(), anyhow::Error> {
         
         self.builder.remove(&self).await?;
         Ok(())
 
     }
 
-    async fn check(&self) -> Result<ArtifactStatus, anyhow::Error> {
+    pub async fn check(&self) -> Result<ArtifactStatus, anyhow::Error> {
         self.checker.check(&self).await
     }
 

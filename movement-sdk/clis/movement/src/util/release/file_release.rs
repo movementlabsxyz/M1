@@ -26,17 +26,9 @@ impl ReleaseOperations for File {
     async fn get(&self, location : &Location) -> Result<(), anyhow::Error> {
 
         match location {
-            Location::TempDir(temp)=>{
+            Location::Staged(staged)=>{
 
-                match self.path().file_name() {
-                    Some(file_name) => {
-                        let mut path = temp.get_release_tempfile_path();
-                        std::fs::copy(self.path(), path)?;
-                    },
-                    None => {
-                        anyhow::bail!("Cannot get filename for file release.");
-                    }
-                }
+                std::fs::copy(self.path(), staged.release_destination.clone())?;
 
             }
             _ => {

@@ -93,8 +93,8 @@ mod tests {
             let dir = tempdir().unwrap();
             let path = dir.path().join("test.txt");
             let location = Location::temp(
-                "test.txt".to_string(), 
-                &PathBuf::from("test.txt")
+                PathBuf::from("test.txt"), 
+                PathBuf::from("test.txt")
             );
             let release = MovementGitHubPlatformRelease::new(
                 "movemntdev".to_string(),

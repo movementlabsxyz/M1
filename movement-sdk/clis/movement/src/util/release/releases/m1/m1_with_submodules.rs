@@ -1,6 +1,6 @@
 use crate::util::release::{
     Release,
-    movement_github_platform_release::MovementGitHubPlatformRelease
+    movement_github_release::MovementGitHubRelease
 };
 use serde::{Serialize, Deserialize};
 use crate::util::util::{
@@ -39,12 +39,12 @@ impl ConstructorOperations for M1Repo {
     type Config = Config;
 
     fn default_with_version(version : &Version) -> Self::Artifact {
-        let release = MovementGitHubPlatformRelease::new(
+        let release = MovementGitHubRelease::new(
             "movemntdev".to_string(),
             "M1".to_string(),
             version.clone(),
-            "movement".to_string(),
-            "".to_string()
+            "m1-with-submodules".to_string(),
+            ".tar.gz".to_string()
         );
         release.into()
     }
@@ -72,12 +72,10 @@ pub mod test {
     #[tokio::test]
     async fn test_latest() -> Result<(), anyhow::Error> {
 
-        let cli_release = Constructor::default()
-        .with_arch(&Arch::X86_64)
-        .with_os(&OS::Linux);
+        let cli_release = Constructor::default();
         let location = Location::temp(
-            PathBuf::from("movement"), 
-            PathBuf::from("movement")
+            PathBuf::from("m1.tar.gz"), 
+            PathBuf::from("m1.tar.gz")
         );
 
         cli_release.get(&location).await?;
@@ -88,4 +86,3 @@ pub mod test {
 
 
 }
-

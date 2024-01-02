@@ -44,7 +44,7 @@ impl BuilderOperations for Builder {
                 todo!()
             },
             Builder::DownloadRelease(release) => {
-                todo!()
+                release.build(artifact).await
             },
             Builder::Pipeline => {
                 todo!()

@@ -1,6 +1,6 @@
 use crate::util::release::{
     Release,
-    movement_github_platform_release::MovementGitHubPlatformRelease
+    movement_github_release::MovementGitHubRelease
 };
 use serde::{Serialize, Deserialize};
 use crate::util::util::{
@@ -39,11 +39,11 @@ impl ConstructorOperations for M1Repo {
     type Config = Config;
 
     fn default_with_version(version : &Version) -> Self::Artifact {
-        let release = MovementGitHubPlatformRelease::new(
+        let release = MovementGitHubRelease::new(
             "movemntdev".to_string(),
             "M1".to_string(),
             version.clone(),
-            "movement".to_string(),
+            "subnet".to_string(),
             "".to_string()
         );
         release.into()
@@ -76,8 +76,8 @@ pub mod test {
         .with_arch(&Arch::X86_64)
         .with_os(&OS::Linux);
         let location = Location::temp(
-            PathBuf::from("movement"), 
-            PathBuf::from("movement")
+            PathBuf::from("subnet"), 
+            PathBuf::from("subnet")
         );
 
         cli_release.get(&location).await?;
@@ -88,4 +88,3 @@ pub mod test {
 
 
 }
-
