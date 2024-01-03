@@ -14,7 +14,7 @@ class Network(Enum):
     TESTNET = "testnet"
     MAINNET = "mainnet"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
 
@@ -36,7 +36,7 @@ OTHER_ACCOUNT_ONE = AccountInfo(
 )
 
 
-def build_image_name(image_repo_with_project: str, tag: str):
+def build_image_name(image_repo_with_project: str, tag: str) -> str:
     return f"{image_repo_with_project}/tools:{tag}"
 
 
