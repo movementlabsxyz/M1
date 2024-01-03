@@ -11,6 +11,12 @@ pub enum KnownArtifact {
     // general
     Unknown,
     Test,
+
+    // cli
+    Movement,
+
+    // generalized
+    Name(String)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -32,10 +38,78 @@ pub enum ArtifactIdentifier {
     Full(ArtifactIdentifierFull)
 }
 
+impl ArtifactIdentifier {
+
+    pub fn known_artifact(&self) -> KnownArtifact {
+        match self {
+            ArtifactIdentifier::Partial(partial) => partial.0.clone(),
+            ArtifactIdentifier::Full(full) => full.0.clone()
+        }
+    }
+
+    pub fn version(&self) -> Version {
+        match self {
+            ArtifactIdentifier::Partial(partial) => partial.1.clone(),
+            ArtifactIdentifier::Full(full) => full.1.clone()
+        }
+    }
+
+    pub fn version_tolerance(&self) -> VersionTolerance {
+        match self {
+            ArtifactIdentifier::Partial(partial) => VersionTolerance::Exact,
+            ArtifactIdentifier::Full(full) => full.2.clone()
+        }
+    }
+
+    pub fn compare(&self, artifact : &Artifact) -> bool {
+
+        let known_artifact = self.known_artifact();
+        let version = self.version();
+        let version_tolerance = self.version_tolerance();
+
+        if known_artifact != artifact.known_artifact {
+            return false;
+        }
+
+        if !version_tolerance.permits(&version, &artifact.version) {
+            return false;
+        }
+
+        true
+
+    }
+
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ArtifactDependency {
+    /// Either a particular artifact.
     Artifact(Artifact),
+    /// Or defined artifact version.
     ArtifactIdentifier(ArtifactIdentifier)
+}
+
+impl ArtifactDependency {
+
+    pub fn compare(&self, comparison_artifact : &Artifact) -> bool {
+
+        match self {
+            ArtifactDependency::Artifact(artifact) => artifact == comparison_artifact,
+            ArtifactDependency::ArtifactIdentifier(artifact_identifier) => artifact_identifier.compare(comparison_artifact)
+        }
+
+    }
+
+}
+
+impl ArtifactDependency {
+
+    pub fn known_artifact(&self) -> KnownArtifact {
+        match self {
+            ArtifactDependency::Artifact(artifact) => artifact.known_artifact.clone(),
+            ArtifactDependency::ArtifactIdentifier(artifact_identifier) => artifact_identifier.known_artifact()
+        }
+    }
 }
 
 // Implement From<Artifact> for ArtifactDependency
@@ -55,6 +129,7 @@ impl From<ArtifactIdentifier> for ArtifactDependency {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash,PartialOrd, Ord)]
 pub struct Artifact {
+    pub known_artifact : KnownArtifact,
     pub release : Release,
     pub location : Location,
     pub version : Version,
@@ -66,6 +141,7 @@ pub struct Artifact {
 impl Artifact {
 
     pub fn new(
+        known_artifact : KnownArtifact,
         release : Release, 
         location : Location, 
         version : Version,
@@ -74,6 +150,7 @@ impl Artifact {
         dependencies : BTreeSet<ArtifactDependency>
     ) -> Self {
         Self {
+            known_artifact,
             release,
             location,
             version,
@@ -81,6 +158,28 @@ impl Artifact {
             checker,
             dependencies
         }
+    }
+
+    pub fn test() -> Self {
+        Self {
+            known_artifact : KnownArtifact::Test,
+            release : Release::Noop,
+            location : Location::Unknown,
+            version : Version::Latest,
+            builder : Builder::Noop,
+            checker : Checker::Noop,
+            dependencies : BTreeSet::new()
+        }
+    }
+
+    pub fn with_name(mut self, name : String) -> Self {
+        self.known_artifact = KnownArtifact::Name(name);
+        self
+    }
+
+    pub fn with_dependencies(mut self, dependencies : BTreeSet<ArtifactDependency>) -> Self {
+        self.dependencies = dependencies;
+        self
     }
 
     pub async fn install(&self) -> Result<(), anyhow::Error> {

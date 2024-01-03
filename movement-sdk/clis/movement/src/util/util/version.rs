@@ -16,3 +16,32 @@ pub enum VersionTolerance {
     Less,
     LessOrEqual,
 }
+
+impl VersionTolerance {
+
+    pub fn permits(&self, left : &Version, right : &Version) -> bool {
+
+        match self {
+            VersionTolerance::Exact => {
+                left == right
+            },
+            VersionTolerance::Compatible => {
+                left == right
+            },
+            VersionTolerance::Greater => {
+                left > right
+            },
+            VersionTolerance::GreaterOrEqual => {
+                left >= right
+            },
+            VersionTolerance::Less => {
+                left < right
+            },
+            VersionTolerance::LessOrEqual => {
+                left <= right
+            }
+        }
+
+    }
+
+}

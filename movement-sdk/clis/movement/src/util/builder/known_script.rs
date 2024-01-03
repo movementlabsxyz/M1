@@ -1,6 +1,6 @@
 use super::{Builder, BuilderOperations};
 use crate::util::{
-    artifact::Artifact,  
+    artifact::{Artifact, KnownArtifact},  
     release::ReleaseOperations
 };
 use std::path::PathBuf;
@@ -129,6 +129,7 @@ pub mod test {
         );
 
         let artifact = Artifact::new(
+            KnownArtifact::Test,
             Release::Noop,
             Location::Unknown,
             Version::Latest,

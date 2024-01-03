@@ -6,7 +6,7 @@ use crate::util::util::{
     Version,
     patterns::constructor::ConstructorOperations
 };
-use crate::util::artifact::Artifact;
+use crate::util::artifact::{Artifact, KnownArtifact};
 use crate::util::builder::{Builder, download_release::DownloadRelease};
 use crate::util::checker::Checker;
 use std::collections::BTreeSet;
@@ -69,6 +69,7 @@ impl ConstructorOperations for Movement {
 
     fn from_config(config : &Self::Config) -> Self::Artifact {
         Artifact::new(
+            KnownArtifact::Movement,
             cli_release::Constructor::default()
             // todo: revert to system detection
             .with_arch(&Arch::Aarch64)
