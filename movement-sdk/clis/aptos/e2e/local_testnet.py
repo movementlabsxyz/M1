@@ -14,7 +14,7 @@ LOG = logging.getLogger(__name__)
 
 # Run a local testnet in a docker container. We choose to detach here and we'll
 # stop running it later using the container name.
-def run_node(network: Network, image_repo_with_project: str):
+def run_node(network: Network, image_repo_with_project: str) -> str | None:
     image_name = build_image_name(image_repo_with_project, network)
     container_name = f"aptos-tools-{network}"
     LOG.info(f"Trying to run movement CLI local testnet from image: {image_name}")
@@ -64,14 +64,14 @@ def run_node(network: Network, image_repo_with_project: str):
 
 
 # Stop running the detached node.
-def stop_node(container_name: str):
+def stop_node(container_name: str) -> None:
     LOG.info(f"Stopping container: {container_name}")
     subprocess.check_output(["docker", "stop", container_name])
     LOG.info(f"Stopped container: {container_name}")
 
 
 # Query the node and faucet APIs until they start up or we timeout.
-def wait_for_startup(container_name: str, timeout: int):
+def wait_for_startup(container_name: str, timeout: int) -> None:
     LOG.info(f"Waiting for node and faucet APIs for {container_name} to come up")
     count = 0
     api_response = None
