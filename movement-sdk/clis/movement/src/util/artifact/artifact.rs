@@ -71,11 +71,7 @@ impl ArtifactIdentifier {
             return false;
         }
 
-        if !version_tolerance.permits(&version, &artifact.version) {
-            return false;
-        }
-
-        true
+        version_tolerance.permits(&version, &artifact.version)
 
     }
 
@@ -91,6 +87,13 @@ pub enum ArtifactDependency {
 
 impl ArtifactDependency {
 
+    pub fn known_artifact(&self) -> KnownArtifact {
+        match self {
+            ArtifactDependency::Artifact(artifact) => artifact.known_artifact.clone(),
+            ArtifactDependency::ArtifactIdentifier(artifact_identifier) => artifact_identifier.known_artifact()
+        }
+    }
+
     pub fn compare(&self, comparison_artifact : &Artifact) -> bool {
 
         match self {
@@ -100,16 +103,6 @@ impl ArtifactDependency {
 
     }
 
-}
-
-impl ArtifactDependency {
-
-    pub fn known_artifact(&self) -> KnownArtifact {
-        match self {
-            ArtifactDependency::Artifact(artifact) => artifact.known_artifact.clone(),
-            ArtifactDependency::ArtifactIdentifier(artifact_identifier) => artifact_identifier.known_artifact()
-        }
-    }
 }
 
 // Implement From<Artifact> for ArtifactDependency

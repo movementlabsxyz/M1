@@ -5,9 +5,6 @@ use super::{
     Artifact
 };
 use serde::{Serialize, Deserialize};
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use crate::util::util::Version;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ResolutionStatus {
@@ -87,6 +84,127 @@ impl ArtifactSet {
                 }).collect()
             },
             None => BTreeSet::new()
+        }
+
+    }
+
+}
+
+/*#[async_trait::async_trait]
+impl ArtifactRegistryOperations for ArtifactSet {
+
+    async fn find(&self, dependency : &ArtifactDependency) -> Result<Option<Artifact>, anyhow::Error> {
+        
+        let known_artifact = dependency.known_artifact();
+
+        match self.0.get(&known_artifact) {
+            Some(artifacts) => {
+                for artifact in artifacts {
+                    if dependency.compare(&artifact.artifact) {
+                        return Ok(Some(artifact.artifact.clone()))
+                    }
+                }
+                Ok(None)
+            },
+            None => Ok(None)
+        }
+
+    }
+
+    async fn register(&self, artifact : &Artifact) -> Result<(), anyhow::Error> {
+
+        let known_artifact = artifact.known_artifact.clone();
+
+        let artifact_set = self.0.entry(known_artifact.clone()).or_insert_with(|| BTreeSet::new());
+        artifact_set.insert(ArtifactResolution {
+            artifact : artifact.clone(),
+            status : ResolutionStatus::User
+        });
+
+        Ok(())
+
+    }
+
+}*/
+
+pub mod asynchronous {
+
+
+    use super::{
+        ArtifactSet as ArtifactSetSync,
+        ArtifactResolution,
+        ResolutionStatus,
+    };
+    use std::collections::{BTreeMap, BTreeSet};
+    use super::super::{
+        KnownArtifact,
+        ArtifactDependency,
+        Artifact
+    };
+    use super::super::artifact_registry::ArtifactRegistryOperations;
+    use serde::{Serialize, Deserialize};
+    use tokio::sync::RwLock;
+    use std::sync::Arc;
+
+    #[derive(Debug, Clone)]
+    pub struct ArtifactSet(Arc<RwLock<ArtifactSetSync>>);
+
+    impl ArtifactSet {
+
+        pub fn new() -> Self {
+            Self(Arc::new(RwLock::new(ArtifactSetSync::new())))
+        }
+
+        /// Inserts a particular artifact resolution into the resolution set.
+        pub async fn insert(&self, artifact : ArtifactResolution) {
+            let mut artifact_set = self.0.write().await;
+            artifact_set.insert(artifact);
+        }
+
+        /// Removes a particular artifact from the resolution set.
+        pub async fn remove(&self, artifact : &ArtifactResolution) {
+            let mut artifact_set = self.0.write().await;
+            artifact_set.remove(artifact);
+        }
+
+    }
+
+    #[async_trait::async_trait]
+    impl ArtifactRegistryOperations for ArtifactSet {
+
+        async fn find(&self, dependency : &ArtifactDependency) -> Result<Option<Artifact>, anyhow::Error> {
+            
+            let known_artifact = dependency.known_artifact();
+
+            let artifact_set = self.0.read().await;
+
+            match artifact_set.0.get(&known_artifact) {
+                Some(artifacts) => {
+                    for artifact in artifacts {
+                        if dependency.compare(&artifact.artifact) {
+                            return Ok(Some(artifact.artifact.clone()))
+                        }
+                    }
+                    Ok(None)
+                },
+                None => Ok(None)
+            }
+
+        }
+
+        async fn register(&self, artifact : &Artifact) -> Result<(), anyhow::Error> {
+
+            let known_artifact = artifact.known_artifact.clone();
+
+            let mut artifact_set = self.0.write().await;
+
+            artifact_set.insert(ArtifactResolution {
+                artifact : artifact.clone(),
+                status : ResolutionStatus::User
+            });
+
+            Ok(())
+
         }
 
     }
