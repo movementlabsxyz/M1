@@ -38,12 +38,10 @@ function start_avalanchego() {
 
 # Starts the avalanche-network-runner server
 function start_avalanche_network_runner() {
-  if [[ $RUN_IN_FOREGROUND == "true" ]]; then
-    SUBNET_TIMEOUT=10000000000000 $HOME/.movement/M1/m1/run.debug.sh
-  else
-    SUBNET_TIMEOUT=10000000000000 $HOME/.movement/M1/m1/run.debug.sh &
-    echo $! >> "$PID_DIR/avalanche_network_runner.pid"
-  fi
+
+    cd $HOME/.movement/M1/m1
+    $HOME/.movement/M1/m1/run.debug.sh
+    
 }
 
 # Starts the subnet-request-proxy Node.js server
