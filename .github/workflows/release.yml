@@ -110,7 +110,7 @@ jobs:
       - name: Build Mac binaries
         run: |
           cd "$GITHUB_WORKSPACE/movement-sdk"
-          cargo build --release
+          cargo build
           
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
@@ -156,7 +156,7 @@ jobs:
       - name: Build Mac binaries
         run: |
           cd "$GITHUB_WORKSPACE/movement-sdk"
-          cargo build --release
+          cargo build
 
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
@@ -202,7 +202,7 @@ jobs:
       - name: Build Mac binaries
         run: |
           cd "$GITHUB_WORKSPACE/movement-sdk"
-          cargo build --release
+          cargo build
           
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
