@@ -351,10 +351,10 @@ jobs:
         bash <(curl -fsSL https://raw.githubusercontent.com/movemntdev/M1/main/scripts/install.sh) --version ${{ needs.prepare-release.outputs.release_tag }}
         echo "~/.movement/bin" >> $GITHUB_PATH
 
-    - name: Navigate and Run Movement Test
+    - name: Navigate and Run Movement Aptos Test
       run: |
         echo $GITHUB_PATH
         cd examples/movement/data_structures
-        movement move test
+        movement aptos move test
         cd ../mini_dex
-        movement move test
+        movement aptos move test
