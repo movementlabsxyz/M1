@@ -25,12 +25,28 @@ pub struct ArtifactIdentifierPartial(
     pub Version
 );
 
+impl ArtifactIdentifierPartial {
+
+    pub fn new(known_artifact : KnownArtifact, version : Version) -> Self {
+        Self(known_artifact, version)
+    }
+
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ArtifactIdentifierFull(
     pub KnownArtifact,
     pub Version,
     pub VersionTolerance
 );
+
+impl ArtifactIdentifierFull {
+
+    pub fn new(known_artifact : KnownArtifact, version : Version, version_tolerance : VersionTolerance) -> Self {
+        Self(known_artifact, version, version_tolerance)
+    }
+
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ArtifactIdentifier {
@@ -39,6 +55,10 @@ pub enum ArtifactIdentifier {
 }
 
 impl ArtifactIdentifier {
+
+    pub fn new(known_artifact : KnownArtifact, version : Version) -> Self {
+        Self::Partial(ArtifactIdentifierPartial::new(known_artifact, version))
+    }
 
     pub fn known_artifact(&self) -> KnownArtifact {
         match self {
@@ -56,7 +76,7 @@ impl ArtifactIdentifier {
 
     pub fn version_tolerance(&self) -> VersionTolerance {
         match self {
-            ArtifactIdentifier::Partial(partial) => VersionTolerance::Exact,
+            ArtifactIdentifier::Partial(partial) => VersionTolerance::default(),
             ArtifactIdentifier::Full(full) => full.2.clone()
         }
     }
@@ -86,6 +106,10 @@ pub enum ArtifactDependency {
 }
 
 impl ArtifactDependency {
+
+    pub fn identifier(known_artifact : KnownArtifact, version : Version) -> Self {
+        Self::ArtifactIdentifier(ArtifactIdentifier::new(known_artifact, version))
+    }
 
     pub fn known_artifact(&self) -> KnownArtifact {
         match self {
@@ -172,6 +196,11 @@ impl Artifact {
 
     pub fn with_dependencies(mut self, dependencies : BTreeSet<ArtifactDependency>) -> Self {
         self.dependencies = dependencies;
+        self
+    }
+
+    pub fn with_version(mut self, version : Version) -> Self {
+        self.version = version;
         self
     }
 

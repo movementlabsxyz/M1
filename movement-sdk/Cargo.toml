@@ -6,10 +6,13 @@ members = [
 
     # clis
     # "clis/aptos",
-    "clis/movement",
+    # "clis/movement",
+
+    # artifacts
+    "artifact/artifacts",
 
     # util
-    "util/artifact"
+    "util/util"
 ]
 
 [workspace.package]
@@ -27,6 +30,9 @@ async-trait = { version = "0.1" }
 anyhow = { version = "1" }     # For flexible error handling
 avalanche-types = { version = "0.1.3", features = ["subnet", "codec_base64"] }
 movement-sdk = { path = "movement-sdk" }
+util = { path = "util/util" }
+artifacts = { path = "artifact/artifacts" }
+
 # aptos = { path = "clis/aptos" }
 
 tokio = { version = "1.21.0", features = ["full"] }

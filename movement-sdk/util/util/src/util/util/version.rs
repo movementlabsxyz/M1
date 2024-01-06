@@ -9,6 +9,13 @@ pub enum Version {
     Version(SemVerVersion),
 }
 
+impl Version {
+
+    pub fn new(major : u64, minor : u64, patch : u64) -> Self {
+        Self::Version(SemVerVersion::new(major, minor, patch))
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum VersionTolerance {
     Exact,
@@ -18,6 +25,12 @@ pub enum VersionTolerance {
     GreaterOrEqual,
     Less,
     LessOrEqual,
+}
+
+impl Default for VersionTolerance {
+    fn default() -> Self {
+        VersionTolerance::Minor
+    }
 }
 
 impl VersionTolerance {
