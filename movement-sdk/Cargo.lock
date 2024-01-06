@@ -2845,6 +2845,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96d30a06541fbafbc7f82ed10c06164cfbd2c401138f6addd8404629c4b16711"
 
 [[package]]
+name = "artifact"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "clap 4.4.10",
+ "const-str",
+ "dirs 3.0.2",
+ "reqwest",
+ "semver",
+ "serde 1.0.192",
+ "serde_json",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "asn1-rs"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

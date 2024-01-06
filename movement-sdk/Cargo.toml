@@ -6,7 +6,10 @@ members = [
 
     # clis
     # "clis/aptos",
-    "clis/movement"
+    "clis/movement",
+
+    # util
+    "util/artifact"
 ]
 
 [workspace.package]
