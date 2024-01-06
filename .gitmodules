@@ -18,7 +18,3 @@
 [submodule "m1/vendors/sui"]
 	path = vendors/sui
 	url = https://github.com/movemntdev/sui
-[submodule "m1/subnet-request-proxy-js"]
-	path = m1/subnet-request-proxy-js
-	url = https://github.com/movemntdev/subnet-request-proxy
-	branch = parameterized
