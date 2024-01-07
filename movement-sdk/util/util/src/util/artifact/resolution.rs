@@ -1,13 +1,61 @@
-use serde::{Serialize, Deserialize};
-use super::{Artifact, artifact};
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use serde::{Serialize, Deserialize, de};
+use super::{ArtifactDependency, Artifact};
+use std::collections::{BTreeMap, BTreeSet};
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct ArtifactDependencyResolutions(pub BTreeMap<ArtifactDependency, Artifact>);
+
+impl ArtifactDependencyResolutions {
+
+    pub fn new() -> Self {
+        Self(BTreeMap::new())
+    }
+
+    pub fn add(&mut self, dependency : ArtifactDependency, artifact : Artifact) {
+        self.0.insert(dependency, artifact);
+    }
+
+    pub fn remove(&mut self, dependency : &ArtifactDependency) {
+        self.0.remove(dependency);
+    }
+
+    pub fn resolved(&self, dependency : &ArtifactDependency) -> bool {
+        self.0.contains_key(dependency)
+    }
+
+}
+
+
+impl TryFrom<ArtifactDependencyResolutions> for ArtifactResolutions {
+
+    type Error = anyhow::Error;
+
+    fn try_from(dependency_resolutions : ArtifactDependencyResolutions) -> Result<ArtifactResolutions, anyhow::Error> {
+        let mut resolutions = ArtifactResolutions::new();
+
+        for (outer_dependency, artifact) in dependency_resolutions.0.iter() {
+            for dependency in artifact.dependencies.iter() {
+                let resolution = dependency_resolutions.0.get(&dependency);
+                match resolution {
+                    Some(resolution) => {
+                        resolutions.add(artifact.clone(), resolution.clone());
+                    },
+                    None => {
+                        anyhow::bail!("Invalid dependency resolution. Could not resolve dependency: {:?} for {:?}", dependency, outer_dependency);
+                    }
+                }
+            }
+        }
+
+        Ok(resolutions)
+    }
+}
 
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct Resolutions(BTreeMap<Artifact, BTreeSet<Artifact>>);
+pub struct ArtifactResolutions(pub BTreeMap<Artifact, BTreeSet<Artifact>>);
 
-impl Resolutions {
+impl ArtifactResolutions {
 
     pub fn new() -> Self {
         Self(BTreeMap::new())
@@ -110,9 +158,9 @@ impl Resolutions {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct ResolutionPlan(Vec<BTreeSet<Artifact>>);
+pub struct ArtifactResolutionPlan(pub Vec<BTreeSet<Artifact>>);
 
-impl ResolutionPlan {
+impl ArtifactResolutionPlan {
 
     pub fn new() -> Self {
         Self(Vec::new())
@@ -128,10 +176,10 @@ impl ResolutionPlan {
 
 }
 
-impl TryFrom<Resolutions> for ResolutionPlan {
+impl TryFrom<ArtifactResolutions> for ArtifactResolutionPlan {
     type Error = anyhow::Error;
 
-    fn try_from(resolutions: Resolutions) -> Result<Self, Self::Error> {
+    fn try_from(resolutions: ArtifactResolutions) -> Result<Self, Self::Error> {
         if resolutions.has_cycles() {
             anyhow::bail!("Dependency graph contains cycles.");
         }
@@ -151,9 +199,56 @@ impl TryFrom<Resolutions> for ResolutionPlan {
         }
 
         // Since we started from the leaves
-        Ok(ResolutionPlan(plan))
+        Ok(ArtifactResolutionPlan(plan))
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum ArtifactResolutionStatus {
+    User,
+    Resolved,
+    Forced,
+
+    // to be used when querying for artifacts
+    Any
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialOrd, Ord)]
+pub struct ArtifactResolution {
+    pub artifact : Artifact,
+    pub status : ArtifactResolutionStatus
+}
+
+impl ArtifactResolution {
+
+    pub fn is_any(&self) -> bool {
+        match self.status {
+            ArtifactResolutionStatus::Any => true,
+            _ => false
+        }
+    }
+
+}
+
+impl From<ArtifactResolution> for Artifact {
+    fn from(artifact_installation : ArtifactResolution) -> Self {
+        artifact_installation.artifact
+    }
+}
+
+impl PartialEq for ArtifactResolution {
+    fn eq(&self, other: &Self) -> bool {
+        match self.status {
+            ArtifactResolutionStatus::Any => self.artifact == other.artifact,
+            _ => {
+                self.status == other.status 
+                && self.artifact == other.artifact
+            }
+        }
+    }
+}
+
+impl Eq for ArtifactResolution {}
 
 
 #[cfg(test)]
@@ -170,10 +265,10 @@ pub mod test {
         let universe = Artifact::test()
         .with_name("universe".to_string());
 
-        let mut resolutions = Resolutions::new();
+        let mut resolutions = ArtifactResolutions::new();
         resolutions.add(universe.clone(), big_bang.clone());
 
-        let expected_plan = ResolutionPlan(
+        let expected_plan = ArtifactResolutionPlan(
             vec![
                 vec![
                     big_bang.clone()
@@ -184,7 +279,7 @@ pub mod test {
             ]
         );
 
-        let plan = ResolutionPlan::try_from(resolutions)?;
+        let plan = ArtifactResolutionPlan::try_from(resolutions)?;
 
         assert_eq!(plan, expected_plan);
 
@@ -227,7 +322,7 @@ pub mod test {
         let earth = Artifact::test()
         .with_name("earth".to_string());
 
-        let mut resolutions = Resolutions::new();
+        let mut resolutions = ArtifactResolutions::new();
         resolutions.register(big_bang.clone());
         resolutions.add(universe.clone(), big_bang.clone());
         resolutions.add(hydrogen.clone(), universe.clone());
@@ -239,7 +334,7 @@ pub mod test {
         resolutions.add(earth.clone(), metals.clone());
         resolutions.add(earth.clone(), water.clone());
 
-        let expected_plan = ResolutionPlan(
+        let expected_plan = ArtifactResolutionPlan(
             vec![
                 vec![
                     big_bang.clone()
@@ -264,7 +359,7 @@ pub mod test {
             ]
         );
 
-        let plan = ResolutionPlan::try_from(resolutions)?;
+        let plan = ArtifactResolutionPlan::try_from(resolutions)?;
 
         assert_eq!(plan, expected_plan);
 

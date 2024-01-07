@@ -15,3 +15,4 @@ tempfile = { workspace = true }
 semver = { workspace = true }
 serde_json = { workspace = true }
 const-str = { workspace = true }
+futures = { workspace = true }

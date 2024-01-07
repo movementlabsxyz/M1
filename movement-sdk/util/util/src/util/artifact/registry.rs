@@ -70,6 +70,23 @@ pub enum ArtifactRegistry {
     InMemory(InMemoryArtifactRegistry)
 }
 
+#[async_trait::async_trait]
+impl ArtifactRegistryOperations for ArtifactRegistry {
+
+    async fn find(&self, dependency : &ArtifactDependency) -> Result<Option<Artifact>, anyhow::Error> {
+        match self {
+            Self::InMemory(registry) => registry.find(dependency).await
+        }
+    }
+
+    async fn register(&self, artifact : &Artifact) -> Result<(), anyhow::Error> {
+        match self {
+            Self::InMemory(registry) => registry.register(artifact).await
+        }
+    }
+
+}
+
 #[cfg(test)]
 pub mod test {
 

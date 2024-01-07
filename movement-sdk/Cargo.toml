@@ -32,6 +32,7 @@ avalanche-types = { version = "0.1.3", features = ["subnet", "codec_base64"] }
 movement-sdk = { path = "movement-sdk" }
 util = { path = "util/util" }
 artifacts = { path = "artifact/artifacts" }
+futures = { version = "0.3.30" }
 
 # aptos = { path = "clis/aptos" }
 
