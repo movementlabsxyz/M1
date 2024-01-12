@@ -5,4 +5,3 @@ pub mod requirements;
 pub mod resolution;
 pub mod registry;
 pub mod installer;
-pub mod lock;

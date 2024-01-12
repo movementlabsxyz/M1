@@ -19,8 +19,16 @@ impl ArtifactDependencyResolutions {
         self.0.remove(dependency);
     }
 
+    pub fn get(&self, dependency : &ArtifactDependency) -> Option<&Artifact> {
+        self.0.get(dependency)
+    }
+
     pub fn resolved(&self, dependency : &ArtifactDependency) -> bool {
         self.0.contains_key(dependency)
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
     }
 
 }

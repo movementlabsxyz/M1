@@ -8,3 +8,4 @@ pub mod artifact;
 pub mod resources;
 pub mod checker;   
 pub mod sys;
+pub mod installer;

@@ -58,33 +58,34 @@ impl InstallerOperations for BasicInstaller {
     ) -> Result<ArtifactDependencyResolutions, anyhow::Error> {
     
         let mut resolutions = ArtifactDependencyResolutions::new();
-        let mut queue = requirements.0.iter().collect::<Vec<_>>();
+        let mut queue = requirements.0.iter().cloned().collect::<Vec<_>>();
+
     
         while let Some(dependency) = queue.pop() {
-            // Check if the dependency is already resolved
-            if lock.resolved(dependency) {
-                resolutions.add(dependency.clone(), lock.0.get(dependency).unwrap().clone());
-            } else {
-                // Otherwise, find the latest version of the dependency
-                match registry.find(dependency).await? {
-                    Some(artifact) => {
-                        resolutions.add(dependency.clone(), artifact);
-                    },
-                    None => {
-                        return Err(anyhow!("Could not find artifact for dependency: {:?}", dependency));
+
+            match lock.get(&dependency) {
+                Some(artifact) => {
+                    resolutions.add(dependency.clone(), artifact.clone());
+                },
+                None => {
+                    match registry.find(&dependency).await? {
+                        Some(artifact) => {
+                            for inner_dependency in &artifact.dependencies {
+                                queue.push(inner_dependency.clone());
+                            }
+                            resolutions.add(dependency, artifact);
+                        },
+                        None => {
+                            return Err(anyhow!("Could not find artifact for dependency: {:?}", dependency));
+                        }
                     }
                 }
             }
     
-            // Add the dependencies of the artifact to the queue
-            if let Some(artifact) = lock.0.get(dependency) {
-                queue.extend(artifact.dependencies.iter());
-            } else {
-                return Err(anyhow!("Could not find artifact for dependency: {:?}", dependency));
-            }
         }
     
         Ok(resolutions)
+
     }
 
     async fn install_resolutions(
@@ -135,6 +136,57 @@ impl InstallerOperations for BasicInstaller {
 
         }
 
+        Ok(())
+
+    }
+
+}
+
+#[cfg(test)]
+pub mod test {
+
+    use super::*;
+    use crate::artifact::registry::InMemoryArtifactRegistry;
+    use crate::artifact::{Artifact, ArtifactDependency, KnownArtifact};
+    use crate::util::util::Version;
+
+    #[tokio::test]
+    pub async fn test_install() -> Result<(), anyhow::Error> {
+
+        let installer = BasicInstaller;
+        let registry = ArtifactRegistry::InMemory(InMemoryArtifactRegistry::new());
+        let mut requirements = ArtifactRequirements::new();
+
+        let stars_v0 = Artifact::test().with_name("stars".to_string()).with_version(Version::new(0, 0, 0));
+        let stars_v0_1 = Artifact::test().with_name("stars".to_string()).with_version(Version::new(0, 0, 1));
+
+        let moons_v0 = Artifact::test()
+        .with_name("moons".to_string())
+        .with_version(Version::new(0, 0, 0))
+        .with_dependencies(
+            vec![
+                ArtifactDependency::identifier(
+                    KnownArtifact::Name("stars".to_string()),
+                    Version::new(0, 0, 0)
+                )
+            ].into_iter().collect()
+        );
+
+        registry.register(&stars_v0).await?;
+        registry.register(&stars_v0_1).await?;
+        registry.register(&moons_v0).await?;
+
+        requirements.add(
+            ArtifactDependency::identifier(
+                KnownArtifact::Name("moons".to_string()),
+                Version::new(0, 0, 0)
+            )
+        );
+
+        let lock = installer.install(&requirements, &ArtifactDependencyResolutions::new(), &registry).await?;
+
+        assert_eq!(lock.len(), 2);
+      
         Ok(())
 
     }

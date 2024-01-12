@@ -10,6 +10,7 @@ pub trait CheckerOperations {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Checker {
+    AcceptAll,
     Noop,
     Unknown
 }
@@ -18,7 +19,14 @@ pub enum Checker {
 impl CheckerOperations for Checker {
 
     async fn check(&self, artifact : &Artifact) -> Result<ArtifactStatus, anyhow::Error> {
-        todo!()
+        match self {
+            Checker::AcceptAll => {
+                Ok(ArtifactStatus::Installed)
+            },
+            _ => {
+                Ok(ArtifactStatus::Unknown)
+            }
+        }
     }
 
 }

@@ -1,5 +1,6 @@
 use super::{Artifact, ArtifactDependency, KnownArtifact};
 use std::collections::{BTreeSet, BTreeMap};
+use serde::{Serialize, Deserialize, Serializer, Deserializer};
 use tokio::sync::RwLock;
 use std::sync::Arc;
 
@@ -23,6 +24,14 @@ impl InMemoryArtifactRegistry {
         Self {
             artifacts : Arc::new(RwLock::new(BTreeMap::new()))
         }
+    }
+
+}
+
+impl Default for InMemoryArtifactRegistry {
+
+    fn default() -> Self {
+        Self::new()
     }
 
 }
@@ -64,11 +73,53 @@ impl ArtifactRegistryOperations for InMemoryArtifactRegistry {
     }
 
 }
-
 #[derive(Debug, Clone)]
 pub enum ArtifactRegistry {
-    InMemory(InMemoryArtifactRegistry)
+    InMemory(InMemoryArtifactRegistry),
 }
+
+impl ArtifactRegistry {
+
+    pub fn to_string(&self) -> String {
+        match self {
+            Self::InMemory(_) => "in-memory".to_string()
+        }
+    }
+
+    pub fn from_string(string : &str) -> Result<Self, anyhow::Error> {
+        match string {
+            "in-memory" => Ok(Self::InMemory(Default::default())),
+            _ => anyhow::bail!("Unknown artifact registry: {}", string)
+        }
+    }
+
+}
+
+impl Serialize for ArtifactRegistry {
+
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: serde::Serializer {
+        serializer.serialize_str(&self.to_string())
+    }
+
+}
+
+impl<'de> Deserialize<'de> for ArtifactRegistry {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> 
+    where 
+        D: Deserializer<'de>, 
+    {
+        let string = String::deserialize(deserializer)?;
+        Self::from_string(&string).map_err(serde::de::Error::custom)
+    }
+}
+
+impl PartialEq for ArtifactRegistry {
+    fn eq(&self, other: &Self) -> bool {
+        self.to_string() == other.to_string()
+    }
+}
+
+impl Eq for ArtifactRegistry {}
 
 #[async_trait::async_trait]
 impl ArtifactRegistryOperations for ArtifactRegistry {
