@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize, de};
+use serde::{Serialize, Deserialize};
 use super::{ArtifactDependency, Artifact};
 use std::collections::{BTreeMap, BTreeSet};
 

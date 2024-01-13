@@ -1,4 +1,3 @@
-use crate::artifact::registry;
 use crate::util::movement_dir::MovementDir;
 use crate::util::artifact::{
     registry::ArtifactRegistry,
@@ -8,7 +7,7 @@ use crate::util::artifact::{
 };
 
 #[async_trait::async_trait]
-pub trait InstallerOperations {
+pub trait MovementInstallerOperations {
 
     async fn install_resolve(&self, 
         movement_dir : MovementDir, 
@@ -44,13 +43,13 @@ pub trait InstallerOperations {
 }
 
 #[derive(Debug, Clone)]
-pub struct Installer {
+pub struct MovementInstaller {
     pub basic_installer : BasicInstaller,
 }
 
 
 #[async_trait::async_trait]
-impl InstallerOperations for Installer {
+impl MovementInstallerOperations for MovementInstaller {
 
     async fn install_resolve(&self, 
         movement_dir : MovementDir, 
@@ -67,8 +66,7 @@ impl InstallerOperations for Installer {
 
         // resolve the dependencies
         let resolutions = self.basic_installer.resolve(
-            &movement_dir.requirements,
-            &movement_dir.resolutions,
+            &movement_dir,
             registry
         ).await?;
 
@@ -92,8 +90,7 @@ impl InstallerOperations for Installer {
 
         // resolve the dependencies
         let resolutions = self.basic_installer.resolve(
-            &movement_dir.requirements,
-            &movement_dir.resolutions,
+            &movement_dir,
             registry
         ).await?;
 
@@ -107,8 +104,7 @@ impl InstallerOperations for Installer {
 
         // install the resolutions
         self.basic_installer.install_resolutions(
-            &movement_dir.resolutions,
-            &resolutions
+          &movement_dir
         ).await?;
 
         movement_dir.resolutions = resolutions;
@@ -134,13 +130,11 @@ impl InstallerOperations for Installer {
         }
 
         // resolve the dependencies
-        let resolutions = self.basic_installer.install(
-            &movement_dir.requirements,
-            &movement_dir.resolutions,
+        let movement_dir = self.basic_installer.install(
+            movement_dir,
             registry
         ).await?;
 
-        movement_dir.resolutions = resolutions;
         movement_dir.store()?;
 
         Ok(movement_dir)
@@ -162,13 +156,11 @@ impl InstallerOperations for Installer {
         }
 
         // resolve the dependencies
-        let resolutions = self.basic_installer.install(
-            &movement_dir.requirements,
-            &movement_dir.resolutions,
+        let movement_dir = self.basic_installer.install(
+            movement_dir,
             registry
         ).await?;
 
-        movement_dir.resolutions = resolutions;
         movement_dir.store()?;
 
         Ok(movement_dir)
@@ -202,7 +194,7 @@ pub mod test {
         let movement_dir = MovementDir::new(&temp_dir.path().to_path_buf());
         movement_dir.store()?;
 
-        let installer = Installer {
+        let installer = MovementInstaller {
             basic_installer : BasicInstaller
         };
 

@@ -1,7 +1,4 @@
 use serde::{Serialize, Deserialize};
-use std::path::{PathBuf, Path};
-use reqwest;
-use std::io::Write;
 use crate::util::util::Version;
 use crate::util::location::Location;
 use super::file_release::File;
@@ -14,7 +11,7 @@ use crate::util::sys::{Arch, OS};
 pub trait ReleaseOperations {
 
     /// Gets a release to a particular location.
-    async fn get(&self, location : &Location) -> Result<(), anyhow::Error>;
+    async fn get(&self, location : &Location) -> Result<Location, anyhow::Error>;
 
     /// Sets the version for a release
     fn with_version(self, version : &Version) -> Self;
@@ -38,10 +35,35 @@ pub enum Release {
     Unknown
 }
 
+impl Release {
+
+    pub fn new() -> Self {
+        Self::Unknown
+    }
+
+    pub fn github_platform_release(
+        owner : String,
+        repo : String,
+        asset_name : String,
+        suffix : String
+    ) -> Self {
+        Self::MovementGitHubPlatformRelease(
+            MovementGitHubPlatformRelease::new(
+                owner,
+                repo,
+                Version::Latest,
+                asset_name,
+                suffix
+            )
+        )
+    }
+
+}
+
 #[async_trait::async_trait]
 impl ReleaseOperations for Release {
 
-    async fn get(&self, location : &Location) -> Result<(), anyhow::Error> {
+    async fn get(&self, location : &Location) -> Result<Location, anyhow::Error> {
 
         match self {
             Release::HttpGET(get) => {
@@ -57,7 +79,7 @@ impl ReleaseOperations for Release {
                 release.get(location).await
             },
             Release::Noop => {
-                Ok(())
+                Ok(location.clone())
             },
             _ => {
                 anyhow::bail!("Cannot get an unsupported release type.");

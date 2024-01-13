@@ -1,4 +1,5 @@
 pub mod builder;
 pub use builder::*;
-pub mod known_script;
-pub mod download_release;
+pub mod script;
+pub mod release;
+pub mod unarchive;

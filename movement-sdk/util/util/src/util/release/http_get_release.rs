@@ -41,17 +41,18 @@ impl HttpGET {
 #[async_trait::async_trait]
 impl ReleaseOperations for HttpGET {
 
-    async fn get(&self, location : &Location) -> Result<(), anyhow::Error> {
+    async fn get(&self, location : &Location) -> Result<Location, anyhow::Error> {
 
         match location {
-            Location::Staged(staged)=>{
-                self.download_to_path(&staged.release_destination).await
+            Location::Path(path)=>{
+                self.download_to_path(path).await?;
             }
             _ => {
                 anyhow::bail!("Cannot get a file release to a non-release location.");
             }
-        }
+        };
      
+        Ok(location.clone())
         
     }
 
@@ -90,17 +91,12 @@ mod test {
             String::from("https://github.com/movemntdev/resources/releases/download/v0.0.0/hello.txt")
         );
 
-        let dir = tempdir().unwrap();
+        let dir = tempdir()?;
         let path = dir.path().join("test.txt");
 
-        let location = Location::temp(
-            PathBuf::from("test.txt"), 
-            PathBuf::from("test.txt")
-        );
-    
-        release.get(&location).await.unwrap();
+        release.get(&path.clone().into()).await?;
 
-        let contents = std::fs::read_to_string(&path).unwrap();
+        let contents = std::fs::read_to_string(&path)?;
 
         assert_eq!(contents, release_text);
 

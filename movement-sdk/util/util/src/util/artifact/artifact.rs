@@ -1,22 +1,32 @@
 use serde::{Serialize, Deserialize};
-use crate::util::builder::{Builder, BuilderOperations};
+use crate::util::builder::{self, Builder, BuilderOperations};
 use crate::util::location::Location;
 use crate::util::release::Release;
 use crate::util::util::{Version, version::VersionTolerance};
 use crate::util::checker::{Checker, CheckerOperations};
 use std::collections::BTreeSet;
+use std::path::PathBuf;
+use crate::movement_dir::MovementDir;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum KnownArtifact {
+
     // general
     Unknown,
     Test,
 
-    // cli
-    Movement,
-
     // generalized
     Name(String)
+}
+
+impl Into<String> for KnownArtifact {
+    fn into(self) -> String {
+        match self {
+            KnownArtifact::Unknown => "unknown".to_string(),
+            KnownArtifact::Test => "test".to_string(),
+            KnownArtifact::Name(name) => name
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -76,7 +86,7 @@ impl ArtifactIdentifier {
 
     pub fn version_tolerance(&self) -> VersionTolerance {
         match self {
-            ArtifactIdentifier::Partial(partial) => VersionTolerance::default(),
+            ArtifactIdentifier::Partial(_) => VersionTolerance::default(),
             ArtifactIdentifier::Full(full) => full.2.clone()
         }
     }
@@ -204,22 +214,70 @@ impl Artifact {
         self
     }
 
-    pub async fn install(&self) -> Result<(), anyhow::Error> {
+    pub async fn install(&self, movement : &MovementDir) -> Result<(), anyhow::Error> {
 
-        self.builder.build(&self).await?;
+        self.builder.build(&self, movement).await?;
         Ok(())
 
     }
 
-    pub async fn uninstall(&self) -> Result<(), anyhow::Error> {
+    pub async fn uninstall(&self, movement : &MovementDir) -> Result<(), anyhow::Error> {
         
-        self.builder.remove(&self).await?;
+        self.builder.remove(&self, movement).await?;
         Ok(())
 
     }
 
     pub async fn check(&self) -> Result<ArtifactStatus, anyhow::Error> {
         self.checker.check(&self).await
+    }
+
+    pub fn self_contained_script(name : String, script : String) -> Self {
+        Self {
+            known_artifact : KnownArtifact::Name(name),
+            release : Release::Noop,
+            location : Location::Unknown,
+            version : Version::Latest,
+            builder : Builder::Script(script.into()),
+            checker : Checker::Noop,
+            dependencies : BTreeSet::new()
+        }
+    }
+
+    pub fn noop(name : String) -> Self {
+        Self {
+            known_artifact : KnownArtifact::Name(name),
+            release : Release::Noop,
+            location : Location::Unknown,
+            version : Version::Latest,
+            builder : Builder::Noop,
+            checker : Checker::Noop,
+            dependencies : BTreeSet::new()
+        }
+    }
+
+    pub fn unsupported(name : String) -> Self {
+        Self {
+            known_artifact : KnownArtifact::Name(name),
+            release : Release::Noop,
+            location : Location::Unknown,
+            version : Version::Latest,
+            builder : Builder::Unsupported,
+            checker : Checker::Noop,
+            dependencies : BTreeSet::new()
+        }
+    }
+
+    pub fn bin_release(name : String, release : Release) -> Self {
+        Self {
+            known_artifact : KnownArtifact::Name(name.clone()),
+            release,
+            location : PathBuf::from("bin").join(name).into(),
+            version : Version::Latest,
+            builder : Builder::Release(builder::release::Release::new()),
+            checker : Checker::Noop,
+            dependencies : BTreeSet::new()
+        }
     }
 
 }

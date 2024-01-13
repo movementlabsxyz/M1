@@ -46,10 +46,11 @@ impl MovementGitHubPlatformRelease {
 #[async_trait::async_trait]
 impl ReleaseOperations for MovementGitHubPlatformRelease {
 
-    async fn get(&self, location : &Location) -> Result<(), anyhow::Error> {
+    async fn get(&self, location : &Location) -> Result<Location, anyhow::Error> {
 
         let http_get = HttpGET::new(self.release_url());
-        http_get.get(location).await
+        http_get.get(location).await?;
+        Ok(location.clone())
 
     }
 
@@ -90,12 +91,8 @@ mod tests {
 
             let release_text = "hello";
             
-            let dir = tempdir().unwrap();
+            let dir = tempdir()?;
             let path = dir.path().join("test.txt");
-            let location = Location::temp(
-                PathBuf::from("test.txt"), 
-                PathBuf::from("test.txt")
-            );
             let release = MovementGitHubPlatformRelease::new(
                 "movemntdev".to_string(),
                 "resources".to_string(),
@@ -103,9 +100,9 @@ mod tests {
                 "hello".to_string(),
                 ".txt".to_string()
             );
-            release.get(&location).await?;
+            release.get(&path.clone().into()).await?;
 
-            let contents = std::fs::read_to_string(&path).unwrap();
+            let contents = std::fs::read_to_string(&path)?;
 
             assert_eq!(contents, release_text);
     

@@ -1,4 +1,3 @@
-use super::requirements::ArtifactRequirements;
 use super::resolution::{
     ArtifactResolutionPlan,
     ArtifactResolutions,
@@ -10,35 +9,37 @@ use super::registry::{
 };
 use super::ArtifactStatus;
 use anyhow::anyhow;
+use crate::movement_dir::MovementDir;
 
 #[async_trait::async_trait]
 pub trait InstallerOperations {
 
     async fn resolve(
         &self, 
-        requirements : &ArtifactRequirements,
-        lock : &ArtifactDependencyResolutions,
+        movement_dir : &MovementDir,
         registry : &ArtifactRegistry
     ) -> Result<ArtifactDependencyResolutions, anyhow::Error>;
 
+    /// Installs the already resolved MovementDir
     async fn install_resolutions(
         &self,
-        lock : &ArtifactDependencyResolutions,
-        resolutions : &ArtifactDependencyResolutions,
+        movement_dir : &MovementDir,
     ) -> Result<(), anyhow::Error>;
 
+    /// Installs the 
     async fn install(
         &self,
-        requirements : &ArtifactRequirements,
-        lock : &ArtifactDependencyResolutions,
+        mut movement_dir : MovementDir,
         registry : &ArtifactRegistry
-    ) -> Result<ArtifactDependencyResolutions, anyhow::Error> {
+    ) -> Result<MovementDir, anyhow::Error> {
 
-        let resolutions = self.resolve(requirements, lock, registry).await?;
+        let resolutions = self.resolve(&movement_dir, registry).await?;
 
-        self.install_resolutions(lock, &resolutions).await?;
+        movement_dir.resolutions = resolutions;
 
-        Ok(resolutions)
+        self.install_resolutions(&movement_dir).await?;
+
+        Ok(movement_dir.clone())
 
     }
 
@@ -52,18 +53,17 @@ impl InstallerOperations for BasicInstaller {
 
     async fn resolve(
         &self,
-        requirements: &ArtifactRequirements,
-        lock: &ArtifactDependencyResolutions,
+        movement_dir : &MovementDir,
         registry: &ArtifactRegistry
     ) -> Result<ArtifactDependencyResolutions, anyhow::Error> {
     
         let mut resolutions = ArtifactDependencyResolutions::new();
-        let mut queue = requirements.0.iter().cloned().collect::<Vec<_>>();
+        let mut queue = movement_dir.requirements.0.iter().cloned().collect::<Vec<_>>();
 
     
         while let Some(dependency) = queue.pop() {
 
-            match lock.get(&dependency) {
+            match movement_dir.resolutions.get(&dependency) {
                 Some(artifact) => {
                     resolutions.add(dependency.clone(), artifact.clone());
                 },
@@ -90,24 +90,23 @@ impl InstallerOperations for BasicInstaller {
 
     async fn install_resolutions(
         &self,
-        lock : &ArtifactDependencyResolutions,
-        resolutions : &ArtifactDependencyResolutions,
+        movement_dir : &MovementDir,
     ) -> Result<(), anyhow::Error> {
 
         // Handle uninstalls 
         let mut uninstalls = vec![];
-        for (dependency, artifact) in lock.0.iter() {
-            if !resolutions.resolved(dependency) {
+        for (dependency, artifact) in movement_dir.resolutions.0.iter() {
+            if !movement_dir.resolutions.resolved(dependency) {
                 uninstalls.push(artifact);
             }
         }
         for artifact in uninstalls {
-            artifact.uninstall().await?;
+            artifact.uninstall(movement_dir).await?;
         }
 
 
         // Handle installs
-        let resolutions_owned = resolutions.clone();
+        let resolutions_owned = movement_dir.resolutions.clone();
         let artifact_resolutions : ArtifactResolutions = resolutions_owned.try_into()?;
         let resolution_plan : ArtifactResolutionPlan = artifact_resolutions.try_into()?;
 
@@ -122,7 +121,7 @@ impl InstallerOperations for BasicInstaller {
                     let artifact = artifact.clone();
                     match artifact.check().await? {
                         ArtifactStatus::Installed => {},
-                        _ => artifact.install().await?
+                        _ => artifact.install(movement_dir).await?
                     };
 
                     Ok::<(), anyhow::Error>(())
@@ -153,9 +152,11 @@ pub mod test {
     #[tokio::test]
     pub async fn test_install() -> Result<(), anyhow::Error> {
 
+        let dir = tempfile::tempdir()?;
+        let mut movement_dir = MovementDir::new(&dir.path().to_path_buf());
+
         let installer = BasicInstaller;
         let registry = ArtifactRegistry::InMemory(InMemoryArtifactRegistry::new());
-        let mut requirements = ArtifactRequirements::new();
 
         let stars_v0 = Artifact::test().with_name("stars".to_string()).with_version(Version::new(0, 0, 0));
         let stars_v0_1 = Artifact::test().with_name("stars".to_string()).with_version(Version::new(0, 0, 1));
@@ -176,16 +177,16 @@ pub mod test {
         registry.register(&stars_v0_1).await?;
         registry.register(&moons_v0).await?;
 
-        requirements.add(
+        movement_dir.requirements.add(
             ArtifactDependency::identifier(
                 KnownArtifact::Name("moons".to_string()),
                 Version::new(0, 0, 0)
             )
         );
 
-        let lock = installer.install(&requirements, &ArtifactDependencyResolutions::new(), &registry).await?;
+        let movement_dir = installer.install(movement_dir, &registry).await?;
 
-        assert_eq!(lock.len(), 2);
+        assert_eq!(movement_dir.resolutions.len(), 2);
       
         Ok(())
 

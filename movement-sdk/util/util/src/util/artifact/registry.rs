@@ -1,6 +1,6 @@
 use super::{Artifact, ArtifactDependency, KnownArtifact};
 use std::collections::{BTreeSet, BTreeMap};
-use serde::{Serialize, Deserialize, Serializer, Deserializer};
+use serde::{Serialize, Deserialize, Deserializer};
 use tokio::sync::RwLock;
 use std::sync::Arc;
 

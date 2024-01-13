@@ -3,8 +3,6 @@ use super::{ReleaseOperations, Release};
 use super::http_get_release::HttpGET;
 use crate::util::util::Version;
 use crate::util::location::Location;
-use semver::Version as SemVerVersion;
-use tempfile::tempdir;
 use crate::util::sys::{Arch, OS};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -44,10 +42,11 @@ impl MovementGitHubRelease {
 #[async_trait::async_trait]
 impl ReleaseOperations for MovementGitHubRelease {
 
-    async fn get(&self, location : &Location) -> Result<(), anyhow::Error> {
+    async fn get(&self, location : &Location) -> Result<Location, anyhow::Error> {
 
         let http_get = HttpGET::new(self.os_arch_release_url());
-        http_get.get(location).await
+        http_get.get(location).await?;
+        Ok(location.clone())
 
     }
 
@@ -76,7 +75,8 @@ impl Into<Release> for MovementGitHubRelease {
 mod tests {
 
     use super::*;
-    use std::path::PathBuf;
+    use semver::Version as SemVerVersion;
+    use tempfile::tempdir;
 
     #[tokio::test]
     async fn test_get_hello() -> Result<(), anyhow::Error> {
@@ -85,10 +85,6 @@ mod tests {
         
         let dir = tempdir()?;
         let path = dir.path().join("test.txt");
-        let location = Location::staged(
-            path.clone(),
-            PathBuf::from("test.txt")
-        );
         let release = MovementGitHubRelease::new(
             "movemntdev".to_string(),
             "resources".to_string(),
@@ -96,7 +92,7 @@ mod tests {
             "hello".to_string(),
             ".txt".to_string()
         );
-        release.get(&location).await?;
+        release.get(&path.clone().into()).await?;
 
         let contents = std::fs::read_to_string(&path).unwrap();
 

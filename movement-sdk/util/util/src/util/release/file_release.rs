@@ -23,12 +23,12 @@ impl File {
 #[async_trait::async_trait]
 impl ReleaseOperations for File {
 
-    async fn get(&self, location : &Location) -> Result<(), anyhow::Error> {
+    async fn get(&self, location : &Location) -> Result<Location, anyhow::Error> {
 
         match location {
-            Location::Staged(staged)=>{
+            Location::Path(path)=>{
 
-                std::fs::copy(self.path(), staged.release_destination.clone())?;
+                std::fs::copy(self.path(), path)?;
 
             }
             _ => {
@@ -36,7 +36,7 @@ impl ReleaseOperations for File {
             }
         }
   
-        Ok(())
+        Ok(location.clone())
 
     }
 
