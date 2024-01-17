@@ -38,6 +38,16 @@ impl BuilderOperations for Release {
             }
         }?;
 
+        // mkdir -p
+        match path.parent() {
+            Some(parent) => {
+                tokio::fs::create_dir_all(parent).await?;
+            },
+            None => {
+                anyhow::bail!("Failed to build artifact not located in parent dir.");
+            }
+        };
+
         artifact.release.get(&path.into()).await?;
         
         Ok(artifact.clone())

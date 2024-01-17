@@ -6,7 +6,7 @@ members = [
 
     # clis
     # "clis/aptos",
-    # "clis/movement",
+    "clis/movement",
 
     # artifacts
     "artifact/artifacts",

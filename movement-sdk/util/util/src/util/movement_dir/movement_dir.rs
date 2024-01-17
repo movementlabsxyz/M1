@@ -67,6 +67,18 @@ impl MovementDir {
 
     }
 
+    pub fn sync(self) -> Result<Self, anyhow::Error> {
+
+       // if the path buf exists
+       if self.path.try_exists()? { // ! time of check error possible
+            self.load()
+       } else {
+            self.store()?;
+            Ok(self)
+       }
+
+    }
+
     pub fn load(self) -> Result<Self, anyhow::Error> {
 
         Self::from_file(&self.path)

@@ -41,6 +41,23 @@ impl Release {
         Self::Unknown
     }
 
+    pub fn github_release(
+        owner : String,
+        repo : String,
+        asset_name : String,
+        suffix : String
+    ) -> Self {
+        Self::MovementGitHubRelease(
+            MovementGitHubRelease::new(
+                owner,
+                repo,
+                Version::Latest,
+                asset_name,
+                suffix
+            )
+        )
+    }
+
     pub fn github_platform_release(
         owner : String,
         repo : String,

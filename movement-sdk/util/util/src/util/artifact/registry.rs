@@ -40,23 +40,32 @@ impl Default for InMemoryArtifactRegistry {
 impl ArtifactRegistryOperations for InMemoryArtifactRegistry {
 
     async fn find(&self, dependency : &ArtifactDependency) -> Result<Option<Artifact>, anyhow::Error> {
-        
-        let known_artifact = dependency.known_artifact();
 
-        let artifacts = self.artifacts.read().await;
-
-        match artifacts.get(&known_artifact) {
-            Some(artifacts) => {
-                for artifact in artifacts {
-                    if dependency.compare(artifact) {
-                        return Ok(Some(artifact.clone()))
-                    }
-                }
-                Ok(None)
+        match dependency {
+            ArtifactDependency::Artifact(artifact) => {
+                Ok(Some(artifact.clone()))
             },
-            None => Ok(None)
-        }
+            ArtifactDependency::ArtifactIdentifier(artifact_identifier) => {
+                
+                let known_artifact = artifact_identifier.known_artifact();
 
+                let artifacts = self.artifacts.read().await;
+        
+                match artifacts.get(&known_artifact) {
+                    Some(artifacts) => {
+                        for artifact in artifacts {
+                            if dependency.compare(artifact) {
+                                return Ok(Some(artifact.clone()))
+                            }
+                        }
+                        Ok(None)
+                    },
+                    None => Ok(None)
+                }
+        
+            }
+        }
+        
     }
 
     async fn register(&self, artifact : &Artifact) -> Result<(), anyhow::Error> {
@@ -79,6 +88,10 @@ pub enum ArtifactRegistry {
 }
 
 impl ArtifactRegistry {
+
+    pub fn in_memory() -> Self {
+        Self::InMemory(Default::default())
+    }
 
     pub fn to_string(&self) -> String {
         match self {

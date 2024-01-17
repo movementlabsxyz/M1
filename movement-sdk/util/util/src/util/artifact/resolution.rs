@@ -42,6 +42,7 @@ impl TryFrom<ArtifactDependencyResolutions> for ArtifactResolutions {
         let mut resolutions = ArtifactResolutions::new();
 
         for (outer_dependency, artifact) in dependency_resolutions.0.iter() {
+            resolutions.register(artifact.clone());
             for dependency in artifact.dependencies.iter() {
                 let resolution = dependency_resolutions.0.get(&dependency);
                 match resolution {
@@ -132,6 +133,7 @@ impl ArtifactResolutions {
 
     // DFS function to find the maximum dependent depth
     fn find_max_dependent_depth(&self, node: &Artifact, depth_map: &mut BTreeMap<&Artifact, usize>) -> usize {
+
         if let Some(dependencies) = self.0.get(node) {
             if dependencies.is_empty() {
                 return 0;
@@ -156,6 +158,7 @@ impl ArtifactResolutions {
         let mut depth_map = BTreeMap::new();
 
         for artifact in self.0.keys() {
+            println!("Artifact: {:?}", artifact.known_artifact);
             let depth = self.find_max_dependent_depth(artifact, &mut depth_map);
             depth_map.insert(artifact, depth);
         }
@@ -198,6 +201,8 @@ impl TryFrom<ArtifactResolutions> for ArtifactResolutionPlan {
         let depth_map = resolutions.get_all_dependent_depths();
 
         for (artifact, depth) in depth_map.iter() {
+
+            println!("Artifact: {:?} Depth: {}", artifact.known_artifact, depth);
             while *depth >= plan.len() {
                 plan.push(BTreeSet::new());
             }
@@ -274,6 +279,7 @@ pub mod test {
         .with_name("universe".to_string());
 
         let mut resolutions = ArtifactResolutions::new();
+        resolutions.register(big_bang.clone());
         resolutions.add(universe.clone(), big_bang.clone());
 
         let expected_plan = ArtifactResolutionPlan(

@@ -47,6 +47,16 @@ pub struct MovementInstaller {
     pub basic_installer : BasicInstaller,
 }
 
+impl MovementInstaller {
+
+    pub fn new() -> Self {
+        Self {
+            basic_installer : BasicInstaller
+        }
+    }
+
+}
+
 
 #[async_trait::async_trait]
 impl MovementInstallerOperations for MovementInstaller {
@@ -129,7 +139,7 @@ impl MovementInstallerOperations for MovementInstaller {
             movement_dir.requirements.add(dependency);
         }
 
-        // resolve the dependencies
+        // install the dependencies
         let movement_dir = self.basic_installer.install(
             movement_dir,
             registry

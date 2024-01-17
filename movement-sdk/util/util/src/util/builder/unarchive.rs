@@ -101,10 +101,29 @@ impl BuilderOperations for Unarchive {
         let tmp_location = path.join("tmp");
         let location = artifact.release.get(&tmp_location.into()).await?;
 
+        let destination  = match &artifact.location {
+            Location::Path(path) => {
+                Ok::<PathBuf, anyhow::Error>(movement.path.join(path))
+            },
+            _ => {
+                anyhow::bail!("Failed to build artifact.");
+            }
+        }?;
+
+        // mkdir -p
+        match path.parent() {
+            Some(parent) => {
+                tokio::fs::create_dir_all(parent).await?;
+            },
+            None => {
+                anyhow::bail!("Failed to build artifact not located in parent dir.");
+            }
+        };
+
         // unarchive the release
         match location {
             Location::Path(path) => {
-                self.unarchive(&path, &path).await?;
+                self.unarchive(&path, &destination).await?;
             },
             _ => {
                 anyhow::bail!("Cannot unarchive an archive from a non-path location.");
@@ -117,16 +136,16 @@ impl BuilderOperations for Unarchive {
 
     async fn remove(&self, artifact : &Artifact, movement : &MovementDir) -> Result<Artifact, anyhow::Error> {
 
-        match &artifact.location {
+        let destination  = match &artifact.location {
             Location::Path(path) => {
-                
-               fs::remove(&path).await?;
-
+                Ok::<PathBuf, anyhow::Error>(movement.path.join(path))
             },
             _ => {
-                anyhow::bail!("Cannot remove an archive from a non-path location.");
+                anyhow::bail!("Failed to build artifact.");
             }
-        };
+        }?;
+
+        fs::remove(&destination).await?;
 
         Ok(artifact.clone())
 

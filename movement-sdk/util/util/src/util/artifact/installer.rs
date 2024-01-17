@@ -7,7 +7,7 @@ use super::registry::{
     ArtifactRegistry,
     ArtifactRegistryOperations
 };
-use super::ArtifactStatus;
+use super::{ArtifactStatus, artifact, ArtifactDependency};
 use anyhow::anyhow;
 use crate::movement_dir::MovementDir;
 
@@ -35,6 +35,8 @@ pub trait InstallerOperations {
 
         let resolutions = self.resolve(&movement_dir, registry).await?;
 
+        // todo: add logging
+       
         movement_dir.resolutions = resolutions;
 
         self.install_resolutions(&movement_dir).await?;
@@ -63,11 +65,14 @@ impl InstallerOperations for BasicInstaller {
     
         while let Some(dependency) = queue.pop() {
 
+            println!("Resolving dependency: {:?}", dependency.known_artifact());
+
             match movement_dir.resolutions.get(&dependency) {
                 Some(artifact) => {
                     resolutions.add(dependency.clone(), artifact.clone());
                 },
                 None => {
+
                     match registry.find(&dependency).await? {
                         Some(artifact) => {
                             for inner_dependency in &artifact.dependencies {
@@ -80,9 +85,11 @@ impl InstallerOperations for BasicInstaller {
                         }
                     }
                 }
+
             }
-    
+
         }
+
     
         Ok(resolutions)
 
@@ -104,17 +111,23 @@ impl InstallerOperations for BasicInstaller {
             artifact.uninstall(movement_dir).await?;
         }
 
-
+        println!("Preparing for installs...");
         // Handle installs
         let resolutions_owned = movement_dir.resolutions.clone();
         let artifact_resolutions : ArtifactResolutions = resolutions_owned.try_into()?;
         let resolution_plan : ArtifactResolutionPlan = artifact_resolutions.try_into()?;
+
+        // todo: add logging
+
+        println!("Installing artifacts... {:?}", resolution_plan.0);
 
         for artifacts in resolution_plan.0 {
 
             let mut futures = vec![];
 
             for artifact in artifacts {
+
+                println!("Installing artifact: {:?}", artifact.known_artifact);
 
                 let future = async move {
 

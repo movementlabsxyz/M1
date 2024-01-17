@@ -268,6 +268,30 @@ impl Artifact {
         }
     }
 
+    pub fn source_tar_gz_release(name : String, release : Release) -> Self {
+        Self {
+            known_artifact : KnownArtifact::Name(name.clone()),
+            release,
+            location : PathBuf::from("src").into(),
+            version : Version::Latest,
+            builder : Builder::Unarchive(builder::unarchive::Unarchive::TarGz),
+            checker : Checker::Noop,
+            dependencies : BTreeSet::new()
+        }
+    }
+
+    pub fn resource_release(name : String, release : Release) -> Self {
+        Self {
+            known_artifact : KnownArtifact::Name(name.clone()),
+            release,
+            location : PathBuf::from("rsc").into(),
+            version : Version::Latest,
+            builder : Builder::Release(builder::release::Release::new()),
+            checker : Checker::Noop,
+            dependencies : BTreeSet::new()
+        }
+    }
+
     pub fn bin_release(name : String, release : Release) -> Self {
         Self {
             known_artifact : KnownArtifact::Name(name.clone()),
