@@ -2,10 +2,7 @@ use util::{
     artifact::Artifact,
     util::util::patterns::constructor::ConstructorOperations
 };
-use super::{
-    m1_with_submodules,
-    subnet
-};
+use super::m1_with_submodules;
 
 #[derive(Debug, Clone)]
 pub struct Config;
@@ -20,9 +17,9 @@ impl ConstructorOperations for Constructor {
 
     fn default() -> Self::Artifact {
 
-        Artifact::noop("testnet".to_string())
+        Artifact::noop("localnet".to_string())
         .with_dependencies(vec![
-            subnet::Constructor::default().into()
+            m1_with_submodules::Constructor::default().into()
         ].into_iter().collect()) // Should already be installed on macOS
 
     }
@@ -30,7 +27,7 @@ impl ConstructorOperations for Constructor {
     fn default_with_version(version : &util::util::util::Version) -> Self::Artifact {
         // source should have the same version
         let source = m1_with_submodules::Constructor::default_with_version(version);
-        Artifact::noop("subnet".to_string())
+        Artifact::noop("localnet".to_string())
         .with_dependencies(vec![
             source.into()
         ].into_iter().collect())

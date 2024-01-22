@@ -22,7 +22,7 @@ pub struct MovementDir {
 impl MovementDir {
 
     const MOVEMENT_DIR_NAME : &'static str = ".movement";
-    const MANIFEST_FILE_NAME : &'static str = "movement.toml";
+    const MANIFEST_FILE_NAME : &'static str = "movement.ron";
 
     pub fn try_default_dir() -> Result<PathBuf, anyhow::Error> {
         let home_dir = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home dir"))?;
@@ -70,9 +70,12 @@ impl MovementDir {
     pub fn sync(self) -> Result<Self, anyhow::Error> {
 
        // if the path buf exists
-       if self.path.try_exists()? { // ! time of check error possible
+       if self.path.try_exists()? 
+        && self.manifest_path.try_exists()? { // ! time of check error possible
+            println!("Loading movement dir: {:?}", self.path);
             self.load()
        } else {
+            println!("Creating movement dir: {:?}", self.path);
             self.store()?;
             Ok(self)
        }

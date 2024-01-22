@@ -8,8 +8,6 @@ use serde::{Serialize, Deserialize};
 use crate::movement_dir::MovementDir;
 
 #[cfg(feature = "logging")]
-use std::io::{BufReader, BufRead};
-#[cfg(feature = "logging")]
 use std::thread;
 
 use std::io::Write;
@@ -38,7 +36,7 @@ impl ScriptPart {
 
     pub async fn exec(&self, movement : &MovementDir) -> Result<(), anyhow::Error> {
 
-
+        // todo: switch to pseudo terminal to preserve colors
         let mut command = std::process::Command::new("bash");
     
         for (key, value) in self.env.iter() {
@@ -77,32 +75,23 @@ impl ScriptPart {
 
         #[cfg(feature = "logging")]
         let (stdout_handle, stderr_handle) = {
-
-            let stdout = child.stdout.take().expect("Failed to take stdout");
-            let stderr = child.stderr.take().expect("Failed to take stderr");
+            let mut stdout = child.stdout.take().expect("Failed to take stdout");
+            let mut stderr = child.stderr.take().expect("Failed to take stderr");
 
             let stdout_handle = thread::spawn(move || {
-                let reader = BufReader::new(stdout);
-                for line in reader.lines() {
-                    match line {
-                        Ok(line) => println!("stdout: {}", line),
-                        Err(e) => eprintln!("Error reading stdout: {}", e),
-                    }
+                if let Err(e) = std::io::copy(&mut stdout, &mut std::io::stdout()) {
+                    eprintln!("Error writing to stdout: {}", e);
                 }
             });
             let stderr_handle = thread::spawn(move || {
-                let reader = BufReader::new(stderr);
-                for line in reader.lines() {
-                    match line {
-                        Ok(line) => eprintln!("stderr: {}", line),
-                        Err(e) => eprintln!("Error reading stderr: {}", e),
-                    }
+                if let Err(e) = std::io::copy(&mut stderr, &mut std::io::stderr()) {
+                    eprintln!("Error writing to stderr: {}", e);
                 }
             });
 
             (stdout_handle, stderr_handle)
-
         };
+
 
         let status = child.wait().expect("Failed to wait on child");
 

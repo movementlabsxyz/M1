@@ -32,5 +32,5 @@ rustflags = [
   "link-arg=/STACK:8000000" # Set stack to 8 MB
 ]
 
-[target.aarch64-apple-darwin]
-rustflags = [ "-C", "link-arg=-fuse-ld=/opt/homebrew/opt/llvm/bin/ld64.lld", ]
+# [target.aarch64-apple-darwin]
+# rustflags = ["--cfg", "tokio_unstable", "-C", "force-frame-pointers=yes", "-C", "force-unwind-tables=yes", "-C", "link-arg=-fuse-ld=/opt/homebrew/opt/llvm/bin/ld64.lld", ]
