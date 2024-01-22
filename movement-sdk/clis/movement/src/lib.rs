@@ -1,21 +1,20 @@
-pub mod common;
-
+// pub mod util;
 pub mod manage;
 pub mod ctl;
-// pub mod aptos;
-// pub mod sui;
-pub mod canonical;
+pub mod common;
+
 
 use clap::*;
-
-use async_trait::async_trait;
 use manage::Manage;
 use ctl::Ctl;
+
+#[cfg(feature = "sui")]
 use sui::sui_commands::SuiCommand;
+
+#[cfg(feature = "aptos")]
 use aptos::Tool;
-use crate::common::cli::Command;
-// use crate::aptos::Aptos;
-// use crate::sui::Sui;
+
+use util::cli::Command;
 
 const VERSION: &str = const_str::concat!(env!("CARGO_PKG_VERSION"));
 
@@ -27,8 +26,10 @@ pub enum MovementCommand {
     Manage(Manage),
     #[clap(subcommand)]
     Ctl(Ctl),
+    #[cfg(feature = "aptos")]
     #[clap(subcommand, about = "Run Aptos commands")]
     Aptos(Tool),
+    #[cfg(feature = "sui")]
     #[clap(subcommand, about = "Run Sui commands")]
     Sui(SuiCommand)
 }
@@ -44,18 +45,21 @@ impl Command<String> for MovementCommand {
 
       match self {
         MovementCommand::Manage(manage) => {
+            manage.execute().await?;
             Ok("SUCCESS".to_string())
         },
         MovementCommand::Ctl(ctl) => {
             // ctl.execute().await?;
             Ok("SUCCESS".to_string())
         },
+        #[cfg(feature = "aptos")]
         MovementCommand::Aptos(aptos) => {
             aptos.execute().await.map_err(
                |e| anyhow::anyhow!("aptos error: {:?}", e)
             )?;
             Ok("SUCCESS".to_string())
         },
+        #[cfg(feature = "sui")]
         MovementCommand::Sui(sui) => {
             sui.execute().await?;
             Ok("SUCCESS".to_string())

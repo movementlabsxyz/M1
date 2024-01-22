@@ -19,7 +19,14 @@ members = [
     "sui-helpers/sui-block-authority-providers",
 
     # clis
-    "clis/movement"
+    "clis/movement",
+
+    # artifacts
+    "artifact/artifacts",
+
+    # util
+    "util/util",
+    "util/test-helpers"
 ]
 
 [workspace.package]
@@ -33,6 +40,7 @@ repository = "https://github.com/movemntdev/m2"
 rust-version = "1.70"
 
 [workspace.dependencies]
+<<<<<<< HEAD
 # internal
 movement-sdk = { path = "movement-sdk" }
 aptos-helper-types = { path = "types/aptos-helper-types" }
@@ -44,21 +52,39 @@ canonical-block-executor = { path = "execution/canonical-block-executor" }
 sui-block-authority-providers = { path = "sui-helpers/sui-block-authority-providers" }
 
 
+=======
+util = { path = "util/util", features = ["logging"] }
+test-helpers = { path = "util/test-helpers" }
+artifacts = { path = "artifact/artifacts" }
+>>>>>>> integrated-movement-cli
 
 async-trait = { version = "0.1" } 
 anyhow = { version = "1" }     # For flexible error handling
 avalanche-types = { version = "0.1.3", features = ["subnet", "codec_base64"] }
+<<<<<<< HEAD
 # aptos = { path = "clis/aptos" }
 
 futures = "0.3"
+=======
+movement-sdk = { path = "movement-sdk" }
+futures = { version = "0.3" }
+>>>>>>> integrated-movement-cli
 tokio = { version = "1.21.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["raw_value"] }
+serde_with = { version = "3.4" }
+serde_yaml = { version = "0.9" }
+toml = { version = "0.8", features = ["preserve_order"] }
 ctor = "0.2.5"
+ron = "0.8"
 dirs = "3.0.2"
 reqwest = { version = "0.11.6", features = ["json", "stream"] }
 tempfile = "3.2.0"
 semver = { version = "1.0.5", features = ["serde"] }
+tar = "0.4.35"
+zip = "0.6"
+zip-extensions = "0.6"
+flate2 = "1.0.19"
 
 base64 = "0.13.0"
 bcs = { git = "https://github.com/aptos-labs/bcs.git", rev = "d31fab9d81748e2594be5cd5cdf845786a30562d" }
