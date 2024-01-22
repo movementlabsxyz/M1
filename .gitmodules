@@ -1,7 +1,7 @@
 [submodule "aptos-core"]
 	path = vendors/aptos-core
 	url = https://github.com/movemntdev/aptos-core
-	branch = m1
+	branch = canonical
 [submodule "x25519-dalek"]
 	path = vendors/x25519-dalek
 	url = https://github.com/movemntdev/x25519-dalek
@@ -16,6 +16,7 @@
 	path = vendors/aptos-core-v2
 	url = https://github.com/movemntdev/aptos-core
 	branch = v2
-[submodule "m1/vendors/sui"]
+[submodule "vendors/sui"]
 	path = vendors/sui
 	url = https://github.com/movemntdev/sui
+	branch = canonical
