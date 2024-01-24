@@ -87,8 +87,28 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./testnet-id
+          asset_path: ./networks/testnet/testnet-id
           asset_name: testnet-id
+          asset_content_type: text/plain
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./networks/testnet/testnet-vmid
+          asset_name: testnet-vmid
+          asset_content_type: text/plain
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./networks/testnet/testnet-vmid
+          asset_name: testnet-cid
           asset_content_type: text/plain
 
 
