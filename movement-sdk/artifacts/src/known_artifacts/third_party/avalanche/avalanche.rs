@@ -29,6 +29,10 @@ impl ConstructorOperations for Constructor {
             (echo; echo 'export PATH="$HOME/bin:$PATH"') >> "$HOME/.bash_profile"
             export PATH="$HOME/bin:$PATH"
 
+            # copy avalanche to movement bin
+            mkdir -p $MOVEMENT_DIR/bin
+            cp $(which avalanche) $MOVEMENT_DIR/bin/avalanche
+
             avalanche --version
             "#.to_string(),
         ).with_dependencies(

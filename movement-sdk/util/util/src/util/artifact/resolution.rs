@@ -158,7 +158,6 @@ impl ArtifactResolutions {
         let mut depth_map = BTreeMap::new();
 
         for artifact in self.0.keys() {
-            println!("Artifact: {:?}", artifact.known_artifact);
             let depth = self.find_max_dependent_depth(artifact, &mut depth_map);
             depth_map.insert(artifact, depth);
         }
@@ -202,7 +201,6 @@ impl TryFrom<ArtifactResolutions> for ArtifactResolutionPlan {
 
         for (artifact, depth) in depth_map.iter() {
 
-            println!("Artifact: {:?} Depth: {}", artifact.known_artifact, depth);
             while *depth >= plan.len() {
                 plan.push(BTreeSet::new());
             }

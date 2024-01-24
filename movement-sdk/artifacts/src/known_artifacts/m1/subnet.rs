@@ -10,7 +10,7 @@ use crate::known_artifacts::{
 
 #[derive(Debug, Clone)]
 pub struct Config {
-    pub build : bool
+    pub build : bool,
 }
 
 #[derive(Debug, Clone)]
@@ -20,7 +20,7 @@ impl Constructor {
 
     pub fn download() -> Artifact {
         Artifact::bin_release(
-            "movement".to_string(),
+            "subnet".to_string(),
             Release::github_platform_release(
                 "movemntdev".to_string(),
                 "m1".to_string(),
@@ -33,14 +33,15 @@ impl Constructor {
     pub fn build() -> Artifact {
 
         Artifact::self_contained_script(
-            "movement".to_string(),
+            "subnet".to_string(),
             r#"
+            mkdir -p $MOVEMENT_DIR/bin
             source "$HOME/.cargo/env"
             echo $MOVEMENT_DIR
-            cd $MOVEMENT_DIR/src/m1-with-submodules/movement-sdk
-            cargo build -p movement
+            cd $MOVEMENT_DIR/src/m1-with-submodules/m1
+            cargo build -p subnet
             # for now use the debug build
-            cp target/debug/movement $MOVEMENT_DIR/bin
+            cp target/debug/subnet $MOVEMENT_DIR/bin/subnet
             "#.to_string(),
         ).with_dependencies(vec![
             cargo::Constructor::default().into(),
@@ -48,8 +49,6 @@ impl Constructor {
         ].into_iter().collect())
 
     }
-
-
 }
 
 impl ConstructorOperations for Constructor {
@@ -78,11 +77,11 @@ impl ConstructorOperations for Constructor {
     }
 
     fn from_config(config : &Self::Config) -> Self::Artifact {
-        
+
         if config.build {
             Self::build()
         } else {
-            Self::download()
+            Self::default()
         }
 
     }
@@ -120,6 +119,12 @@ pub mod test {
         cargo::Constructor::default().install(&movement_dir).await?;
         m1_with_submodules::Constructor::default().install(&movement_dir).await?;
         artifact.install(&movement_dir).await?;
+
+        // add /usr/local/bin back to path
+        /*test_helpers::clean_path(vec![
+            "/usr/bin".to_string(), "/bin".to_string(), "/usr/local/bin".to_string(), 
+            dir.join("bin").to_str().unwrap().to_string()
+        ])?;*/
 
         let exists = match std::process::Command::new("movement").arg("--version").output() {
             Ok(output) => output.status.success(),

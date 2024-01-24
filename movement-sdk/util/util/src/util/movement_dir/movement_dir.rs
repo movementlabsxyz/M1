@@ -72,10 +72,16 @@ impl MovementDir {
        // if the path buf exists
        if self.path.try_exists()? 
         && self.manifest_path.try_exists()? { // ! time of check error possible
+
+            #[cfg(feature = "logging")]
             println!("Loading movement dir: {:?}", self.path);
+
             self.load()
        } else {
+
+            #[cfg(feature = "logging")]
             println!("Creating movement dir: {:?}", self.path);
+
             self.store()?;
             Ok(self)
        }
@@ -89,6 +95,9 @@ impl MovementDir {
     }
 
     pub fn store(&self) -> Result<(), anyhow::Error> {
+
+        // mkdir the parent
+        std::fs::create_dir_all(&self.path)?;
 
         let manifest_contents = ron::to_string(&self)?;
 

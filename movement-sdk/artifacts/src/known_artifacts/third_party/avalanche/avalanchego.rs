@@ -19,12 +19,15 @@ impl ConstructorOperations for Constructor {
         Artifact::self_contained_script(
             "cargo".to_string(),
             r#"
+
+            mkdir -p $MOVEMENT_DIR/bin
             git clone git@github.com:ava-labs/avalanchego.git
             cd avalanchego
             ./scripts/build.sh
 
             mkdir -p $HOME/bin
             mv ./build/avalanchego $HOME/bin/avalanchego
+            cp $HOME/bin/avalanchego $MOVEMENT_DIR/bin/avalanchego
             cd ..
             rm -rf avalanchego
 

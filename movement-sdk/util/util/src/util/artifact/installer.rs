@@ -111,7 +111,7 @@ impl InstallerOperations for BasicInstaller {
         for artifact in uninstalls {
 
             #[cfg(feature = "logging")]
-            println!("Uninstalling artifact: { }", artifact);
+            println!("Uninstalling artifact: {}", artifact);
 
             artifact.uninstall(movement_dir).await?;
         }
@@ -128,13 +128,16 @@ impl InstallerOperations for BasicInstaller {
             for artifact in artifacts {
 
                 #[cfg(feature = "logging")]
-                println!("Installing artifact: { }", artifact);
+                println!("Installing artifact {}", artifact);
 
                 let future = async move {
 
                     let artifact = artifact.clone();
                     match artifact.check().await? {
-                        ArtifactStatus::Installed => {},
+                        ArtifactStatus::Installed => {
+                            #[cfg(feature = "logging")]
+                            println!("Artifact {} is already installed", artifact);
+                        },
                         _ => artifact.install(movement_dir).await?
                     };
 

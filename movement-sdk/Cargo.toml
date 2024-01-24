@@ -22,7 +22,10 @@ members = [
     "clis/movement",
 
     # artifacts
-    "artifact/artifacts",
+    "artifacts",
+
+    # services
+    "services",
 
     # util
     "util/util",
@@ -42,7 +45,8 @@ rust-version = "1.70"
 [workspace.dependencies]
 util = { path = "util/util", features = ["logging"] }
 test-helpers = { path = "util/test-helpers" }
-artifacts = { path = "artifact/artifacts" }
+artifacts = { path = "artifacts" }
+services = { path = "services" }
 
 async-trait = { version = "0.1" } 
 anyhow = { version = "1" }     # For flexible error handling

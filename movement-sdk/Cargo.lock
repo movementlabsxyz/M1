@@ -12326,6 +12326,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "services"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "artifacts",
+ "async-trait",
+ "clap 4.4.10",
+ "const-str",
+ "dirs 3.0.2",
+ "reqwest",
+ "semver",
+ "serde 1.0.195",
+ "serde_json",
+ "tempfile",
+ "test-helpers",
+ "tokio",
+ "util",
+]
+
+[[package]]
 name = "sha-1"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"

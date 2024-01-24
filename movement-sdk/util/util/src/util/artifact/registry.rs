@@ -41,6 +41,9 @@ impl ArtifactRegistryOperations for InMemoryArtifactRegistry {
 
     async fn find(&self, dependency : &ArtifactDependency) -> Result<Option<Artifact>, anyhow::Error> {
 
+        #[cfg(feature = "logging")]
+        println!("Searching for artifact for dependency: {}", dependency);
+
         match dependency {
             ArtifactDependency::Artifact(artifact) => {
                 Ok(Some(artifact.clone()))

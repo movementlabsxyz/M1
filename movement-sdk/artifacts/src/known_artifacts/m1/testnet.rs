@@ -38,7 +38,7 @@ impl ConstructorOperations for Constructor {
         let testnet_id = testnet_id::Constructor::default_with_version(version);
 
         Artifact::self_contained_script(
-            "subnet".to_string(),
+            "testnet".to_string(),
             r#"
             echo $MOVEMENT_DIR
             cp $MOVEMENT_DIR/bin/subnet $MOVEMENT_DIR/bin/$(cat $MOVEMENT_DIR/rsc/testnet-id)

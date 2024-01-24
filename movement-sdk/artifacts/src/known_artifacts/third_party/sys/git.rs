@@ -19,7 +19,7 @@ impl ConstructorOperations for Constructor {
         #[cfg(target_os = "macos")]
         let git = Artifact::noop("git".to_string()); // Should already be installed on macOS
 
-        #[cfg(not(target_os = "ubuntu"))]
+        #[cfg(target_os = "ubuntu")]
         let git = Artifact::self_contained_script(
             "git".to_string(),
             r#"
