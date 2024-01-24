@@ -28,3 +28,4 @@ runs:
     - name: Add cargo flash
       run: |
         cargo install cargo-flash
+      shell: bash
