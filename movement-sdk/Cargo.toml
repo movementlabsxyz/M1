@@ -6,17 +6,17 @@ members = [
     # "movement-sdk-avalanche",
 
     # execution
-    "execution/sui-block-executor",
-    "execution/aptos-block-executor",
-    "execution/canonical-block-executor",
+    #"execution/sui-block-executor",
+    #"execution/aptos-block-executor",
+    #"execution/canonical-block-executor",
 
     # types
-    "types/sui-helper-types",
-    "types/canonical-types",
-    "types/aptos-helper-types",
+    # "types/sui-helper-types",
+    # "types/canonical-types",
+    # "types/aptos-helper-types",
 
     # sui helpers
-    "sui-helpers/sui-block-authority-providers",
+    # "sui-helpers/sui-block-authority-providers",
 
     # clis
     "clis/movement",
