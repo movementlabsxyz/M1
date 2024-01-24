@@ -5,7 +5,12 @@ use util::{
 };
 use super::{
     testnet_id,
-    subnet
+    subnet,
+    super::third_party::avalanche::{
+            avalanche,
+            avalanchego
+        }
+    
 };
 
 #[derive(Debug, Clone)]
@@ -27,6 +32,8 @@ impl ConstructorOperations for Constructor {
 
     fn default_with_version(version : &util::util::util::Version) -> Self::Artifact {
         // source should have the same version
+        let avalanche = avalanche::Constructor::default_with_version(version);
+        let avalanchego = avalanchego::Constructor::default_with_version(version);
         let subnet = subnet::Constructor::default_with_version(version);
         let testnet_id = testnet_id::Constructor::default_with_version(version);
 
@@ -37,6 +44,8 @@ impl ConstructorOperations for Constructor {
             cp $MOVEMENT_DIR/bin/subnet $MOVEMENT_DIR/bin/$(cat $MOVEMENT_DIR/rsc/testnet-id)
             "#.to_string(),
         ).with_dependencies(vec![
+            avalanche.into(),
+            avalanchego.into(),
             testnet_id.into(),
             subnet.into(),
         ].into_iter().collect())
@@ -58,7 +67,7 @@ pub mod test {
 
     #[cfg(target_os = "macos")]
     #[tokio::test]
-    async fn test_curl_macos() -> Result<(), anyhow::Error> {
+    async fn test_testnet() -> Result<(), anyhow::Error> {
         
         let temp_home = tempfile::tempdir()?;   
     

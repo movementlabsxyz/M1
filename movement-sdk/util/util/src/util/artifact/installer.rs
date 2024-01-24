@@ -7,7 +7,7 @@ use super::registry::{
     ArtifactRegistry,
     ArtifactRegistryOperations
 };
-use super::{ArtifactStatus, artifact, ArtifactDependency};
+use super::ArtifactStatus;
 use anyhow::anyhow;
 use crate::movement_dir::MovementDir;
 
@@ -65,8 +65,9 @@ impl InstallerOperations for BasicInstaller {
     
         while let Some(dependency) = queue.pop() {
 
-            println!("Resolving dependency: {:?}", dependency.known_artifact());
-
+            #[cfg(feature = "logging")]
+            println!("Resolving dependencies for {}", dependency);
+        
             match movement_dir.resolutions.get(&dependency) {
                 Some(artifact) => {
                     resolutions.add(dependency.clone(), artifact.clone());
@@ -108,18 +109,17 @@ impl InstallerOperations for BasicInstaller {
             }
         }
         for artifact in uninstalls {
+
+            #[cfg(feature = "logging")]
+            println!("Uninstalling artifact: { }", artifact);
+
             artifact.uninstall(movement_dir).await?;
         }
 
-        println!("Preparing for installs...");
         // Handle installs
         let resolutions_owned = movement_dir.resolutions.clone();
         let artifact_resolutions : ArtifactResolutions = resolutions_owned.try_into()?;
         let resolution_plan : ArtifactResolutionPlan = artifact_resolutions.try_into()?;
-
-        // todo: add logging
-
-        println!("Installing artifacts... {:?}", resolution_plan.0);
 
         for artifacts in resolution_plan.0 {
 
@@ -127,7 +127,8 @@ impl InstallerOperations for BasicInstaller {
 
             for artifact in artifacts {
 
-                println!("Installing artifact: {:?}", artifact.known_artifact);
+                #[cfg(feature = "logging")]
+                println!("Installing artifact: { }", artifact);
 
                 let future = async move {
 

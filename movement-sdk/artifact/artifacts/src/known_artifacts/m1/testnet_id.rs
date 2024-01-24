@@ -29,8 +29,8 @@ impl ConstructorOperations for Constructor {
 
     }
 
-    fn default_with_version(_ : &util::util::util::Version) -> Self::Artifact {
-        Self::default()
+    fn default_with_version(version : &util::util::util::Version) -> Self::Artifact {
+        Self::default().with_version(version.clone())
     }
 
     fn from_config(_ : &Self::Config) -> Self::Artifact {
@@ -47,7 +47,7 @@ pub mod test {
 
     #[cfg(target_os = "macos")]
     #[tokio::test]
-    async fn test_m1_with_submodules() -> Result<(), anyhow::Error> {
+    async fn test_testnet_id_with_submodules() -> Result<(), anyhow::Error> {
         
         let temp_home = tempfile::tempdir()?;
 
@@ -66,48 +66,14 @@ pub mod test {
             "/usr/bin".to_string(), "/bin".to_string(),
         ])?;
         artifact.install(&movement_dir).await?;
-
-
-        // ls movement_dir
-        let mut entries = tokio::fs::read_dir(&movement_dir.path.join("src/m1-with-submodules")).await?;
-        while let Some(entry) = entries.next_entry().await? {
-            println!("{:?}", entry.path());
-        }
-
         assert!(tokio::fs::try_exists(
-            dir.join("src").join("m1-with-submodules")
+            dir.join("rsc").join("testnet-id")
         ).await?);
 
         Ok(())
 
     }
 
-    #[derive(Debug, Clone)]
-    pub struct Fake;
-
-    impl ConstructorOperations for Fake {
-
-        type Artifact = Artifact;
-        type Config = Config;
-
-        fn default() -> Self::Artifact {
-            Artifact::self_contained_script(
-                "avalanche".to_string(),
-                r#"
-                    echo fake
-                "#.to_string(),
-            )
-        }
-
-        fn default_with_version(_ : &util::util::util::Version) -> Self::Artifact {
-            Self::default()
-        }
-
-        fn from_config(_ : &Self::Config) -> Self::Artifact {
-            Self::default()
-        }
-
-    }
 
 
 }
