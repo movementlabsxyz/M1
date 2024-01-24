@@ -39,33 +39,6 @@ impl ConstructorOperations for Constructor {
 
 }
 
-#[derive(Debug, Clone)]
-pub struct Fake;
-
-impl ConstructorOperations for Fake {
-
-    type Artifact = Artifact;
-    type Config = Config;
-
-    fn default() -> Self::Artifact {
-        Artifact::self_contained_script(
-            "curl".to_string(),
-            r#"
-                echo fake
-            "#.to_string(),
-        )
-    }
-
-    fn default_with_version(_ : &util::util::util::Version) -> Self::Artifact {
-        Self::default()
-    }
-
-    fn from_config(_ : &Self::Config) -> Self::Artifact {
-        Self::default()
-    }
-
-}
-
 #[cfg(test)]
 pub mod test {
 

@@ -1,9 +1,10 @@
 use util::{
     artifact::Artifact,
-    util::util::patterns::constructor::ConstructorOperations
+    util::util::patterns::constructor::ConstructorOperations,
+    util::util::version
 };
 use super::{
-    m1_with_submodules,
+    testnet_id,
     subnet
 };
 
@@ -20,47 +21,26 @@ impl ConstructorOperations for Constructor {
 
     fn default() -> Self::Artifact {
 
-        Artifact::noop("testnet".to_string())
-        .with_dependencies(vec![
-            subnet::Constructor::default().into()
-        ].into_iter().collect()) // Should already be installed on macOS
+        Self::default_with_version(&version::Version::Latest)
 
     }
 
     fn default_with_version(version : &util::util::util::Version) -> Self::Artifact {
         // source should have the same version
-        let source = m1_with_submodules::Constructor::default_with_version(version);
-        Artifact::noop("subnet".to_string())
-        .with_dependencies(vec![
-            source.into()
-        ].into_iter().collect())
-    }
+        let subnet = subnet::Constructor::default_with_version(version);
+        let testnet_id = testnet_id::Constructor::default_with_version(version);
 
-    fn from_config(_ : &Self::Config) -> Self::Artifact {
-        Self::default()
-    }
-
-}
-
-#[derive(Debug, Clone)]
-pub struct Fake;
-
-impl ConstructorOperations for Fake {
-
-    type Artifact = Artifact;
-    type Config = Config;
-
-    fn default() -> Self::Artifact {
         Artifact::self_contained_script(
-            "curl".to_string(),
+            "subnet".to_string(),
             r#"
-                echo fake
+            echo $MOVEMENT_DIR
+            cp $MOVEMENT_DIR/bin/subnet $MOVEMENT_DIR/bin/$(cat $MOVEMENT_DIR/rsc/testnet-id)
             "#.to_string(),
-        )
-    }
+        ).with_dependencies(vec![
+            testnet_id.into(),
+            subnet.into(),
+        ].into_iter().collect())
 
-    fn default_with_version(_ : &util::util::util::Version) -> Self::Artifact {
-        Self::default()
     }
 
     fn from_config(_ : &Self::Config) -> Self::Artifact {
@@ -68,6 +48,7 @@ impl ConstructorOperations for Fake {
     }
 
 }
+
 
 #[cfg(test)]
 pub mod test {

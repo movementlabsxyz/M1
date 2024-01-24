@@ -1,7 +1,7 @@
-use util::artifact::{registry::{
+use util::artifact::registry::{
     ArtifactRegistry,
     ArtifactRegistryOperations
-}, artifact};
+};
 use crate::known_artifacts::*;
 use util::util::util::patterns::constructor::ConstructorOperations;
 
@@ -53,7 +53,7 @@ pub mod test {
         let movement_installer = MovementInstaller::new();
         let registry = Constructor::new().new_registry().await?;
 
-        let movement_dir = movement_installer.install(
+        movement_installer.install(
             movement_dir,
             &registry,
             vec![
