@@ -33,8 +33,8 @@ impl ConstructorOperations for Constructor {
         Self::default().with_version(version.clone())
     }
 
-    fn from_config(_ : &Self::Config) -> Self::Artifact {
-        Self::default()
+    fn from_config(version : &util::util::util::Version, _ : &Self::Config) -> Self::Artifact {
+        Self::default_with_version(version)
     }
 
 }
@@ -45,7 +45,6 @@ pub mod test {
     use super::*;
     use util::movement_dir::MovementDir;
 
-    #[cfg(target_os = "macos")]
     #[tokio::test]
     async fn test_testnet_id_with_submodules() -> Result<(), anyhow::Error> {
         

@@ -65,7 +65,7 @@ impl ConstructorOperations for Constructor {
         let movement = Self::build();
 
         #[cfg(target_os = "windows")]
-        let movement = Artifact::unsupported();
+        let movement = Artifact::unsupported("subnet".to_string());
 
         movement
 
@@ -76,7 +76,7 @@ impl ConstructorOperations for Constructor {
         .with_version(version.clone())
     }
 
-    fn from_config(config : &Self::Config) -> Self::Artifact {
+    fn from_config(_ : &util::util::util::Version, config : &Self::Config) -> Self::Artifact {
 
         if config.build {
             Self::build()
@@ -134,33 +134,6 @@ pub mod test {
         assert!(exists);
 
         Ok(())
-
-    }
-
-    #[derive(Debug, Clone)]
-    pub struct Fake;
-
-    impl ConstructorOperations for Fake {
-
-        type Artifact = Artifact;
-        type Config = Config;
-
-        fn default() -> Self::Artifact {
-            Artifact::self_contained_script(
-                "avalanche".to_string(),
-                r#"
-                    echo fake
-                "#.to_string(),
-            )
-        }
-
-        fn default_with_version(_ : &util::util::util::Version) -> Self::Artifact {
-            Self::default()
-        }
-
-        fn from_config(_ : &Self::Config) -> Self::Artifact {
-            Self::default()
-        }
 
     }
 

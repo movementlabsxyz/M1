@@ -43,7 +43,7 @@ impl ConstructorOperations for Constructor {
         );
 
         #[cfg(target_os = "windows")]
-        let avalanche = Artifact::unsupported();
+        let avalanche = Artifact::unsupported("avalanche".to_string());
 
         avalanche
     }
@@ -52,7 +52,7 @@ impl ConstructorOperations for Constructor {
         Self::default()
     }
 
-    fn from_config(_ : &Self::Config) -> Self::Artifact {
+    fn from_config(_ : &util::util::util::Version, _ : &Self::Config) -> Self::Artifact {
         Self::default()
     }
 
@@ -160,7 +160,7 @@ pub mod test {
             Self::default()
         }
 
-        fn from_config(_ : &Self::Config) -> Self::Artifact {
+        fn from_config(_ : &util::util::util::Version, _ : &Self::Config) -> Self::Artifact {
             Self::default()
         }
 

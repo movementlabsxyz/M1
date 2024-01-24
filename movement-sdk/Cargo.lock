@@ -8895,6 +8895,7 @@ dependencies = [
  "semver",
  "serde 1.0.195",
  "serde_json",
+ "services",
  "sui",
  "tempfile",
  "tokio",

@@ -1,7 +1,9 @@
 use util::{
     service::Service,
-    util::util::patterns::constructor::ConstructorOperations
+    util::util::patterns::constructor::ConstructorOperations,
+    util::util::version
 };
+use artifacts::known_artifacts::m1::testnet;
 
 #[derive(Debug, Clone)]
 pub struct Config;
@@ -16,23 +18,30 @@ impl ConstructorOperations for Constructor {
 
     fn default() -> Self::Artifact {
 
-        Service::foreground(
-            "testnet".to_string(), 
-            r#"
-            echo $MOVEMENT_DIR
-            $MOVEMENT_DIR/bin/avalanchego --fuji --track-subnets=
-            "#.to_string(), 
-            vec![]
-        )
+       Self::default_with_version(&version::Version::Latest)
 
     }
 
     fn default_with_version(version : &util::util::util::Version) -> Self::Artifact {
-        Self::default()
+        
+        Service::foreground(
+            "testnet".to_string(), 
+            r#"
+            set -e
+            echo $MOVEMENT_DIR
+            $MOVEMENT_DIR/bin/avalanchego --network-id=fuji --track-subnets=$(cat $MOVEMENT_DIR/rsc/testnet-vmid)
+            "#.to_string(), 
+            vec![
+                testnet::Constructor::default_with_version(
+                    version
+                ).into()
+            ]
+        )
+
     }
 
-    fn from_config(_ : &Self::Config) -> Self::Artifact {
-        Self::default()
+    fn from_config(version : &util::util::util::Version, _ : &Self::Config) -> Self::Artifact {
+        Self::default_with_version(version)
     }
 
 }

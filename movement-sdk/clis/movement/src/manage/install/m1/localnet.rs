@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use clap::Parser;
 use util::{cli::Command, util::util::constructor::ConstructorOperations};
 use artifacts::known_artifacts::{
-    install_default,
+    install,
     m1::m1_with_submodules
 };
 use crate::manage::{
@@ -10,6 +10,7 @@ use crate::manage::{
     VersionArgs
 };
 use util::util::util::Version;
+use util::movement_dir::MovementDir;
 
 
 #[derive(Debug, Parser, Clone)]
@@ -39,14 +40,19 @@ impl Command<String> for Localnet {
 
     async fn execute(self) -> Result<String, anyhow::Error> {
 
+        let movement_dir = MovementDir::default();
         let config : m1_with_submodules::Config = self.clone().into();
         let version : Version = self.version_args.try_into()?;
 
         let artifact = m1_with_submodules::Constructor::from_config(
+            &version,
             &config
-        ).with_version(version);
+        );
 
-        install_default(vec![artifact.into()]).await?;
+        install(
+            movement_dir,
+            vec![artifact.into()]
+        ).await?;
 
         Ok("SUCCESS".to_string())
     }

@@ -19,7 +19,7 @@ impl ConstructorOperations for Constructor {
         #[cfg(target_os = "macos")]
         let git = Artifact::noop("git".to_string()); // Should already be installed on macOS
 
-        #[cfg(target_os = "ubuntu")]
+        #[cfg(not(target_os = "macos"))]
         let git = Artifact::self_contained_script(
             "git".to_string(),
             r#"
@@ -29,8 +29,7 @@ impl ConstructorOperations for Constructor {
             "#.to_string(),
         );
 
-        #[cfg(not(any(target_os = "macos", target_os = "ubuntu")))]
-        let git = Artifact::unsupported();
+        // todo: update for windows
 
         git
 
@@ -40,34 +39,7 @@ impl ConstructorOperations for Constructor {
         Self::default()
     }
 
-    fn from_config(_ : &Self::Config) -> Self::Artifact {
-        Self::default()
-    }
-
-}
-
-#[derive(Debug, Clone)]
-pub struct Fake;
-
-impl ConstructorOperations for Fake {
-
-    type Artifact = Artifact;
-    type Config = Config;
-
-    fn default() -> Self::Artifact {
-        Artifact::self_contained_script(
-            "git".to_string(),
-            r#"
-                echo fake
-            "#.to_string(),
-        )
-    }
-
-    fn default_with_version(_ : &util::util::util::Version) -> Self::Artifact {
-        Self::default()
-    }
-
-    fn from_config(_ : &Self::Config) -> Self::Artifact {
+    fn from_config(_ : &util::util::util::Version, _ : &Self::Config) -> Self::Artifact {
         Self::default()
     }
 

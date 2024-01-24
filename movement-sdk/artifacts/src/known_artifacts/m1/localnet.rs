@@ -33,8 +33,8 @@ impl ConstructorOperations for Constructor {
         ].into_iter().collect())
     }
 
-    fn from_config(_ : &Self::Config) -> Self::Artifact {
-        Self::default()
+    fn from_config(version : &util::util::util::Version, _ : &Self::Config) -> Self::Artifact {
+        Self::default_with_version(version)
     }
 
 }

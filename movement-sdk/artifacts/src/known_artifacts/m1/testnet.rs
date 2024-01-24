@@ -4,6 +4,8 @@ use util::{
     util::util::version
 };
 use super::{
+    testnet_vmid,
+    testnet_cid,
     testnet_id,
     subnet,
     super::third_party::avalanche::{
@@ -32,27 +34,31 @@ impl ConstructorOperations for Constructor {
 
     fn default_with_version(version : &util::util::util::Version) -> Self::Artifact {
         // source should have the same version
-        let avalanche = avalanche::Constructor::default_with_version(version);
-        let avalanchego = avalanchego::Constructor::default_with_version(version);
+        let avalanche = avalanche::Constructor::default();
+        let avalanchego = avalanchego::Constructor::default();
         let subnet = subnet::Constructor::default_with_version(version);
         let testnet_id = testnet_id::Constructor::default_with_version(version);
+        let testnet_cid = testnet_cid::Constructor::default_with_version(version);
+        let testnet_vmid = testnet_vmid::Constructor::default_with_version(version);
 
         Artifact::self_contained_script(
             "testnet".to_string(),
             r#"
             echo $MOVEMENT_DIR
-            cp $MOVEMENT_DIR/bin/subnet $MOVEMENT_DIR/bin/$(cat $MOVEMENT_DIR/rsc/testnet-id)
+            cp $MOVEMENT_DIR/bin/subnet $MOVEMENT_DIR/bin/$(cat $MOVEMENT_DIR/rsc/testnet-vmid)
             "#.to_string(),
         ).with_dependencies(vec![
             avalanche.into(),
             avalanchego.into(),
             testnet_id.into(),
+            testnet_cid.into(),
+            testnet_vmid.into(),
             subnet.into(),
         ].into_iter().collect())
 
     }
 
-    fn from_config(_ : &Self::Config) -> Self::Artifact {
+    fn from_config(_ : &util::util::util::Version, _ : &Self::Config) -> Self::Artifact {
         Self::default()
     }
 

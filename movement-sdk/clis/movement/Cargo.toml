@@ -17,6 +17,7 @@ serde_json = { workspace = true }
 const-str = { workspace = true }
 util = { workspace = true }
 artifacts = { workspace = true }
+services = { workspace = true }
 
 # aptos and sui only if features are enabled
 
