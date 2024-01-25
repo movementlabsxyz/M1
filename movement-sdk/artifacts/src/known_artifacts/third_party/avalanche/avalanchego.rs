@@ -1,4 +1,5 @@
 use util::{
+    checker::Checker,
     artifact::Artifact,
     util::util::patterns::constructor::ConstructorOperations
 };
@@ -41,6 +42,8 @@ impl ConstructorOperations for Constructor {
             vec![
                 git::Constructor::default().into(),
             ].into_iter().collect()
+        ).with_checker(
+            Checker::command_exists("avalanchego".to_string())
         )
     }
 

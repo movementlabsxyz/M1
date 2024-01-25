@@ -1,4 +1,4 @@
-use services::m1::proxy;
+use services::m1::mevm;
 use async_trait::async_trait;
 use clap::Parser;
 use util::{cli::Command, util::util::constructor::ConstructorOperations};
@@ -11,7 +11,7 @@ use util::service::ServiceOperations;
 use util::movement_dir::MovementDir;
 
 #[derive(Debug, Parser, Clone)]
-pub struct Proxy {
+pub struct Mevm {
     
     #[clap(flatten)]
     pub version_args : VersionArgs,
@@ -21,18 +21,18 @@ pub struct Proxy {
 
 }
 
-impl Into<proxy::Config> for Proxy {
-    fn into(self) -> proxy::Config {
-        proxy::Config
+impl Into<mevm::Config> for Mevm {
+    fn into(self) -> mevm::Config {
+        mevm::Config
     }
 }
 
 
 #[async_trait]
-impl Command<String> for Proxy {
+impl Command<String> for Mevm {
 
     async fn get_name(&self) -> String {
-        "proxy".to_string()
+        "mevm".to_string()
     }
 
     async fn execute(self) -> Result<String, anyhow::Error> {
@@ -40,10 +40,10 @@ impl Command<String> for Proxy {
         let movement_dir = MovementDir::default();
 
         // todo: handle config and version
-        let config : proxy::Config = self.clone().into();
+        let config : mevm::Config = self.clone().into();
         let version : Version = self.version_args.try_into()?;
 
-        let service = proxy::Constructor::default();
+        let service = mevm::Constructor::default();
 
         service.start(&movement_dir).await?;
 

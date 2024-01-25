@@ -1,4 +1,5 @@
 use util::{
+    checker::Checker,
     artifact::Artifact,
     util::util::patterns::constructor::ConstructorOperations
 };
@@ -45,7 +46,10 @@ impl ConstructorOperations for Constructor {
         #[cfg(target_os = "windows")]
         let avalanche = Artifact::unsupported("avalanche".to_string());
 
-        avalanche
+        avalanche.with_checker(
+            Checker::command_exists("avalanche".to_string())
+        )
+        
     }
 
     fn default_with_version(_ : &util::util::util::Version) -> Self::Artifact {

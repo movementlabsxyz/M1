@@ -1,4 +1,5 @@
 use util::{
+    checker::Checker,
     artifact::Artifact,
     util::util::patterns::constructor::ConstructorOperations
 };
@@ -16,8 +17,9 @@ impl ConstructorOperations for Constructor {
 
     fn default() -> Self::Artifact {
 
-        #[cfg(target_os = "macos")]
-        Artifact::noop("curl".to_string()) // Should already be installed on macOS
+        Artifact::noop("curl".to_string()).with_checker(
+            Checker::command_exists("curl".to_string())
+        ) // Should already be installed on macOS
 
     }
 

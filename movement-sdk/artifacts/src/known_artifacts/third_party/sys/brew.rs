@@ -1,4 +1,5 @@
 use util::{
+    checker::Checker,
     artifact::Artifact,
     util::util::patterns::constructor::ConstructorOperations
 };
@@ -35,10 +36,12 @@ impl ConstructorOperations for Constructor {
             ].into_iter().collect()
         );
 
-        #[cfg(target_os = "windows")]
+        #[cfg(not(target_os = "macos"))]
         let avalanche = Artifact::unsupported("brew".to_string());
 
-        avalanche
+        avalanche.with_checker(
+            Checker::command_exists("brew".to_string())
+        )
     }
 
     fn default_with_version(_ : &util::util::util::Version) -> Self::Artifact {

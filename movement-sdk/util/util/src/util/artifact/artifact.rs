@@ -327,12 +327,17 @@ impl Artifact {
         Self {
             known_artifact : KnownArtifact::Name(name.clone()),
             release,
-            location : PathBuf::from("bin").join(name).into(),
+            location : PathBuf::from("bin").join(name.clone()).into(),
             version : Version::Latest,
             builder : Builder::Release(builder::release::Release::new()),
-            checker : Checker::Noop,
+            checker : Checker::command_exists(name),
             dependencies : BTreeSet::new()
         }
+    }
+
+    pub fn with_checker(mut self, checker : Checker) -> Self {
+        self.checker = checker;
+        self
     }
 
 }

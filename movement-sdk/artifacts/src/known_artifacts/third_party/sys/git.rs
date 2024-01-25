@@ -1,4 +1,5 @@
 use util::{
+    checker::Checker,
     artifact::Artifact,
     util::util::patterns::constructor::ConstructorOperations
 };
@@ -31,7 +32,9 @@ impl ConstructorOperations for Constructor {
 
         // todo: update for windows
 
-        git
+        git.with_checker(
+            Checker::command_exists("git".to_string())
+        )
 
     }
 

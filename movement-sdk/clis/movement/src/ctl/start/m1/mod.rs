@@ -1,4 +1,5 @@
 pub mod proxy;
+pub mod mevm;
 pub mod testnet;
 pub mod indexer;
 pub mod m1;

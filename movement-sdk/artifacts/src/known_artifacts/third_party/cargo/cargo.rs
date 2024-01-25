@@ -1,4 +1,5 @@
 use util::{
+    checker::Checker,
     artifact::Artifact,
     util::util::patterns::constructor::ConstructorOperations
 };
@@ -22,6 +23,8 @@ impl ConstructorOperations for Constructor {
             source "$HOME/.cargo/env"
             cargo --version
             "#.to_string(),
+        ).with_checker(
+            Checker::command_exists("cargo".to_string())
         )
     }
 
