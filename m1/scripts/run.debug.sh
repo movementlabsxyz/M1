@@ -5,4 +5,4 @@ if ! [[ "$0" =~ scripts/run.debug.sh ]]; then
   exit 255
 fi
 
-SUBNET_TIMEOUT=300000 ./scripts/tests.debug.sh 
+SUBNET_TIMEOUT=-1 ./scripts/tests.debug.sh 
