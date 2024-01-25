@@ -86,3 +86,4 @@ sui-types = { path = "../vendors/sui/crates/sui-types" }
 sui-core = { path = "../vendors/sui/crates/sui-core" }
 sui-swarm-config = { path = "../vendors/sui/crates/sui-swarm-config" }
 sui-test-transaction-builder = { path = "../vendors/sui/crates/sui-test-transaction-builder" }
+typed-store = { path = "../vendors/sui/crates/typed-store" }

@@ -14,7 +14,7 @@ pub struct Block(Vec<SenderSignedData>);
 pub struct VerifiedExecutableBlock(Vec<VerifiedExecutableTransaction>);
 
 #[derive(Debug, Clone)]
-pub struct VerifiedExecutableExecutionGroups(Vec<Vec<VerifiedExecutableTransaction>>);
+pub struct VerifiedExecutableExecutionGroups(pub Vec<Vec<VerifiedExecutableTransaction>>);
 
 impl IntoIterator for VerifiedExecutableExecutionGroups {
     type Item = Vec<VerifiedExecutableTransaction>;
