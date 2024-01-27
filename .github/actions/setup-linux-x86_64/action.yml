@@ -24,8 +24,3 @@ runs:
       with:
         profile: minimal
         toolchain: 1.70
-
-    - name: Add cargo flash
-      run: |
-        cargo install cargo-flash
-      shell: bash
