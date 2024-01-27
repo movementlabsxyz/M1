@@ -17,13 +17,53 @@ pub struct Mevm {
     pub version_args : VersionArgs,
 
     #[clap(flatten)]
-    pub installation_args : InstallationArgs
+    pub installation_args : InstallationArgs,
+
+    #[clap(flatten)]
+    pub config_args : ConfigArgs,
 
 }
 
-impl Into<mevm::Config> for Mevm {
-    fn into(self) -> mevm::Config {
-        mevm::Config
+#[derive(Debug, Parser, Clone)]
+pub struct ConfigArgs {
+
+    #[clap(
+        long,
+        default_value = mevm::Config::DEFAULT_EVM_SENDER
+    )]
+    pub evm_sender : String,
+
+    #[clap(
+        long,
+        default_value = mevm::Config::DEFAULT_FAUCET_SENDER
+    )]
+    pub faucet_sender : String,
+
+    #[clap(
+        long,
+        default_value = mevm::Config::DEFAULT_NODE_URL
+    )]
+    pub node_url : String,
+
+}
+
+impl From <mevm::Config> for ConfigArgs {
+    fn from(config : mevm::Config) -> ConfigArgs {
+        ConfigArgs {
+            evm_sender : config.evm_sender,
+            faucet_sender : config.faucet_sender,
+            node_url : config.node_url
+        }
+    }
+}
+
+impl From<ConfigArgs> for mevm::Config {
+    fn from(config_args : ConfigArgs) -> mevm::Config {
+        mevm::Config {
+            evm_sender : config_args.evm_sender,
+            faucet_sender : config_args.faucet_sender,
+            node_url : config_args.node_url
+        }
     }
 }
 
@@ -40,10 +80,13 @@ impl Command<String> for Mevm {
         let movement_dir = MovementDir::default();
 
         // todo: handle config and version
-        let config : mevm::Config = self.clone().into();
+        let config : mevm::Config = self.config_args.clone().into();
         let version : Version = self.version_args.try_into()?;
 
-        let service = mevm::Constructor::default();
+        let service = mevm::Constructor::from_config(
+            &version,
+            &config
+        );
 
         service.start(&movement_dir).await?;
 

@@ -90,6 +90,7 @@ aptos-executor = { path = "../vendors/aptos-core/execution/executor" }
 aptos-executor-types = { path = "../vendors/aptos-core/execution/executor-types" }
 aptos-storage-interface = { path = "../vendors/aptos-core/storage/storage-interface" }
 aptos-crypto = { path = "../vendors/aptos-core/crates/aptos-crypto" }
+once_cell = "1.8.0"
 
 # sui
 sui-adapter-latest = { path = "../vendors/sui/sui-execution/latest/sui-adapter" }

@@ -18,6 +18,7 @@ const-str = { workspace = true }
 util = { workspace = true }
 artifacts = { workspace = true }
 services = { workspace = true }
+once_cell = { workspace = true }
 
 # aptos and sui only if features are enabled
 

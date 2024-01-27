@@ -18,3 +18,4 @@ semver = { workspace = true }
 serde_json = { workspace = true }
 const-str = { workspace = true }
 test-helpers = { workspace = true }
+once_cell = { workspace = true }
