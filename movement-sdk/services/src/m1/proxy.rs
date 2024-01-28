@@ -13,7 +13,7 @@ pub struct Config {
 
 impl Config {
 
-    pub const BASE_URL : &str = "https://subnet.testnet.movementlabs.xyz/v1";
+    pub const BASE_URL : &str = "https://subnet.testnet.m1.movementlabs.xyz/v1";
     pub const SUBNET_ID : &str = "2vUTKYZBbLtXnfCL2RF5XEChZf1wxVYQqxZQQCShMmseSKSiee";
 
 }

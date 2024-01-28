@@ -140,7 +140,7 @@ jobs:
       - name: Build Mac binaries
         run: |
           cd "$GITHUB_WORKSPACE/movement-sdk"
-          cargo build --release
+          cargo build --release -p movement --features "aptos,sui"
           
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
@@ -186,7 +186,7 @@ jobs:
       - name: Build Mac binaries
         run: |
           cd "$GITHUB_WORKSPACE/movement-sdk"
-          cargo build --release
+          cargo build --release -p movement --features "aptos,sui"
 
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
@@ -232,7 +232,7 @@ jobs:
       - name: Build Mac binaries
         run: |
           cd "$GITHUB_WORKSPACE/movement-sdk"
-          cargo build --release
+          cargo build --release -p movement --features "aptos,sui"
           
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
@@ -295,10 +295,10 @@ jobs:
           cd "$GITHUB_WORKSPACE/m1"
           cargo build --release --target x86_64-pc-windows-gnu
 
-      - name: Build Mac binaries
+      - name: Build Windows binaries
         run: |
           cd "$GITHUB_WORKSPACE/movement-sdk"
-          cargo build --release --target x86_64-pc-windows-gnu
+          cargo build --release -p movement --features "aptos,sui"
 
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
