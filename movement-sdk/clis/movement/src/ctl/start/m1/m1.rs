@@ -1,6 +1,7 @@
 use clap::Subcommand;
 use util::cli::Command;
 use super::{
+    localnet::Localnet,
     testnet::Testnet,
     mevm::Mevm,
     proxy::Proxy
@@ -12,6 +13,7 @@ use super::{
     about = "Start an M1 service"
 )]
 pub enum M1 {
+    Localnet(Localnet),
     Testnet(Testnet),
     Mevm(Mevm),
     Proxy(Proxy)
@@ -27,6 +29,7 @@ impl Command<String> for M1 {
     async fn execute(self) -> Result<String, anyhow::Error> {
 
         match self {
+            M1::Localnet(localnet) => localnet.execute().await?,
             M1::Testnet(testnet) => testnet.execute().await?,
             M1::Mevm(mevm) => mevm.execute().await?,
             M1::Proxy(proxy) => proxy.execute().await?
