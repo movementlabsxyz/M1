@@ -106,6 +106,7 @@ impl Block {
     }
 
     /// Returns the parent block Id.
+    #[allow(dead_code)]
     pub fn parent_id(&self) -> ids::Id {
         self.parent_id
     }
@@ -116,11 +117,13 @@ impl Block {
     }
 
     /// Returns the timestamp of this block.
+    #[allow(dead_code)]
     pub fn timestamp(&self) -> u64 {
         self.timestamp
     }
 
     /// Returns the data of this block.
+    #[allow(dead_code)]
     pub fn data(&self) -> &[u8] {
         &self.data
     }
@@ -136,6 +139,7 @@ impl Block {
     }
 
     /// Returns the byte representation of this block.
+    #[allow(dead_code)]
     pub fn bytes(&self) -> &[u8] {
         &self.bytes
     }
@@ -210,8 +214,8 @@ impl Block {
 
     /// Mark this [`Block`](Block) accepted and updates [`State`](crate::state::State) accordingly.
     pub async fn accept(&mut self) -> io::Result<()> {
+        log::info!("accept block height {} ", self.height);
         self.inner_build().await?;
-        println!("-----accept----1---");
         self.set_status(choices::status::Status::Accepted);
         // only decided blocks are persistent -- no reorg
         self.state.write_block(&self.clone()).await?;
@@ -231,7 +235,7 @@ impl Block {
     /// Mark this [`Block`](Block) rejected and updates [`State`](crate::state::State) accordingly.
     pub async fn reject(&mut self) -> io::Result<()> {
         self.set_status(choices::status::Status::Rejected);
-        println!("-----reject----1---");
+        log::info!(">>>>>>>>>> reject >>>>>>>>>>");
         // only decided blocks are persistent -- no reorg
         self.state.write_block(&self.clone()).await?;
 
@@ -249,7 +253,6 @@ impl fmt::Display for Block {
         write!(f, "{serialized}")
     }
 }
-
 
 #[tonic::async_trait]
 impl subnet::rpc::consensus::snowman::Block for Block {
@@ -293,4 +296,3 @@ impl subnet::rpc::consensus::snowman::Decidable for Block {
         self.reject().await
     }
 }
-

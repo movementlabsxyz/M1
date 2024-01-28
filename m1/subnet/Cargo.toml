@@ -52,6 +52,7 @@ bcs = { workspace = true }
 aptos-indexer = { workspace = true }
 aptos-indexer-grpc-fullnode = { workspace = true }
 aptos-protos = { workspace = true }
+poem-openapi = { workspace = true }
 
 # todo: differs from workspace because of e2e tests crate I believe, need to check
 clap = { version = "4.4.8", features = ["cargo", "derive"] } 
