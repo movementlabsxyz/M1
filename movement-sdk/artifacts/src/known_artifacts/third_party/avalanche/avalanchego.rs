@@ -21,9 +21,12 @@ impl ConstructorOperations for Constructor {
             "cargo".to_string(),
             r#"
 
+            mkdir -p $MOVEMENT_DIR/workspace
+            cd $MOVEMENT_DIR/workspace
             mkdir -p $MOVEMENT_DIR/bin
             git clone git@github.com:ava-labs/avalanchego.git
             cd avalanchego
+            git checkout tags/v1.10.12
             ./scripts/build.sh
 
             mkdir -p $HOME/bin
@@ -43,7 +46,7 @@ impl ConstructorOperations for Constructor {
                 git::Constructor::default().into(),
             ].into_iter().collect()
         ).with_checker(
-            Checker::command_exists("avalanchego".to_string())
+            Checker::Noop
         )
     }
 

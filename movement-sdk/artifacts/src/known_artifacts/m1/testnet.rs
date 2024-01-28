@@ -45,7 +45,8 @@ impl ConstructorOperations for Constructor {
             "testnet".to_string(),
             r#"
             echo $MOVEMENT_DIR
-            cp $MOVEMENT_DIR/bin/subnet $MOVEMENT_DIR/bin/$(cat $MOVEMENT_DIR/rsc/testnet-vmid)
+            mkdir -p $MOVEMENT_DIR/avalanchego/plugins
+            cp $MOVEMENT_DIR/bin/subnet $MOVEMENT_DIR/avalanchego/plugins/$(cat $MOVEMENT_DIR/rsc/testnet-vmid)
             "#.to_string(),
         ).with_dependencies(vec![
             avalanche.into(),
