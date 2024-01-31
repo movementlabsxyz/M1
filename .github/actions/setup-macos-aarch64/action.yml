@@ -24,7 +24,7 @@ runs:
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: 1.70
+        toolchain: 1.73
 
     - name: Export LLVM path
       run: echo "LLVM_SYS_130_PREFIX=$(brew --prefix llvm)" >> $GITHUB_ENV

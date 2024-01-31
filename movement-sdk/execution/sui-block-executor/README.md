@@ -115,4 +115,4 @@ A more optimistic alternative is to use something similar to Block-STM with reru
 `execute_transaction_to_effects` accomplishes a good deal of this. But, we still need to decide upon what to do about checkpoints and epochs. This can be tabled for now.
 
 ## Integration with Aptos
-This is actually fairly straightforward on the Sui side. `new_move_vm` allows us to accept the Aptos function table. However, 
+This is actually fairly straightforward on the Sui side. `new_move_vm` allows us to accept the Aptos function table.

@@ -186,6 +186,7 @@ show_config(){
 }
 
 setup() {
+  
   log_warning "Removing previous installation, if one exists."
   rm -rf "$AVALANCHEGO_DIR" "$AVALANCHEGO_DIR/plugins" "$MOVEMENT_DIR" "$PLUGINS_DIR" "$BIN_DIR" "$MOVEMENT_WORKSPACE"
   log_info "Making new .movement directories."

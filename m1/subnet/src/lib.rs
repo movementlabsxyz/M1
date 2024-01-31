@@ -2,6 +2,7 @@ pub mod api;
 pub mod block;
 pub mod state;
 pub mod vm;
+pub mod util;
 
 use std::io;
 

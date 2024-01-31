@@ -2,7 +2,7 @@
 
 use clap::*;
 use movement::Movement;
-use movement::common::cli::Command;
+use util::cli::Command;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {

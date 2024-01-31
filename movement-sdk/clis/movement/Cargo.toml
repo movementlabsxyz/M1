@@ -15,9 +15,20 @@ tempfile = { workspace = true }
 semver = { workspace = true }
 serde_json = { workspace = true }
 const-str = { workspace = true }
+util = { workspace = true }
+artifacts = { workspace = true }
+services = { workspace = true }
+once_cell = { workspace = true }
+
+# aptos and sui only if features are enabled
 
 # sui
-sui = { path = "../../../vendors/sui/crates/sui" }
+sui = { path = "../../../vendors/sui/crates/sui", optional = true }
 
 # aptos
-aptos = { path = "../../../vendors/aptos-core/crates/aptos" }
+aptos = { path = "../../../vendors/aptos-core/crates/aptos", optional = true }
+
+# features
+[features]
+sui = ["dep:sui"]
+aptos = ["dep:aptos"]

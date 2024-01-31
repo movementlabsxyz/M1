@@ -1,3 +1,3 @@
 pub mod install;
 pub mod manage;
-pub use manage::Manage;
+pub use manage::*;

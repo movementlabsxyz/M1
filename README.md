@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="./rsc/movement_logo.png" alt="Project Logo" width="200" height="200">
+    <img src="https://movementlabs.xyz/wp-content/themes/movement-labs/assets/images/logo.svg" alt="Project Logo" width="200" height="200">
 
 # M1
 

@@ -81,6 +81,36 @@ jobs:
           asset_name: m1-with-submodules.tar.gz
           asset_content_type: application/gzip
 
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./networks/testnet/testnet-id
+          asset_name: testnet-id
+          asset_content_type: text/plain
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./networks/testnet/testnet-vmid
+          asset_name: testnet-vmid
+          asset_content_type: text/plain
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./networks/testnet/testnet-vmid
+          asset_name: testnet-cid
+          asset_content_type: text/plain
+
 
   pre-release-x86_64-linux:
     needs: prepare-release
@@ -110,7 +140,11 @@ jobs:
       - name: Build Mac binaries
         run: |
           cd "$GITHUB_WORKSPACE/movement-sdk"
+<<<<<<< HEAD
           cargo build -p movement --release
+=======
+          cargo build --release -p movement --features "aptos,sui"
+>>>>>>> stage
           
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
@@ -156,7 +190,11 @@ jobs:
       - name: Build Mac binaries
         run: |
           cd "$GITHUB_WORKSPACE/movement-sdk"
+<<<<<<< HEAD
           cargo build -p movement --release
+=======
+          cargo build --release -p movement --features "aptos,sui"
+>>>>>>> stage
 
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
@@ -202,7 +240,7 @@ jobs:
       - name: Build Mac binaries
         run: |
           cd "$GITHUB_WORKSPACE/movement-sdk"
-          cargo build -p movement --release
+          cargo build --release -p movement --features "aptos,sui"
           
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
@@ -265,10 +303,10 @@ jobs:
           cd "$GITHUB_WORKSPACE/m1"
           cargo build --release --target x86_64-pc-windows-gnu
 
-      - name: Build Mac binaries
+      - name: Build Windows binaries
         run: |
           cd "$GITHUB_WORKSPACE/movement-sdk"
-          cargo build --release --target x86_64-pc-windows-gnu
+          cargo build --release -p movement --features "aptos,sui"
 
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
@@ -333,6 +371,14 @@ jobs:
       run: |
         docker buildx create --use
         docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/dev.dockerfile --platform linux/amd64,linux/arm64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG $(if [ "${{ github.ref }}" = "refs/heads/main" ]; then echo "-t $DOCKER_HUB_REPOSITORY:latest"; fi) . --push
+
+    - name: Testnet container # for now this is just the dev container
+      env:
+        DOCKER_HUB_REPOSITORY: mvlbs/m1-testnet # Change to your Docker Hub repository name
+        IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }}
+      run: |
+        docker buildx create --use
+        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/testnet.dockerfile --platform linux/amd64,linux/arm64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG $(if [ "${{ github.ref }}" = "refs/heads/main" ]; then echo "-t $DOCKER_HUB_REPOSITORY:latest"; fi) . --push
       
   run-tests:
     needs:
