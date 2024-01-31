@@ -22,7 +22,7 @@ impl ConstructorOperations for Constructor {
         let avalanche = Artifact::self_contained_script(
             "avalanche".to_string(),
             r#"
-            brew install bash-completion
+            echo $MOVEMENT_DIR
             curl -sSfL https://raw.githubusercontent.com/ava-labs/avalanche-cli/main/scripts/install.sh | sh -s
 
             # add $HOME/bin to path
@@ -39,6 +39,7 @@ impl ConstructorOperations for Constructor {
         ).with_dependencies(
             vec![
                 curl::Constructor::default().into(),
+                #[cfg(target_os = "macos")]
                 brew::Constructor::default().into(),
             ].into_iter().collect()
         );

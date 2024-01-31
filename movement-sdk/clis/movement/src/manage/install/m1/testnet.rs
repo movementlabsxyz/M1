@@ -1,8 +1,8 @@
-use artifacts::known_artifacts::movement;
 use async_trait::async_trait;
 use clap::Parser;
 use util::{cli::Command, util::util::constructor::ConstructorOperations};
 use artifacts::known_artifacts::{
+    m1::m1_with_submodules,
     m1::testnet,
    install
 };
@@ -44,14 +44,22 @@ impl Command<String> for Testnet {
         let config : testnet::Config = self.clone().into();
         let version : Version = self.version_args.try_into()?;
 
-        let artifact = testnet::Constructor::from_config(
+        let testnet = testnet::Constructor::from_config(
             &version,
             &config
         );
 
+        let source = m1_with_submodules::Constructor::from_config(
+            &version,
+            &m1_with_submodules::Config
+        );
+
         install(
             movement_dir,
-            vec![artifact.into()]
+            vec![
+                testnet.into(),
+                source.into()
+            ]
         ).await?;
 
         Ok("SUCCESS".to_string())

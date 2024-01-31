@@ -363,6 +363,14 @@ jobs:
       run: |
         docker buildx create --use
         docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/dev.dockerfile --platform linux/amd64,linux/arm64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG $(if [ "${{ github.ref }}" = "refs/heads/main" ]; then echo "-t $DOCKER_HUB_REPOSITORY:latest"; fi) . --push
+
+    - name: Testnet container # for now this is just the dev container
+      env:
+        DOCKER_HUB_REPOSITORY: mvlbs/m1-testnet # Change to your Docker Hub repository name
+        IMAGE_TAG: ${{ needs.prepare-release.outputs.release_tag }}
+      run: |
+        docker buildx create --use
+        docker buildx build --build-arg VERSION=${{ needs.prepare-release.outputs.release_tag }} -f ./docker/testnet.dockerfile --platform linux/amd64,linux/arm64 -t $DOCKER_HUB_REPOSITORY:$IMAGE_TAG $(if [ "${{ github.ref }}" = "refs/heads/main" ]; then echo "-t $DOCKER_HUB_REPOSITORY:latest"; fi) . --push
       
   run-tests:
     needs:

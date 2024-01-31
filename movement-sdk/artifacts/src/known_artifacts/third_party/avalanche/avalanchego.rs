@@ -21,10 +21,11 @@ impl ConstructorOperations for Constructor {
             "cargo".to_string(),
             r#"
 
+            echo $MOVEMENT_DIR
             mkdir -p $MOVEMENT_DIR/workspace
             cd $MOVEMENT_DIR/workspace
             mkdir -p $MOVEMENT_DIR/bin
-            git clone git@github.com:ava-labs/avalanchego.git
+            git clone https://github.com/ava-labs/avalanchego
             cd avalanchego
             git checkout tags/v1.10.12
             ./scripts/build.sh
@@ -33,7 +34,7 @@ impl ConstructorOperations for Constructor {
             mv ./build/avalanchego $HOME/bin/avalanchego
             cp $HOME/bin/avalanchego $MOVEMENT_DIR/bin/avalanchego
             cd ..
-            rm -rf avalanchego
+            rm -rf $MOVEMENT_DIR/workspace/avalanchego
 
             (echo; echo 'export PATH="$HOME/bin:$PATH"') >> "$HOME/.zshrc"
             (echo; echo 'export PATH="$HOME/bin:$PATH"') >> "$HOME/.bash_profile"

@@ -44,6 +44,7 @@ impl ConstructorOperations for Constructor {
         Artifact::self_contained_script(
             "testnet".to_string(),
             r#"
+            chmod -R 755 $MOVEMENT_DIR
             echo $MOVEMENT_DIR
             mkdir -p $MOVEMENT_DIR/avalanchego/plugins
             cp $MOVEMENT_DIR/bin/subnet $MOVEMENT_DIR/avalanchego/plugins/$(cat $MOVEMENT_DIR/rsc/testnet-vmid)

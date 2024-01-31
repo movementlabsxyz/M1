@@ -13,6 +13,8 @@ COPY --from=golang-base /usr/local/go /usr/local/go
 # Add Golang to the PATH
 ENV PATH="/usr/local/go/bin:${PATH}"
 
+ARG VERSION=0.0.0
+
 # Set environment variables to non-interactive (this prevents some prompts)
 ENV DEBIAN_FRONTEND=non-interactive
 
@@ -28,17 +30,29 @@ RUN apt-get update && apt-get install -y \
 
 RUN apt-get install -y libclang-dev
 
-# Install Rust using rustup
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+# Update package list and install curl
+RUN apt-get update && apt-get install -y curl wget git libpq-dev
 
-# Add Rust to the PATH
-ENV PATH="/root/.cargo/bin:${PATH}"
+# Install curl and other dependencies required for Node.js installation
+RUN apt-get update && apt-get install -y curl && apt-get clean
 
-# Install PostgreSQL (for indexer service)
-RUN apt install -y postgresql libpq-dev
+# Install Node.js and npm
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs
 
-# Set the working directory in the container
-WORKDIR /workspace
+# Verify installation
+RUN node --version
+RUN npm --version
 
-# Command to run on container start
-CMD [ "bash" ]
+# Download the script
+RUN curl -fSsL -o install.sh https://raw.githubusercontent.com/movemntdev/M1/main/scripts/install.sh
+
+# Make the script executable
+RUN chmod +x install.sh
+
+# Execute the script with the desired arguments
+RUN ./install.sh --version ${VERSION}
+
+RUN movement manage install m1 testnet --version ${VERSION}
+
+CMD ["/bin/bash"]

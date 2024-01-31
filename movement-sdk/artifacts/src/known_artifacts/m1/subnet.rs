@@ -24,7 +24,7 @@ impl Constructor {
             Release::github_platform_release(
                 "movemntdev".to_string(),
                 "m1".to_string(),
-                "movement".to_string(),
+                "subnet".to_string(),
                 "".to_string()
             )
         )
