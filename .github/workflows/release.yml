@@ -140,11 +140,7 @@ jobs:
       - name: Build Mac binaries
         run: |
           cd "$GITHUB_WORKSPACE/movement-sdk"
-<<<<<<< HEAD
-          cargo build -p movement --release
-=======
           cargo build --release -p movement --features "aptos,sui"
->>>>>>> stage
           
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
@@ -168,7 +164,7 @@ jobs:
 
 
   pre-release-x86_64-mac:
-    if: true # testing
+    if: false
     needs: prepare-release
     runs-on: 
       labels: macos-latest
@@ -190,11 +186,7 @@ jobs:
       - name: Build Mac binaries
         run: |
           cd "$GITHUB_WORKSPACE/movement-sdk"
-<<<<<<< HEAD
-          cargo build -p movement --release
-=======
           cargo build --release -p movement --features "aptos,sui"
->>>>>>> stage
 
       - name: Upload subnet
         uses: actions/upload-release-asset@v1
@@ -218,7 +210,6 @@ jobs:
 
           
   pre-release-aarch64-linux:
-    if: true # testing
     needs: prepare-release
     runs-on: 
       labels: buildjet-8vcpu-ubuntu-2204-arm
@@ -264,7 +255,8 @@ jobs:
 
   pre-release-aarch64-mac:
     # this is expensive, so only run on stage and main
-    if: github.ref == 'refs/heads/stage' || github.ref == 'refs/heads/main'
+    # if: github.ref == 'refs/heads/stage' || github.ref == 'refs/heads/main'
+    if: false
     needs: prepare-release
     runs-on: macos-latest-xlarge
     steps:
@@ -284,7 +276,7 @@ jobs:
         
 
   pre-release-x86_64-windows:
-    if: true # testing
+    if: false
     needs: prepare-release
     runs-on: 
       labels: windows-latest
