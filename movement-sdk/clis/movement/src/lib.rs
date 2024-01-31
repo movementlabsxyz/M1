@@ -49,7 +49,7 @@ impl Command<String> for MovementCommand {
             Ok("SUCCESS".to_string())
         },
         MovementCommand::Ctl(ctl) => {
-            // ctl.execute().await?;
+            ctl.execute().await?;
             Ok("SUCCESS".to_string())
         },
         #[cfg(feature = "aptos")]

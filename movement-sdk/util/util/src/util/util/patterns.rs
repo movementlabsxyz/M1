@@ -21,10 +21,10 @@ pub mod constructor {
             T::default()
         }
     
-        fn from_config(config : &Self::Config) -> Self::Artifact;
+        fn from_config(version : &Version, config : &Self::Config) -> Self::Artifact;
     
-        fn sub_from_config<T>(config : &Self::Config) -> Self::Artifact where T : ConstructorOperations<Artifact=Self::Artifact, Config=Self::Config> {
-            T::from_config(config)
+        fn sub_from_config<T>(version : &Version, config : &Self::Config) -> Self::Artifact where T : ConstructorOperations<Artifact=Self::Artifact, Config=Self::Config> {
+            T::from_config(version, config)
         }
     
     }

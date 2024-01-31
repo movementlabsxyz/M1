@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 
 use semver::Version as SemVerVersion;
 use serde::{Serialize, Deserialize};
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Version {
@@ -13,6 +14,15 @@ impl Version {
 
     pub fn new(major : u64, minor : u64, patch : u64) -> Self {
         Self::Version(SemVerVersion::new(major, minor, patch))
+    }
+}
+
+impl Display for Version {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Version::Latest => write!(f, "latest"),
+            Version::Version(version) => write!(f, "{}", version)
+        }
     }
 }
 

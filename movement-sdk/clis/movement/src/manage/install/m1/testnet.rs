@@ -2,14 +2,16 @@ use async_trait::async_trait;
 use clap::Parser;
 use util::{cli::Command, util::util::constructor::ConstructorOperations};
 use artifacts::known_artifacts::{
+    m1::m1_with_submodules,
     m1::testnet,
-    install_default
+   install
 };
 use crate::manage::{
     InstallationArgs,
     VersionArgs
 };
 use util::util::util::Version;
+use util::movement_dir::MovementDir;
 
 #[derive(Debug, Parser, Clone)]
 pub struct Testnet {
@@ -38,14 +40,27 @@ impl Command<String> for Testnet {
 
     async fn execute(self) -> Result<String, anyhow::Error> {
 
+        let movement_dir = MovementDir::default();
         let config : testnet::Config = self.clone().into();
         let version : Version = self.version_args.try_into()?;
 
-        let artifact = testnet::Constructor::from_config(
+        let testnet = testnet::Constructor::from_config(
+            &version,
             &config
-        ).with_version(version);
+        );
 
-        install_default(vec![artifact.into()]).await?;
+        let source = m1_with_submodules::Constructor::from_config(
+            &version,
+            &m1_with_submodules::Config
+        );
+
+        install(
+            movement_dir,
+            vec![
+                testnet.into(),
+                source.into()
+            ]
+        ).await?;
 
         Ok("SUCCESS".to_string())
     }

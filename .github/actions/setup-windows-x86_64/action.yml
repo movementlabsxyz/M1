@@ -23,4 +23,4 @@ runs:
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: 1.70
+        toolchain: 1.73

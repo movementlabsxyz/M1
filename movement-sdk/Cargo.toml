@@ -6,23 +6,26 @@ members = [
     # "movement-sdk-avalanche",
 
     # execution
-    "execution/sui-block-executor",
-    "execution/aptos-block-executor",
-    "execution/canonical-block-executor",
+    #"execution/sui-block-executor",
+    #"execution/aptos-block-executor",
+    #"execution/canonical-block-executor",
 
     # types
-    "types/sui-helper-types",
-    "types/canonical-types",
-    "types/aptos-helper-types",
+    # "types/sui-helper-types",
+    # "types/canonical-types",
+    # "types/aptos-helper-types",
 
     # sui helpers
-    "sui-helpers/sui-block-authority-providers",
+    # "sui-helpers/sui-block-authority-providers",
 
     # clis
     "clis/movement",
 
     # artifacts
-    "artifact/artifacts",
+    "artifacts",
+
+    # services
+    "services",
 
     # util
     "util/util",
@@ -42,7 +45,8 @@ rust-version = "1.70"
 [workspace.dependencies]
 util = { path = "util/util", features = ["logging"] }
 test-helpers = { path = "util/test-helpers" }
-artifacts = { path = "artifact/artifacts" }
+artifacts = { path = "artifacts" }
+services = { path = "services" }
 
 async-trait = { version = "0.1" } 
 anyhow = { version = "1" }     # For flexible error handling
@@ -65,6 +69,7 @@ tar = "0.4.35"
 zip = "0.6"
 zip-extensions = "0.6"
 flate2 = "1.0.19"
+which = "6.0"
 
 base64 = "0.13.0"
 bcs = { git = "https://github.com/aptos-labs/bcs.git", rev = "d31fab9d81748e2594be5cd5cdf845786a30562d" }
@@ -85,6 +90,7 @@ aptos-executor = { path = "../vendors/aptos-core/execution/executor" }
 aptos-executor-types = { path = "../vendors/aptos-core/execution/executor-types" }
 aptos-storage-interface = { path = "../vendors/aptos-core/storage/storage-interface" }
 aptos-crypto = { path = "../vendors/aptos-core/crates/aptos-crypto" }
+once_cell = "1.8.0"
 
 # sui
 sui-adapter-latest = { path = "../vendors/sui/sui-execution/latest/sui-adapter" }

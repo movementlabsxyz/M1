@@ -1,3 +1,4 @@
+use core::time;
 use std::{
     io,
     fs::{self, File},
@@ -224,13 +225,21 @@ async fn e2e() {
 
     // keep alive by sleeping for duration provided by SUBNET_TIMEOUT environment variable
     // use sensible default
-    let timeout = Duration::from_secs(
-        std::env::var("SUBNET_TIMEOUT")
-            .unwrap_or_else(|_| "0".to_string())
-            .parse::<u64>()
-            .unwrap(),
-    );
+    
+    let val = std::env::var("SUBNET_TIMEOUT")
+        .unwrap_or_else(|_| "0".to_string())
+        .parse::<i64>()
+        .unwrap();
+  
     log::info!("sleeping for {} seconds", timeout.as_secs());
-    thread::sleep(timeout);
+    if val < 0 {
+        // run forever
+        loop {
+            thread::sleep(Duration::from_secs(1000));
+        }
+    } else {
+        let timeout = Duration::from_secs(val as u64);
+        thread::sleep(timeout);
+    }
 
 }

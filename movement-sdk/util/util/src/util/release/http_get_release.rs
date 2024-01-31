@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use super::{ReleaseOperations, Release};
-use crate::util::location::{Location, self};
+use crate::util::location::Location;
 use std::path::PathBuf;
 use std::io::Write;
 use reqwest;

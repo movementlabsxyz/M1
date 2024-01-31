@@ -14,7 +14,7 @@ use crate::api::de_request;
 /// Defines static handler RPCs for this VM.
 #[rpc]
 pub trait Rpc {
-    #[rpc(name = "ping", alias("timestampvm.ping"))]
+    #[rpc(name = "ping")]
     fn ping(&self) -> BoxFuture<Result<crate::api::PingResponse>>;
 }
 
@@ -28,8 +28,6 @@ impl StaticService {
         Self {}
     }
 }
-
-
 
 impl Rpc for StaticService {
     fn ping(&self) -> BoxFuture<Result<crate::api::PingResponse>> {

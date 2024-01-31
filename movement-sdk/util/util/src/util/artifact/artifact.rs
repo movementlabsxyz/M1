@@ -5,6 +5,7 @@ use crate::util::release::Release;
 use crate::util::util::{Version, version::VersionTolerance};
 use crate::util::checker::{Checker, CheckerOperations};
 use std::collections::BTreeSet;
+use std::fmt::Display;
 use std::path::PathBuf;
 use crate::movement_dir::MovementDir;
 
@@ -17,6 +18,18 @@ pub enum KnownArtifact {
 
     // generalized
     Name(String)
+}
+
+impl Display for KnownArtifact {
+    
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            KnownArtifact::Unknown => write!(f, "unknown"),
+            KnownArtifact::Test => write!(f, "test"),
+            KnownArtifact::Name(name) => write!(f, "{}", name)
+        }
+    }
+
 }
 
 impl Into<String> for KnownArtifact {
@@ -107,6 +120,15 @@ impl ArtifactIdentifier {
 
 }
 
+impl Display for ArtifactIdentifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ArtifactIdentifier::Partial(partial) => write!(f, "{}={}", partial.0, partial.1),
+            ArtifactIdentifier::Full(full) => write!(f, "{}={}", full.0, full.1)
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ArtifactDependency {
     /// Either a particular artifact.
@@ -150,6 +172,15 @@ impl From<Artifact> for ArtifactDependency {
 impl From<ArtifactIdentifier> for ArtifactDependency {
     fn from(artifact_identifier: ArtifactIdentifier) -> Self {
         ArtifactDependency::ArtifactIdentifier(artifact_identifier)
+    }
+}
+
+impl Display for ArtifactDependency {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ArtifactDependency::Artifact(artifact) => write!(f, "{}", artifact),
+            ArtifactDependency::ArtifactIdentifier(artifact_identifier) => write!(f, "{}", artifact_identifier)
+        }
     }
 }
 
@@ -284,7 +315,7 @@ impl Artifact {
         Self {
             known_artifact : KnownArtifact::Name(name.clone()),
             release,
-            location : PathBuf::from("rsc").into(),
+            location : PathBuf::from("rsc").join(name).into(),
             version : Version::Latest,
             builder : Builder::Release(builder::release::Release::new()),
             checker : Checker::Noop,
@@ -296,14 +327,37 @@ impl Artifact {
         Self {
             known_artifact : KnownArtifact::Name(name.clone()),
             release,
-            location : PathBuf::from("bin").join(name).into(),
+            location : PathBuf::from("bin").join(name.clone()).into(),
             version : Version::Latest,
             builder : Builder::Release(builder::release::Release::new()),
-            checker : Checker::Noop,
+            checker : Checker::command_exists(name),
             dependencies : BTreeSet::new()
         }
     }
 
+    pub fn pessimistic_bin_release(name : String, release : Release) -> Self {
+        Self {
+            known_artifact : KnownArtifact::Name(name.clone()),
+            release,
+            location : PathBuf::from("bin").join(name.clone()).into(),
+            version : Version::Latest,
+            builder : Builder::Release(builder::release::Release::new()),
+            checker : Checker::command_exists(name),
+            dependencies : BTreeSet::new()
+        }
+    }
+
+    pub fn with_checker(mut self, checker : Checker) -> Self {
+        self.checker = checker;
+        self
+    }
+
+}
+
+impl Display for Artifact {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}={}", self.known_artifact, self.version)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
