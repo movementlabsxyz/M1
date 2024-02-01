@@ -87,3 +87,8 @@ pub struct Movement {
     #[clap(subcommand)]
     pub command: MovementCommand
 }
+
+.subcommand(
+    App::new("bennett")
+        .about("intern vibes")
+)
