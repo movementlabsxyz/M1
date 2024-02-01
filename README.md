@@ -49,7 +49,7 @@ M1 also has its own DEX, with a web client currently available at [https://movem
 
 ## Installation
 
-See [docs.movementlabs.xyx](docs.movementlabs.xyz) for a more complete installation guide. We recommend working with our Docker containers or using our installer.
+See [docs.movementlabs.xyz](docs.movementlabs.xyz) for a more complete installation guide. We recommend working with our Docker containers or using our installer.
 
 ## Usage
 
