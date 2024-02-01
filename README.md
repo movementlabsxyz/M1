@@ -21,7 +21,6 @@
 - [Introduction](#introduction)
 - [Features](#features)
 - [Installation](#installation)
-- [Usage](#usage)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -41,27 +40,12 @@ This repository contains the code and contributor documentation for M1. If you w
 ## Features
 
 Currently, M1 consists of...
-- A testnet with bootstrap nodes at [https://seed1-node.movementlabs.xyz](https://seed1-node.movementlabs.xyz).
-- An Aptos-compatible cient called `movement`.
-- A fork of Aptos framework.
-
-M1 also has its own DEX, with a web client currently available at [https://movemnt-dex-client.vercel.app/](https://movemnt-dex-client.vercel.app/).
+- Devnet: [https://devnet.m1.movementlabs.xyz](https://devnet.m1.movementlabs.xyz)
+- Testnet (Coming soon): [https://testnet.m1.movementlabs.xyz](https://testnet.m1.movementlabs.xyz)
 
 ## Installation
 
 See [docs.movementlabs.xyz](docs.movementlabs.xyz) for a more complete installation guide. We recommend working with our Docker containers or using our installer.
-
-## Usage
-
-Once you've installed our platform, the easiest way to get started developing is to use the CLI to test code locally and publish to our testnet.
-
-```bash
-# test
-movement move test
-
-# compile and publish
-movement move compile && movement move publish
-```
 
 ## Contributing
 
