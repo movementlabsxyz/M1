@@ -296,8 +296,8 @@ dev_deps() {
 avalanche_setup() {
 
   # Download and install avalanche-network-runner
-  log_info "Setting up Avalanche."
-  curl -sSfL https://raw.githubusercontent.com/ava-labs/avalanche-network-runner/main/scripts/install.sh | sh -s
+  # log_info "Setting up Avalanche."
+  # curl -sSfL https://raw.githubusercontent.com/ava-labs/avalanche-network-runner/main/scripts/install.sh | sh -s
 
   # Add avalanche-network-runner binary to PATH
   echo 'export PATH="$HOME/bin:$PATH"' >> "$HOME/.bashrc"
@@ -309,15 +309,15 @@ avalanche_setup() {
   if [ "$OS" == "linux" ]; then
     AVALANCHEGO_RELEASE_URL="https://github.com/ava-labs/avalanchego/releases/download/$AVALANCHEGO_VERSION/avalanchego-linux-$ARCH-$AVALANCHEGO_VERSION.tar.gz"
     AVALANCHEGO_ARCHIVE="avalanchego-linux-$ARCH-$AVALANCHEGO_VERSION.tar.gz"
-    wget "$AVALANCHEGO_RELEASE_URL" -O "$AVALANCHEGO_ARCHIVE"
-    mkdir -p "$AVALANCHEGO_DIR"
-    tar xvf "$AVALANCHEGO_ARCHIVE" -C "$AVALANCHEGO_DIR" --strip-components=1
+    # wget "$AVALANCHEGO_RELEASE_URL" -O "$AVALANCHEGO_ARCHIVE"
+    # mkdir -p "$AVALANCHEGO_DIR"
+    # tar xvf "$AVALANCHEGO_ARCHIVE" -C "$AVALANCHEGO_DIR" --strip-components=1
   elif [ "$OS" == "macos" ]; then
     AVALANCHEGO_RELEASE_URL="https://github.com/ava-labs/avalanchego/releases/download/$AVALANCHEGO_VERSION/avalanchego-macos-$AVALANCHEGO_VERSION.zip"
     AVALANCHEGO_ARCHIVE="avalanchego-macos-$AVALANCHEGO_VERSION.zip"
-    wget "$AVALANCHEGO_RELEASE_URL" -O "$AVALANCHEGO_ARCHIVE"
-    mkdir -p "$AVALANCHEGO_DIR"
-    unzip "$AVALANCHEGO_ARCHIVE" -d "$AVALANCHEGO_DIR"
+    # wget "$AVALANCHEGO_RELEASE_URL" -O "$AVALANCHEGO_ARCHIVE"
+    # mkdir -p "$AVALANCHEGO_DIR"
+    # unzip "$AVALANCHEGO_ARCHIVE" -d "$AVALANCHEGO_DIR"
   else
     echo "Unsupported OS: $OS"
     exit 1

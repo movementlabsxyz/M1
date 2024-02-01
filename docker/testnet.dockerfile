@@ -53,6 +53,6 @@ RUN chmod +x install.sh
 # Execute the script with the desired arguments
 RUN ./install.sh --version ${VERSION}
 
-RUN movement manage install m1 testnet --version ${VERSION}
+RUN source ~/.bashrc && movement manage install m1 testnet --ver ${VERSION}
 
 CMD ["/bin/bash"]
