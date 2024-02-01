@@ -31,7 +31,8 @@ pub enum MovementCommand {
     Aptos(Tool),
     #[cfg(feature = "sui")]
     #[clap(subcommand, about = "Run Sui commands")]
-    Sui(SuiCommand)
+    Sui(SuiCommand),
+    Primata
 }
 
 #[async_trait::async_trait]
@@ -63,6 +64,9 @@ impl Command<String> for MovementCommand {
         MovementCommand::Sui(sui) => {
             sui.execute().await?;
             Ok("SUCCESS".to_string())
+        },
+        MovementCommand::Primata => {
+            Ok("Hello Fren".to_string())
         },
         _ => {
             Ok("NOT FOUND".to_string())
