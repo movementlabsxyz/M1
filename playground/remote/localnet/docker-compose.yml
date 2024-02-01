@@ -1,0 +1,20 @@
+version: '3.8'
+services:
+  localnet:
+    image: mvlbs/m1-testnet
+    command: ["/root/.movement/bin/movement", "ctl", "start", "m1", "localnet"]
+    ports:
+      - "9650:9650"
+
+  proxy:
+    image: mvlbs/m1-testnet
+    command: ["/root/.movement/bin/movement", "ctl", "start", "m1", "proxy", "--base-url", "http://localnet:9650"]
+    ports:
+      - "3001:3001"
+
+  mevm:
+    image: mvlbs/m1-testnet
+    command: ["/root/.movement/bin/movement", "ctl", "start", "m1", "mevm", "--node-url", "http://proxy:3001" ]
+    ports:
+      - "3044:3044"
+  

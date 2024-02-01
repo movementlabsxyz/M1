@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
     sudo \       
-    git          
+    git         
 
 RUN apt-get install -y libclang-dev
 
@@ -44,8 +44,28 @@ RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
 RUN node --version
 RUN npm --version
 
+RUN apt-get update && apt-get install -y unzip
+# Install protoc
+# Determine architecture and download appropriate version of protoc
+ARG PROTOC_VERSION=3.15.8
+RUN ARCH=$(dpkg --print-architecture) && \
+    if [ "$ARCH" = "amd64" ]; then \
+      PROTOC_ARCH="linux-x86_64"; \
+    elif [ "$ARCH" = "arm64" ]; then \
+      PROTOC_ARCH="linux-aarch_64"; \
+    else \
+      echo "Unsupported architecture: $ARCH"; exit 1; \
+    fi && \
+    curl -fSsL -o protoc.zip "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-${PROTOC_ARCH}.zip" \
+    && unzip protoc.zip -d /usr/local \
+    && rm protoc.zip
+
+# Verify protoc installation
+RUN protoc --version
+
 # Download the script
 RUN curl -fSsL -o install.sh https://raw.githubusercontent.com/movemntdev/M1/main/scripts/install.sh
+
 
 # Make the script executable
 RUN chmod +x install.sh
