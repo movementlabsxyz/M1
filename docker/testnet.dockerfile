@@ -13,7 +13,7 @@ COPY --from=golang-base /usr/local/go /usr/local/go
 # Add Golang to the PATH
 ENV PATH="/usr/local/go/bin:${PATH}"
 
-ARG VERSION=0.0.0
+ARG VERSION=0.3.0
 
 # Set environment variables to non-interactive (this prevents some prompts)
 ENV DEBIAN_FRONTEND=non-interactive
@@ -53,6 +53,6 @@ RUN chmod +x install.sh
 # Execute the script with the desired arguments
 RUN ./install.sh --version ${VERSION}
 
-RUN source ~/.bashrc && movement manage install m1 testnet --ver ${VERSION}
+RUN . ~/.bashrc && PATH="$PATH:~/.movement/bin" movement manage install m1 testnet --ver ${VERSION}
 
 CMD ["/bin/bash"]
