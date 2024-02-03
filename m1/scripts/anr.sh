@@ -14,11 +14,7 @@ export SUBNET_ID=srEXiWaHZNDcVtfHLb38cFiwKVLJ8xnhDF5qpWbYdowxEiyid
 
 echo $SUBNET_ID
 # Copy the subnet binary to the plugin dir
-<<<<<<< HEAD
-# cp ./target/debug/subnet ${AVALANCHEGO_PLUGIN_PATH}/${SUBNET_ID}
-=======
 cp ./target/debug/subnet ${AVALANCHEGO_PLUGIN_PATH}/${SUBNET_ID}
->>>>>>> indexer-fix
 # cp ./target/debug/subnet ${AVALANCHEGO_PLUGIN_PATH}/subnet
 
 # Start the avalanche-network-runner
