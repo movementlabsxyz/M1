@@ -248,3 +248,8 @@ aptos-vm-types = { path = "../vendors/aptos-core-v2/aptos-move/aptos-vm-types" }
 aptos-vm-validator = { path = "../vendors/aptos-core-v2/vm-validator" }
 aptos-warp-webserver = { path = "../vendors/aptos-core-v2/crates/aptos-warp-webserver" }
 aptos-writeset-generator = { path = "../vendors/aptos-core-v2/aptos-move/writeset-transaction-generator" }
+
+[patch.crates-io]
+serde-reflection = { git = "https://github.com/aptos-labs/serde-reflection", rev = "839aed62a20ddccf043c08961cfe74875741ccba" }
+merlin = { git = "https://github.com/aptos-labs/merlin" }
+x25519-dalek = { git = "https://github.com/aptos-labs/x25519-dalek", branch = "zeroize_v1" }
