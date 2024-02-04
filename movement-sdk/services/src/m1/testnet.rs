@@ -29,7 +29,7 @@ impl ConstructorOperations for Constructor {
             r#"
             set -e
             echo $MOVEMENT_DIR
-            $MOVEMENT_DIR/bin/avalanchego --network-id=fuji --track-subnets=$(cat $MOVEMENT_DIR/rsc/testnet-id) --plugin-dir=$MOVEMENT_DIR/avalanchego/plugins --http-host=0.0.0.0
+            $MOVEMENT_DIR/bin/avalanchego --network-id=fuji --track-subnets=$(cat $MOVEMENT_DIR/rsc/testnet-id) --plugin-dir=$MOVEMENT_DIR/avalanchego/plugins --http-host=0.0.0.0 --public-ip-resolution-service=ifconfigco
             "#.to_string(), 
             vec![
                 testnet::Constructor::default_with_version(
