@@ -5,6 +5,7 @@ if ! [[ "$0" =~ scripts/tests.debug.sh ]]; then
   exit 255
 fi
 
+export SUBNET_TIMEOUT=300
 ./scripts/build.debug.sh \
 && VM_PLUGIN_PATH=$(pwd)/target/debug/subnet \
 ./scripts/tests.e2e.sh
