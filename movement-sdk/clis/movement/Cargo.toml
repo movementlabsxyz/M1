@@ -1,6 +1,6 @@
 [package]
 name = "movement"
-version = "0.2.83"
+version = "0.4.1"
 edition = "2021"
 
 [dependencies]
