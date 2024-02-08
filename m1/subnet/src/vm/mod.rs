@@ -29,7 +29,7 @@ use std::{
 };
 use tokio::sync::{mpsc::Sender, RwLock};
 
-use aptos_api::accept_type::AcceptType;
+use aptos_api::accept_type::{self, AcceptType};
 use aptos_api::response::{AptosResponseContent, BasicResponse};
 use aptos_api::transactions::{
     SubmitTransactionPost, SubmitTransactionResponse, SubmitTransactionsBatchPost,
@@ -76,6 +76,7 @@ use crate::api::chain_handlers::{
 use crate::api::static_handlers::{StaticHandler, StaticService};
 use crate::{block::Block, state};
 use anyhow::Context as AnyhowContext;
+use aptos_types::account_config::AccountResource;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const MOVE_DB_DIR: &str = ".move-chain-data";
@@ -513,7 +514,7 @@ impl Vm {
         let signed_transaction: SignedTransaction = bcs::from_bytes_with_limit(&data, MAX_RECURSIVE_TYPES_ALLOWED as usize)?;
         let sender = self.app_sender.as_ref().ok_or_else(|| anyhow::Error::msg("App sender not available"))?;
         sender.send_app_gossip(serde_json::to_vec(&signed_transaction.clone())?).await?;
-        self.add_pool(signed_transaction).await;
+        self.add_pool(signed_transaction).await?;
         if data.len() >= 50 * 1024 {
             self.inner_build_block(self.build_block_data().await?).await?;
         } else {
@@ -791,8 +792,17 @@ impl Vm {
         let tx_acc_mint = core_account.sign_with_transaction_builder(tx_factory.mint(to, 10 * 100_000_000));
         self.submit_transaction(bcs::to_bytes(&tx_acc_mint)?, accept).await
     }
+
+   
     
     pub async fn faucet_with_cli(&self, acc: Vec<u8>) -> Result<RpcRes, anyhow::Error> {
+        // ! the below creates some kind of race condition
+        /*match self.view_account(acc.clone()).await? {
+            Some(_) => {},
+            None =>{
+                self.create_account(acc.clone(), AcceptType::Bcs).await?;
+            }
+        };*/
         let to = AccountAddress::from_bytes(acc).context("Failed to convert account address")?;
         let db = self.db.as_ref().ok_or_else(|| anyhow::anyhow!("Database reference not found"))?.read().await;
         let core_account = self.get_core_account(&db).await?;
@@ -853,6 +863,21 @@ impl Vm {
             Err(anyhow::anyhow!("State manager not found").into())
         }
     }
+
+    pub async fn view_account(&self, acc: Vec<u8>) -> Result<Option<AccountResource>, anyhow::Error> {
+        let db = self.db.as_ref().ok_or_else(|| anyhow::anyhow!("Database reference not found"))?.read().await;
+        let state_proof = db.reader.get_latest_ledger_info().context("Failed to get latest ledger info")?;
+        let current_version = state_proof.ledger_info().version();
+        let db_state_view = db
+            .reader
+            .state_view_at_version(Some(current_version))
+            .context("Failed to get DB state view at version")?;
+        let account_address = AccountAddress::from_bytes(acc.as_slice()).context("Failed to convert account address")?;
+        let view = db_state_view.
+        as_account_with_state_view(&account_address);
+        let av = view.get_account_resource()?;
+        Ok(av)
+    }
     
     pub async fn get_core_account(&self, db: &DbReaderWriter) -> Result<LocalAccount, anyhow::Error> {
         let acc = aptos_test_root_address();
@@ -875,19 +900,45 @@ impl Vm {
     }
     
     pub async fn inner_build_block(&self, data: Vec<u8>) -> Result<(), anyhow::Error> {
+
+        // get executor and metadata
         let executor = self.executor.as_ref().ok_or_else(|| anyhow::anyhow!("Executor not available"))?.read().await;
         let aptos_data = serde_json::from_slice::<AptosData>(&data).context("Failed to parse AptosData from bytes")?;
         let block_tx = serde_json::from_slice::<Vec<Transaction>>(&aptos_data.0).context("Failed to parse transactions from AptosData")?;
         let block_meta = block_tx.get(0).ok_or_else(|| anyhow::anyhow!("Block metadata not found in transactions"))?.try_as_block_metadata().context("Failed to convert transaction to block metadata")?;
+
+        // execute block
         let block_id = block_meta.id();
         let parent_block_id = executor.committed_block_id();
         let next_epoch = aptos_data.3;
         let ts = aptos_data.4;
-        executor.execute_block(
+        let output = executor.execute_block(
             ExecutableBlock::new(block_id, ExecutableTransactions::Unsharded(block_tx.clone())),
             parent_block_id,
             None,
         ).context("Failed to execute block")?;
+
+        // commit block
+        let ledger_info = LedgerInfo::new(
+            BlockInfo::new(
+                next_epoch,
+                0,
+                block_id,
+                output.root_hash(),
+                output.version(),
+                ts,
+                output.epoch_state().clone(),
+            ),
+            HashValue::zero(),
+        );
+        let signer = self.signer.as_ref().ok_or_else(|| anyhow::anyhow!("Signer not available"))?;
+        let li = generate_ledger_info_with_sig(
+            &[signer.clone()],
+            ledger_info,
+        );
+        executor.commit_blocks(vec![block_id], li.clone())?;
+
+        // add
         let mut core_pool = self.core_mempool.as_ref().ok_or_else(|| anyhow::anyhow!("Core mempool not available"))?.write().await;
         for t in block_tx.iter() {
             if let UserTransaction(t) = t {
@@ -931,7 +982,7 @@ impl Vm {
         let service = get_raw_api_service(Arc::new(context));
         self.api_service = Some(service);
         self.core_mempool = Some(Arc::new(RwLock::new(CoreMempool::new(&node_config))));
-        self.check_pending_tx().await;
+        self.check_pending_tx().await?;
 
         tokio::task::spawn(async move {
             while let Some(request) = mempool_client_receiver.next().await {
@@ -1069,7 +1120,9 @@ impl NetworkAppHandler for Vm {
 
     async fn app_gossip(&self, _node_id: &ids::node::Id, msg: &[u8]) -> io::Result<()> {
         if let Ok(s) = serde_json::from_slice::<SignedTransaction>(msg) {
-            self.add_pool(s).await;
+            self.add_pool(s).await.map_err(
+                |e| io::Error::new(io::ErrorKind::Other, format!("Failed to add transaction to pool: {}", e))
+            )?;
         }
         Ok(())
     }
@@ -1176,7 +1229,7 @@ impl CommonVm for Vm {
         let uuid = std::env::var("M1_ID").unwrap_or(uuid::Uuid::new_v4().to_string());
         log::info!("Initializing M1 Vm {}", uuid);
 
-        {
+        let state = {
             let mut vm_state = self.state.write().await;
             vm_state.ctx = ctx;
     
@@ -1186,16 +1239,45 @@ impl CommonVm for Vm {
                 verified_blocks: Arc::new(RwLock::new(HashMap::new())),
                 vm: None,
             };
-            vm_state.state = Some(state);
+            vm_state.state = Some(state.clone());
             self.to_engine = Some(Arc::new(RwLock::new(to_engine)));
             self.app_sender = Some(app_sender);
-    
-        }
+            state
+        };
        
-        // Avoid directly calling .await on init_aptos since it might return Result
         if let Err(e) = self.init_aptos(&uuid).await {
             return Err(io::Error::new(io::ErrorKind::Other, format!("Failed to initialize Aptos: {}", e)));
         }
+
+        let mut vm_state = self.state.write().await;
+        let genesis = "hello world";
+        let has_last_accepted = state.has_last_accepted_block().await?;
+        if has_last_accepted {
+            let last_accepted_blk_id = state.get_last_accepted_block_id().await?;
+            vm_state.preferred = last_accepted_blk_id;
+        } else {
+            let genesis_bytes = genesis.as_bytes().to_vec();
+            let data = AptosData(
+                genesis_bytes.clone(),
+                HashValue::zero(),
+                HashValue::zero(),
+                0,
+                0,
+            );
+            let mut genesis_block = Block::new(
+                ids::Id::empty(),
+                0,
+                0,
+                serde_json::to_vec(&data)?,
+                choices::status::Status::default(),
+            )?;
+            genesis_block.set_state(state.clone());
+            genesis_block.accept().await?;
+
+            let genesis_blk_id = genesis_block.id();
+            vm_state.preferred = genesis_blk_id;
+        }
+        log::info!("successfully initialized Vm");
 
         // Post-initialization logic, such as setting preferred block id, is already handled within init_aptos
         log::info!("Successfully initialized Vm");
