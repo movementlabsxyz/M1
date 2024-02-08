@@ -74,6 +74,24 @@ app.use('/v1', async function (req, res, next) {
     });
 });
 
+app.use('/', async function (req, res, next) {
+    const context = { ip: req.ip };
+    console.log('>>> %s %s', context.ip, req.body.method);
+    let str_req = `<<< ${JSON.stringify(req.body)}`;
+    server.receive(req.body).then(jsonRPCResponse => {
+        if (jsonRPCResponse.error) {
+            console.error(str_req, jsonRPCResponse);
+        } else {
+            console.log(str_req, jsonRPCResponse);
+        }
+        if (Array.isArray(req.body) && req.body.length === 1) {
+            res.json([jsonRPCResponse]);
+        } else {
+            res.json(jsonRPCResponse);
+        }
+    });
+});
+
 app.set('trust proxy', true);
 app.listen(SERVER_PORT, () => {
     console.log('server start at http://127.0.0.1:' + SERVER_PORT);

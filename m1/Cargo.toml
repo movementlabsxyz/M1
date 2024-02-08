@@ -22,7 +22,6 @@ futures = "0.3.28"
 rand = { version =  "0.7.3" }
 bcs = { git = "https://github.com/aptos-labs/bcs.git", rev = "d31fab9d81748e2594be5cd5cdf845786a30562d" }
 
-
 actix-web = "4"
 async-trait = "0.1.53"
 base64 = "0.13.0"

@@ -221,7 +221,14 @@ impl Rpc for ChainService {
     fn get_transactions(&self, args: PageArgs) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_transactions(args).await;
+            let ret = vm.get_transactions(args).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             return Ok(ret);
         })
     }
@@ -236,8 +243,21 @@ impl Rpc for ChainService {
                 AcceptType::Json
             };
             let r = vm
-                .submit_transaction(hex::decode(args.data).unwrap(), accept)
-                .await;
+                .submit_transaction(hex::decode(args.data).map_err(
+                    |e| {
+                        let mut error = Error::new(ErrorCode::InternalError);
+                        error.message = format!("{}", e);
+                        error
+                    }, 
+                )?, accept)
+                .await.map_err(
+                    |e| {
+                        let mut error = Error::new(ErrorCode::InternalError);
+                        error.message = format!("{}", e);
+                        error
+                    },
+                
+                )?;
             Ok(r)
         })
     }
@@ -251,8 +271,21 @@ impl Rpc for ChainService {
                 AcceptType::Json
             };
             let r = vm
-                .submit_transaction_batch(hex::decode(args.data).unwrap(), accept)
-                .await;
+                .submit_transaction_batch(hex::decode(args.data).map_err(
+                    |e| {
+                        let mut error = Error::new(ErrorCode::InternalError);
+                        error.message = format!("{}", e);
+                        error
+                    }, 
+                )?, accept)
+                .await.map_err(
+                    |e| {
+                        let mut error = Error::new(ErrorCode::InternalError);
+                        error.message = format!("{}", e);
+                        error
+                    },
+                
+                )?;
             Ok(r)
         })
     }
@@ -260,7 +293,14 @@ impl Rpc for ChainService {
     fn get_transaction_by_hash(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_transaction_by_hash(args).await;
+            let ret = vm.get_transaction_by_hash(args).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             return Ok(ret);
         })
     }
@@ -271,7 +311,14 @@ impl Rpc for ChainService {
     ) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_transaction_by_version(args).await;
+            let ret = vm.get_transaction_by_version(args).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             return Ok(ret);
         })
     }
@@ -279,7 +326,14 @@ impl Rpc for ChainService {
     fn get_accounts_transactions(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_accounts_transactions(args).await;
+            let ret = vm.get_accounts_transactions(args).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             return Ok(ret);
         })
     }
@@ -287,13 +341,27 @@ impl Rpc for ChainService {
     fn simulate_transaction(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let data = hex::decode(args.data).unwrap();
+            let data = hex::decode(args.data).map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             let accept = if args.is_bcs_format.unwrap_or(false) {
                 AcceptType::Bcs
             } else {
                 AcceptType::Json
             };
-            let ret = vm.simulate_transaction(data, accept).await;
+            let ret = vm.simulate_transaction(data, accept).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             Ok(ret)
         })
     }
@@ -301,7 +369,14 @@ impl Rpc for ChainService {
     fn encode_submission(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.encode_submission(args.data.as_str()).await;
+            let ret = vm.encode_submission(args.data.as_str()).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             return Ok(ret);
         })
     }
@@ -309,7 +384,14 @@ impl Rpc for ChainService {
     fn estimate_gas_price(&self) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.estimate_gas_price().await;
+            let ret = vm.estimate_gas_price().await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             Ok(ret)
         })
     }
@@ -318,13 +400,27 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let s = args.data.as_str();
-            let acc = HexParser::parse_hex_string(s).unwrap();
+            let acc = HexParser::parse_hex_string(s).map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             let accept = if args.is_bcs_format.unwrap_or(false) {
                 AcceptType::Bcs
             } else {
                 AcceptType::Json
             };
-            let ret = vm.faucet_apt(acc, accept).await;
+            let ret = vm.faucet_apt(acc, accept).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             Ok(ret)
         })
     }
@@ -338,8 +434,22 @@ impl Rpc for ChainService {
                 AcceptType::Json
             };
             let s = args.data.as_str();
-            let acc = HexParser::parse_hex_string(s).unwrap();
-            let ret = vm.create_account(acc, accept).await;
+            let acc = HexParser::parse_hex_string(s).map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
+            let ret = vm.create_account(acc, accept).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             Ok(ret)
         })
     }
@@ -347,7 +457,14 @@ impl Rpc for ChainService {
     fn get_account(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_account(args).await;
+            let ret = vm.get_account(args).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             return Ok(ret);
         })
     }
@@ -355,7 +472,14 @@ impl Rpc for ChainService {
     fn get_account_resources(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_account_resources(args).await;
+            let ret = vm.get_account_resources(args).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             return Ok(ret);
         })
     }
@@ -363,7 +487,14 @@ impl Rpc for ChainService {
     fn get_account_modules(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_account_modules(args).await;
+            let ret = vm.get_account_modules(args).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             return Ok(ret);
         })
     }
@@ -371,7 +502,14 @@ impl Rpc for ChainService {
     fn get_account_resources_state(&self, args: AccountStateArgs) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_account_resources_state(args).await;
+            let ret = vm.get_account_resources_state(args).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             return Ok(ret);
         })
     }
@@ -379,7 +517,14 @@ impl Rpc for ChainService {
     fn get_account_modules_state(&self, args: AccountStateArgs) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_account_modules_state(args).await;
+            let ret = vm.get_account_modules_state(args).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             return Ok(ret);
         })
     }
@@ -387,7 +532,14 @@ impl Rpc for ChainService {
     fn get_block_by_height(&self, args: BlockArgs) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_block_by_height(args).await;
+            let ret = vm.get_block_by_height(args).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             return Ok(ret);
         })
     }
@@ -395,7 +547,14 @@ impl Rpc for ChainService {
     fn get_block_by_version(&self, args: BlockArgs) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_block_by_version(args).await;
+            let ret = vm.get_block_by_version(args).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             return Ok(ret);
         })
     }
@@ -403,7 +562,14 @@ impl Rpc for ChainService {
     fn view_function(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.view_function(args).await;
+            let ret = vm.view_function(args).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             return Ok(ret);
         })
     }
@@ -411,7 +577,14 @@ impl Rpc for ChainService {
     fn get_table_item(&self, args: RpcTableReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_table_item(args).await;
+            let ret = vm.get_table_item(args).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             return Ok(ret);
         })
     }
@@ -419,7 +592,14 @@ impl Rpc for ChainService {
     fn get_raw_table_item(&self, args: RpcTableReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_raw_table_item(args).await;
+            let ret = vm.get_raw_table_item(args).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             return Ok(ret);
         })
     }
@@ -427,7 +607,14 @@ impl Rpc for ChainService {
     fn get_events_by_creation_number(&self, args: RpcEventNumReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_events_by_creation_number(args).await;
+            let ret = vm.get_events_by_creation_number(args).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             return Ok(ret);
         })
     }
@@ -435,7 +622,14 @@ impl Rpc for ChainService {
     fn get_events_by_event_handle(&self, args: RpcEventHandleReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_events_by_event_handle(args).await;
+            let ret = vm.get_events_by_event_handle(args).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             return Ok(ret);
         })
     }
@@ -443,7 +637,14 @@ impl Rpc for ChainService {
     fn get_ledger_info(&self) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_ledger_info().await;
+            let ret = vm.get_ledger_info().await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             return Ok(ret);
         })
     }
@@ -452,8 +653,22 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let s = args.data.as_str();
-            let acc = HexParser::parse_hex_string(s).unwrap();
-            let ret = vm.faucet_with_cli(acc).await;
+            let acc = HexParser::parse_hex_string(s).map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
+            let ret = vm.faucet_with_cli(acc).await.map_err(
+                |e| {
+                    let mut error = Error::new(ErrorCode::InternalError);
+                    error.message = format!("{}", e);
+                    error
+                },
+            
+            )?;
             Ok(ret)
         })
     }

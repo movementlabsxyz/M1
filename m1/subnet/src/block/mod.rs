@@ -227,7 +227,9 @@ impl Block {
     async fn inner_build(&self) -> io::Result<()> {
         if let Some(vm_) = self.state.vm.as_ref() {
             let vm = vm_.read().await;
-            return vm.inner_build_block(self.data.clone()).await;
+            return vm.inner_build_block(self.data.clone()).await.map_err(
+                |e| Error::new(ErrorKind::Other, format!("failed to build block: {}", e)),
+            );
         }
         return Ok(());
     }
@@ -249,7 +251,8 @@ impl Block {
 /// Use "Self.to_string()" to directly invoke this
 impl fmt::Display for Block {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let serialized = self.to_json_string().unwrap();
+
+        let serialized = self.to_json_string().map_err(|_| fmt::Error {})?;
         write!(f, "{serialized}")
     }
 }
