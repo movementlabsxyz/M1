@@ -3967,6 +3967,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "e2e-benchmark"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "aptos-sdk",
+ "once_cell",
+ "rand 0.7.3",
+ "tokio",
+ "url 2.5.0",
+]
+
+[[package]]
 name = "ecdsa"
 version = "0.16.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -1,0 +1,12 @@
+[package]
+name = "e2e-benchmark"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aptos-sdk = {workspace = true }
+anyhow = { workspace = true }
+url = { workspace = true }
+tokio = { workspace = true }
+once_cell = { workspace = true }
+rand = { workspace = true }

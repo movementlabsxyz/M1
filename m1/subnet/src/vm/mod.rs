@@ -1003,7 +1003,7 @@ impl Vm {
 
     async fn build_block_data(&self) -> Result<Vec<u8>, anyhow::Error> {
         let unix_now_micro = Utc::now().timestamp_micros() as u64;
-        let tx_arr = self.get_pending_tx(500).await?;
+        let tx_arr = self.get_pending_tx(512).await?;
         log::info!("build_block pool tx count {}", tx_arr.len());
         let executor = self.executor.as_ref().ok_or_else(|| anyhow::anyhow!("Executor not available"))?.read().await;
         let signer = self.signer.as_ref().ok_or_else(|| anyhow::anyhow!("Signer not available"))?;
