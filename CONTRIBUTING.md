@@ -24,10 +24,11 @@ Here's a quick guide on how to contribute code:
 
 1. Fork the repo.
 2. Clone your fork down to your local environment.
-3. Make your changes in your local environment.
-4. Commit and push your changes to your fork.
-5. Submit a pull request with a comprehensive description of the changes.
-6. Wait for the maintainers to review your pull request and merge it.
+3. This repo makes use of git [submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules), pull them in before building your rust binaries with `git submodule update --init --recursive`
+4. Make your changes in your local environment.
+5. Commit and push your changes to your fork.
+6. Submit a pull request with a comprehensive description of the changes.
+7. Wait for the maintainers to review your pull request and merge it.
 
 ## Pull Requests
 
