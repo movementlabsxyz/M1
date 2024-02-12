@@ -17,5 +17,5 @@ const AVALANCHEGO_VERSION: &str = "v1.10.9";
 
 #[tokio::test] 
 async fn e2e() {
-    init_m1_network()
+    init_m1_network().await
 }

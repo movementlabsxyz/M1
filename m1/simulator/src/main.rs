@@ -75,29 +75,31 @@ pub enum SubCommands{
     Health(HealthCommand),
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let cli = Cli::parse();
     match cli.command {
-        SubCommands::Start(opts) => start_network(opts),
-        SubCommands::Partition(opts) => partition_network(opts),
-        SubCommands::Reconnect(opts) => reconnect_validators(opts),
-        SubCommands::Health(opts) => network_health(opts),
+        SubCommands::Start(opts) => start_network(opts).await,
+        SubCommands::Partition(opts) => partition_network(opts).await,
+        SubCommands::Reconnect(opts) => reconnect_validators(opts).await,
+        SubCommands::Health(opts) => network_health(opts).await,
     }
 }
 
-fn start_network(opts: StartCommand) {
-    simulator::init_m1_network()
+async fn start_network(opts: StartCommand) {
+    simulator::init_m1_network().await;
 
 }
 
-fn partition_network(opts: PartitionCommand) {
+async fn partition_network(opts: PartitionCommand) {
+    todo!()
+}
+
+async fn reconnect_validators(opts: ReconnectCommand) {
+    todo!()
 
 }
 
-fn reconnect_validators(opts: ReconnectCommand) {
-
-}
-
-fn network_health(opts: HealthCommand) {
-
+async fn network_health(opts: HealthCommand) {
+    todo!()
 }

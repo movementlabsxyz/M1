@@ -8998,8 +8998,11 @@ dependencies = [
  "avalanche-types",
  "clap 3.2.25",
  "env_logger",
+ "log",
  "once_cell",
  "rand 0.7.3",
+ "random-manager",
+ "serde_json",
  "tokio",
  "url 2.5.0",
 ]
