@@ -2,18 +2,21 @@
   description = "A devShell example";
 
   inputs = {
-    nixpkgs.url      = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     rust-overlay.url = "github:oxalica/rust-overlay";
-    flake-utils.url  = "github:numtide/flake-utils";
+    flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, rust-overlay, flake-utils, ... }:
+  outputs = { self, nixpkgs, rust-overlay, flake-utils, ... }@inputs:
     flake-utils.lib.eachDefaultSystem (system:
       let
         overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs {
           inherit system overlays;
         };
+        darwinFrameworks = if system == "x86_64-darwin" then with pkgs.darwin.apple_sdk.frameworks; [
+          IOKit
+        ] else [];
       in
       with pkgs;
       {
@@ -24,7 +27,7 @@
             eza
             fd
             rust-bin.beta.latest.default
-          ];
+          ] ++ darwinFrameworks;
 
           shellHook = ''
             alias ls=eza

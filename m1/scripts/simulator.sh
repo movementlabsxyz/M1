@@ -1,7 +1,4 @@
-#!/usr/bin/env nix-shell
-#!nix-shell -i bash
-
-# Dummy function placeholders for actual commands that would be implemented
+# run nix develop then call this script 
 
 init_env() {
     echo "Initializing Environment"
