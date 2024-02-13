@@ -39,6 +39,38 @@ static FAUCET_URL: Lazy<Url> = Lazy::new(|| {
     .unwrap()
 });
 
+static WINDOW_SIZE: Lazy<u64> = Lazy::new(|| {
+    u64::from_str(
+        std::env::var("WINDOW_SIZE")
+            .as_ref()
+            .map(|s| s.as_str())
+            .unwrap_or("15"),
+    )
+    .unwrap()
+});
+
+static SIMULATION_SECONDS: Lazy<u64> = Lazy::new(|| {
+    u64::from_str(
+        std::env::var("SIMULATION_SECONDS")
+            .as_ref()
+            .map(|s| s.as_str())
+            .unwrap_or((60 * 120).to_string().as_str()),
+    )
+    .unwrap()
+});
+
+static START_TASKS: Lazy<usize> = Lazy::new(|| {
+    usize::from_str(
+        std::env::var("START_TASKS")
+            .as_ref()
+            .map(|s| s.as_str())
+            .unwrap_or((
+                1024 * 64 * 4
+            ).to_string().as_str()),
+    )
+    .unwrap()
+});
+
 struct Statistics {
     records: Vec<(Instant, bool)>, // (Timestamp, Success)
     max_tps: f64,
@@ -71,16 +103,16 @@ impl Statistics {
         if total_duration > 0.0 {
             let mut current_time = start_time;
             while current_time <= end_time {
-                let window_end = current_time + Duration::from_secs(15);
+                let window_end = current_time + Duration::from_secs(WINDOW_SIZE.clone());
                 let count = self
                     .records
                     .iter()
-                    .filter(|&&(time, _)| time >= current_time && time < window_end)
+                    .filter(|&&(time, success)| success && time >= current_time && time < window_end)
                     .count();
-                let tps = (count/15) as f64;
+                let tps = (count/WINDOW_SIZE.clone() as usize) as f64;
                 tps_values.push(tps);
     
-                current_time += Duration::from_secs(15);
+                current_time += Duration::from_secs(WINDOW_SIZE.clone());
             }
     
             if let Some(max_tps) = tps_values.iter().max_by(|x, y| x.partial_cmp(y).unwrap()) {
@@ -101,6 +133,83 @@ impl Statistics {
             self.min_tps = 0.0;
         }
     }
+
+    fn write_summary_stats(&self) -> Result<()> {
+
+        // create a directory called .e2e-benchmark-stats, if it doesn't exist
+        std::fs::create_dir_all(".e2e-benchmark-stats")?;
+
+        // write summary stats to a file
+        let mut file = File::create(".e2e-benchmark-stats/summary.dat")?;
+        writeln!(file, "Max TPS,{}", self.max_tps)?;
+        writeln!(file, "Min TPS,{}", self.min_tps)?;
+        writeln!(file, "Avg TPS,{}", self.avg_tps)?;
+
+        Ok(())
+
+    }
+
+    fn write_records(&self) -> Result<()> {
+
+        // create a directory called .e2e-benchmark-stats, if it doesn't exist
+        std::fs::create_dir_all(".e2e-benchmark-stats")?;
+
+        // write tps values to a file
+        let mut file = File::create(".e2e-benchmark-stats/tps_values.dat")?;
+        for (timestamp, success) in &self.records {
+            writeln!(file, "{},{}", timestamp.elapsed().as_secs_f64(), *success as usize)?;
+        }
+
+        Ok(())
+
+    }
+
+    fn write_windows(&self) -> Result<()> {
+
+        // create a directory called .e2e-benchmark-stats, if it doesn't exist
+        std::fs::create_dir_all(".e2e-benchmark-stats")?;
+
+        // write tps values to a file
+        let mut file = File::create(".e2e-benchmark-stats/tps_windows.dat")?;
+        let mut current_time = self.records.first().map(|x| x.0).unwrap_or(Instant::now());
+        while current_time <= self.records.last().map(|x| x.0).unwrap_or(Instant::now()) {
+            let window_end = current_time + Duration::from_secs(WINDOW_SIZE.clone());
+            let total_count = self
+                .records
+                .iter()
+                .filter(|&&(time, _)| time >= current_time && time < window_end)
+                .count();
+            let sucess_count = self
+                .records
+                .iter()
+                .filter(|&&(time, success)| time >= current_time && time < window_end && success)
+                .count();
+            let failure_count = total_count - sucess_count;
+
+            writeln!(
+                file, 
+                "{},{},{},{}", 
+                current_time.elapsed().as_secs_f64(), 
+                total_count,
+                sucess_count,
+                failure_count
+            )?;
+            current_time += Duration::from_secs(WINDOW_SIZE.clone());
+        }
+
+        Ok(())
+
+    }
+
+    fn write_stats(&self) -> Result<()> {
+        self.write_summary_stats()?;
+        self.write_records()?;
+        self.write_windows()?;
+
+        Ok(())
+    }
+
+
 }
 
 #[tokio::main]
@@ -110,7 +219,7 @@ async fn main() -> Result<()> {
     // Setup for benchmarking, transaction sending, etc., goes here
     run_simulation(
         stats.clone(),
-        Duration::from_secs(60 * 120)
+        Duration::from_secs(SIMULATION_SECONDS.clone()),
     ).await?;
 
     // Wait for benchmark to finish
@@ -121,12 +230,7 @@ async fn main() -> Result<()> {
     println!("Max TPS: {}, Min TPS: {}", stats.max_tps, stats.min_tps);
 
     // Write statistics to a file
-    let mut file = File::create("benchmark_stats.dat")?;
-    writeln!(file, "Max TPS: {}", stats.max_tps)?;
-    writeln!(file, "Min TPS: {}", stats.min_tps)?;
-    for (timestamp, success) in &stats.records {
-        writeln!(file, "{}, {}", timestamp.elapsed().as_secs_f64(), if *success { "success" } else { "failure" })?;
-    }
+    stats.write_stats()?;
 
     Ok(())
 }
@@ -148,19 +252,22 @@ async fn perform_transaction_batch(
     let mut alice = LocalAccount::generate(&mut rand::rngs::OsRng);
     let mut bob = LocalAccount::generate(&mut rand::rngs::OsRng); // <:!:section_2
 
+    println!("Alice: {}", alice.address());
+    println!("Bob: {}", bob.address());
 
     // Create the accounts on chain, but only fund Alice.
     // :!:>section_3
     match faucet_client
     .fund(alice.address(), 100_000_000)
-    .await
-    .context("Failed to fund Alice's account") {
+    .await {
         
         Ok(_) => {
+            println!("Alice's account funded successfully");
             let mut stats = stats.lock().await;
             stats.record_transaction(true);
         },
-        Err(_) => {
+        Err(e) => {
+            println!("Failed to fund Alice's account: {}", e);
             let mut stats = stats.lock().await;
             stats.record_transaction(false);
         }
@@ -234,7 +341,9 @@ async fn perform_transaction_batch(
 async fn run_simulation(stats: Arc<Mutex<Statistics>>, duration: Duration) -> Result<()> {
     let run_flag = Arc::new(AtomicBool::new(true));
     let max_tps = Arc::new(AtomicUsize::new(0));
-    let current_tasks = Arc::new(AtomicUsize::new(1024 * 64 * 4)); // 
+    let current_tasks = Arc::new(AtomicUsize::new(
+        START_TASKS.clone(),
+    )); // 
 
     // Function to adjust tasks based on performance
     let adjust_tasks = |max_tps: &AtomicUsize, current_tps: usize, current_tasks: &AtomicUsize| {

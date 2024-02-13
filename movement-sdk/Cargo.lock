@@ -6055,6 +6055,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "545b22097d44f8a9581187cdf93de7a71e4722bf51200cfaba810865b49a495d"
 
 [[package]]
+name = "e2e-benchmark"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "aptos-sdk",
+ "once_cell",
+ "rand 0.7.3",
+ "tokio",
+ "url",
+]
+
+[[package]]
 name = "ecdsa"
 version = "0.14.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     # framework
+    "e2e-benchmark",
     "movement-sdk",
     # "movement-sdk-avalanche",
 
@@ -83,6 +84,9 @@ const-str = "0.5"
 tracing = { version = "0.1.27", features = ["span_event"] }
 
 # aptos
+url = "2.2.2"
+rand = "0.7.3"
+aptos-sdk = { path = "../vendors/aptos-core/sdk" }
 aptos-framework = { path = "../vendors/aptos-core/aptos-move/framework" }
 aptos-vm = { path = "../vendors/aptos-core/aptos-move/aptos-vm" }
 aptos-types = { path = "../vendors/aptos-core/types" }

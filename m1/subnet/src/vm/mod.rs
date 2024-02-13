@@ -1,3 +1,4 @@
+use aptos_crypto::hash::TestOnlyHash;
 use avalanche_types::subnet::rpc::database::manager::{DatabaseManager, Manager};
 use avalanche_types::subnet::rpc::health::Checkable;
 use avalanche_types::subnet::rpc::snow::engine::common::appsender::client::AppSenderClient;
@@ -17,8 +18,10 @@ use avalanche_types::{
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use futures::{channel::mpsc as futures_mpsc, StreamExt};
-use hex;
+use hex::{self, ToHex};
 use serde::{Deserialize, Serialize};
+use tokio::time::sleep;
+use std::hash::Hash;
 use std::str::FromStr;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{
@@ -29,7 +32,7 @@ use std::{
 };
 use tokio::sync::{mpsc::Sender, RwLock};
 
-use aptos_api::accept_type::{self, AcceptType};
+use aptos_api::accept_type::AcceptType;
 use aptos_api::response::{AptosResponseContent, BasicResponse};
 use aptos_api::transactions::{
     SubmitTransactionPost, SubmitTransactionResponse, SubmitTransactionsBatchPost,
@@ -77,6 +80,11 @@ use crate::api::static_handlers::{StaticHandler, StaticService};
 use crate::{block::Block, state};
 use anyhow::Context as AnyhowContext;
 use aptos_types::account_config::AccountResource;
+use std::collections::BTreeMap;
+use aptos_consensus_types::common::{
+    TransactionInProgress,
+    TransactionSummary
+};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const MOVE_DB_DIR: &str = ".move-chain-data";
@@ -482,15 +490,19 @@ impl Vm {
     }
     
     pub async fn submit_transaction(&self, data: Vec<u8>, accept: AcceptType) -> Result<RpcRes, anyhow::Error> {
-        log::info!("submit_transaction length {}", data.len());
         let service = self.api_service.as_ref().ok_or_else(|| anyhow::Error::msg("API service not available"))?;
+
+        let signed_transaction : SignedTransaction = bcs::from_bytes_with_limit(&data, MAX_RECURSIVE_TYPES_ALLOWED as usize)?;
+        log::info!("submitting transaction {} {} {}", signed_transaction.clone().committed_hash(), signed_transaction.sender(), signed_transaction.sequence_number());
     
         let payload = SubmitTransactionPost::Bcs(aptos_api::bcs_payload::Bcs(data.clone()));
         let response = service.transactions_api.submit_transaction_raw(accept, payload).await?;
+        log::info!("submitted transaction");
     
         // Process the response
         let (ret_str, header_str) = match response {
             SubmitTransactionResponse::Accepted(content, chain_id, ledger_version, ledger_oldest_version, ledger_timestamp_usec, epoch, block_height, oldest_block_height, cursor) => {
+
                 let header = AptosHeader {
                     chain_id,
                     ledger_version,
@@ -511,15 +523,12 @@ impl Vm {
         };
     
         // Additional processing logic remains the same
-        let signed_transaction: SignedTransaction = bcs::from_bytes_with_limit(&data, MAX_RECURSIVE_TYPES_ALLOWED as usize)?;
         let sender = self.app_sender.as_ref().ok_or_else(|| anyhow::Error::msg("App sender not available"))?;
         sender.send_app_gossip(serde_json::to_vec(&signed_transaction.clone())?).await?;
         self.add_pool(signed_transaction).await?;
-        if data.len() >= 50 * 1024 {
-            self.inner_build_block(self.build_block_data().await?).await?;
-        } else {
-            self.notify_block_ready().await;
-        }
+       
+        self.notify_block_ready().await;
+    
     
         Ok(RpcRes {
             data: ret_str,
@@ -683,20 +692,66 @@ impl Vm {
     }
     
     async fn add_pool(&self, signed_transaction: SignedTransaction) -> Result<(), anyhow::Error> {
+        log::info!("Adding transaction to pool: {:?}", signed_transaction.clone().committed_hash());
         let mut core_pool = self.core_mempool.as_ref().ok_or_else(|| anyhow::anyhow!("Core mempool not available"))?.write().await;
-        core_pool.add_txn(
+        let status = core_pool.add_txn(
             signed_transaction.clone(),
             0,
             signed_transaction.sequence_number(),
             TimelineState::NonQualified,
             true,
         );
+        println!("add_pool status: {:?}", status);
         Ok(())
     }
     
     async fn get_pending_tx(&self, count: u64) -> Result<Vec<SignedTransaction>, anyhow::Error> {
+
+        let mut pending_txs : Vec<SignedTransaction> = vec![];
         let core_pool = self.core_mempool.as_ref().ok_or_else(|| anyhow::anyhow!("Core mempool not available"))?.read().await;
-        Ok(core_pool.get_batch(count, 1024 * 5 * 1000, true, true, vec![]))
+
+        log::info!(
+            "parking lot size: {}", 
+            core_pool.get_parking_lot_size()
+        );
+        log::info!(
+            "snapshot: {}", 
+            core_pool.gen_snapshot()
+        );
+
+        while pending_txs.len() < count as usize {
+
+            // convert signed transactions to TransactionInProgress
+            let transactions_in_progress = pending_txs.iter().map(|tx| {
+                TransactionInProgress {
+                    summary : TransactionSummary {
+                        sender : tx.sender(),
+                        sequence_number : tx.sequence_number(),
+                    },
+                    gas_unit_price : tx.gas_unit_price(),
+                }
+            }).collect::<Vec<TransactionInProgress>>();
+
+            let txs = core_pool.get_batch(
+                    count, 
+                    1024 * 5 * 1000 * count, 
+                    true, 
+                    true, 
+                    transactions_in_progress
+            );
+
+            if txs.is_empty() {
+                log::info!("No pending transactions found");
+                break;
+            }
+
+            for tx in txs {
+                pending_txs.push(tx);
+            }
+            
+        }
+
+        Ok(pending_txs)
     }
     
 
@@ -786,28 +841,32 @@ impl Vm {
 
     pub async fn faucet_apt(&self, acc: Vec<u8>, accept: AcceptType) -> Result<RpcRes, anyhow::Error> {
         let to = AccountAddress::from_bytes(acc).context("Failed to convert account address")?;
-        let db = self.db.as_ref().ok_or_else(|| anyhow::anyhow!("Database reference not found"))?.read().await;
-        let core_account = self.get_core_account(&db).await?;
+        let core_account = {
+            let db = self.db.as_ref().ok_or_else(|| anyhow::anyhow!("Database reference not found"))?.read().await;
+            // you must also acquire the lock on the core mempool, otherwise sequence number will be wrong
+            // let mut _core_mempool = self.core_mempool.as_ref().ok_or_else(|| anyhow::anyhow!("Core mempool not available"))?.write().await;
+            self.get_core_account(&db).await?
+        };
+
+
         let tx_factory = TransactionFactory::new(ChainId::test());
-        let tx_acc_mint = core_account.sign_with_transaction_builder(tx_factory.mint(to, 10 * 100_000_000));
+        let tx_acc_mint = core_account.sign_with_transaction_builder(tx_factory.transfer(to, 10 * 100_000_000));
         self.submit_transaction(bcs::to_bytes(&tx_acc_mint)?, accept).await
     }
 
    
     
     pub async fn faucet_with_cli(&self, acc: Vec<u8>) -> Result<RpcRes, anyhow::Error> {
-        // ! the below creates some kind of race condition
-        /*match self.view_account(acc.clone()).await? {
-            Some(_) => {},
-            None =>{
-                self.create_account(acc.clone(), AcceptType::Bcs).await?;
-            }
-        };*/
         let to = AccountAddress::from_bytes(acc).context("Failed to convert account address")?;
-        let db = self.db.as_ref().ok_or_else(|| anyhow::anyhow!("Database reference not found"))?.read().await;
-        let core_account = self.get_core_account(&db).await?;
+        let core_account = {
+            let db = self.db.as_ref().ok_or_else(|| anyhow::anyhow!("Database reference not found"))?.read().await;
+            // you must also acquire the lock on the core mempool, otherwise sequence number will be wrong
+            // let mut _core_mempool = self.core_mempool.as_ref().ok_or_else(|| anyhow::anyhow!("Core mempool not available"))?.write().await;
+            self.get_core_account(&db).await?
+        };
+
         let tx_factory = TransactionFactory::new(ChainId::test());
-        let tx_acc_mint = core_account.sign_with_transaction_builder(tx_factory.mint(to, 10 * 100_000_000));
+        let tx_acc_mint = core_account.sign_with_transaction_builder(tx_factory.transfer(to, 10 * 100_000_000));
         let mut res = self.submit_transaction(bcs::to_bytes(&tx_acc_mint)?, AcceptType::Bcs).await?;
         let txs = vec![tx_acc_mint];
         res.data = hex::encode(bcs::to_bytes(&txs)?);
@@ -899,15 +958,17 @@ impl Vm {
         ))
     }
     
-    pub async fn inner_build_block(&self, data: Vec<u8>) -> Result<(), anyhow::Error> {
+    pub async fn execute_and_commit_block(&self, data: Vec<u8>) -> Result<(), anyhow::Error> {
 
         // get executor and metadata
+        log::info!("inner_build_block");
         let executor = self.executor.as_ref().ok_or_else(|| anyhow::anyhow!("Executor not available"))?.read().await;
         let aptos_data = serde_json::from_slice::<AptosData>(&data).context("Failed to parse AptosData from bytes")?;
         let block_tx = serde_json::from_slice::<Vec<Transaction>>(&aptos_data.0).context("Failed to parse transactions from AptosData")?;
         let block_meta = block_tx.get(0).ok_or_else(|| anyhow::anyhow!("Block metadata not found in transactions"))?.try_as_block_metadata().context("Failed to convert transaction to block metadata")?;
 
         // execute block
+        log::info!("executing block");
         let block_id = block_meta.id();
         let parent_block_id = executor.committed_block_id();
         let next_epoch = aptos_data.3;
@@ -919,6 +980,7 @@ impl Vm {
         ).context("Failed to execute block")?;
 
         // commit block
+        log::info!("committing block");
         let ledger_info = LedgerInfo::new(
             BlockInfo::new(
                 next_epoch,
@@ -938,16 +1000,21 @@ impl Vm {
         );
         executor.commit_blocks(vec![block_id], li.clone())?;
 
-        // add
+        // commit transactions to mempools
+        log::info!("committing transactions to mempool");
         let mut core_pool = self.core_mempool.as_ref().ok_or_else(|| anyhow::anyhow!("Core mempool not available"))?.write().await;
         for t in block_tx.iter() {
             if let UserTransaction(t) = t {
+                println!("committing tx: {:?}", t.clone().committed_hash());
                 let sender = t.sender();
                 let sequence_number = t.sequence_number();
                 core_pool.commit_transaction(&AccountAddress::from(sender), sequence_number);
             }
         }
         self.update_build_block_status(0).await;
+
+        log::info!("block committed");
+
         Ok(())
     }
 
@@ -1002,8 +1069,20 @@ impl Vm {
     }
 
     async fn build_block_data(&self) -> Result<Vec<u8>, anyhow::Error> {
+
+        log::info!("build_block_data");
         let unix_now_micro = Utc::now().timestamp_micros() as u64;
-        let tx_arr = self.get_pending_tx(512).await?;
+        let mut tx_arr: Vec<SignedTransaction> = vec![];
+        log::info!("Sleeping to allow mempool to fill up");
+        sleep(Duration::from_millis(200)).await;
+        log::info!("fetching transactions from mempool");
+
+        let txns = self.get_pending_tx(512).await?;
+        for tx in txns {
+            log::info!("tx: {:?}", tx.clone().committed_hash());
+            tx_arr.push(tx.clone());
+        }
+
         log::info!("build_block pool tx count {}", tx_arr.len());
         let executor = self.executor.as_ref().ok_or_else(|| anyhow::anyhow!("Executor not available"))?.read().await;
         let signer = self.signer.as_ref().ok_or_else(|| anyhow::anyhow!("Signer not available"))?;
@@ -1066,6 +1145,7 @@ impl ChainVm for Vm {
                 .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Failed to build block data: {}", e)))?;
             let mut block_ = Block::new(prnt_blk.id(), prnt_blk.height() + 1, unix_now, data, choices::status::Status::Processing)
                 .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Failed to create new block: {}", e)))?;
+            log::info!("build_block: block created");
             block_.set_state(state_b.clone());
             block_.verify().await
                 .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Block verification failed: {}", e)))?;
@@ -1118,7 +1198,8 @@ impl NetworkAppHandler for Vm {
         Ok(())
     }
 
-    async fn app_gossip(&self, _node_id: &ids::node::Id, msg: &[u8]) -> io::Result<()> {
+    async fn app_gossip(&self, node_id: &ids::node::Id, msg: &[u8]) -> io::Result<()> {
+        log::info!("Received gossip message from: {}", node_id);
         if let Ok(s) = serde_json::from_slice::<SignedTransaction>(msg) {
             self.add_pool(s).await.map_err(
                 |e| io::Error::new(io::ErrorKind::Other, format!("Failed to add transaction to pool: {}", e))
