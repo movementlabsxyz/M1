@@ -88,7 +88,6 @@ async fn main() {
 
 async fn start_network(opts: StartCommand) {
     simulator::init_m1_network().await;
-
 }
 
 async fn partition_network(opts: PartitionCommand) {

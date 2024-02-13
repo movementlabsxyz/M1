@@ -3,9 +3,15 @@
 
 # Dummy function placeholders for actual commands that would be implemented
 
+init_env() {
+    echo "Initializing Environment"
+    ./scripts/build.debug.sh \
+    && VM_PLUGIN_PATH=$(pwd)/target/debug/subnet
+}
+
 start_network() {
     echo "Starting network with 5 validators..."
-    # Placeholder for command to start the network
+    ./target/debug/simulator start
 }
 
 simulate_partition() {
@@ -24,6 +30,7 @@ observe_health() {
 }
 
 # Script execution flow
+init_env
 
 # Step 1: Start the network
 start_network
@@ -32,14 +39,14 @@ start_network
 sleep 5
 
 # Step 2: Simulate network partition
-simulate_partition
+# simulate_partition
 
 # Simulate some duration of network partition
-sleep 10
+# sleep 10
 
 # Step 3: Reconnect the nodes
-reconnect_nodes
+# reconnect_nodes
 
 # Observe the network for a period to assess impact on consensus health
 sleep 5
-observe_health
+# observe_health
