@@ -14,7 +14,7 @@
         pkgs = import nixpkgs {
           inherit system overlays;
         };
-        darwinFrameworks = if system == "x86_64-darwin" then with pkgs.darwin.apple_sdk.frameworks; [
+        darwinFrameworks = if system == "x86_64-darwin" || system == "aarch64-darwin" then with pkgs.darwin.apple_sdk.frameworks; [
           IOKit
           SystemConfiguration
           AppKit
