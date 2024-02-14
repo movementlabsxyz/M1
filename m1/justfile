@@ -1,0 +1,2 @@
+build:
+    ./scripts/build.debug.sh && cargo build -p simuatlor --bin simulator 
