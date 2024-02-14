@@ -24,7 +24,8 @@
       {
         devShells.default = mkShell {
           buildInputs = [
-            pkgs.clang_14
+            clang
+            libcxx
             zlib
             bzip2
             lz4
@@ -35,7 +36,7 @@
             pkg-config
             eza
             fd
-            rust-bin.beta.latest.default
+            rust-bin.stable.latest.default 
           ] ++ darwinFrameworks;
 
           shellHook = ''
@@ -49,6 +50,8 @@
             # Set MACOSX_DEPLOYMENT_TARGET for compatibility
             export MACOSX_DEPLOYMENT_TARGET="10.13"
             echo "MACOSX_DEPLOYMENT_TARGET set to: $MACOSX_DEPLOYMENT_TARGET"
+
+            export NIX_LDFLAGS="$NIX_LDFLAGS -L${pkgs.libcxx}/lib -lc++"
           '';
         };
       }
