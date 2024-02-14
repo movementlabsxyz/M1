@@ -14,7 +14,7 @@
         pkgs = import nixpkgs {
           inherit system overlays;
         };
-        darwinFrameworks = if system == "x86_64-darwin" || system == "aarch64-darwin" then with pkgs.darwin.apple_sdk.frameworks; [
+        darwinFrameworks = if system == "x86_64-darwin" then with pkgs.darwin.apple_sdk.frameworks; [
           IOKit
           SystemConfiguration
           AppKit
@@ -24,13 +24,8 @@
       {
         devShells.default = mkShell {
           buildInputs = [
-            clang
-            libcxx
-            zlib
-            bzip2
-            lz4
-            snappy
-            zstd
+            llvmPackages_13.stdenv
+            llvmPackages_13.libcxxStdenv
             rocksdb
             openssl
             pkg-config
