@@ -71,10 +71,6 @@ impl Network {
                 return Err(anyhow!("GRPC endpoint not provided"));
             }
         };
-        let _ = env_logger::builder()
-            .filter_level(log::LevelFilter::Info)
-            .is_test(true)
-            .try_init();
 
         let cli = Client::new(&grpc).await;
 
@@ -90,16 +86,18 @@ impl Network {
             .to_string();
 
         let plugins_dir = if !&self.avalanchego_path.is_empty() {
-            let parent_dir = Path::new(&self.avalanchego_path)
+            let manifest_dir = env::var("CARGO_MANIFEST_DIR").context("No manifest dir found")?;
+            let workspace_dir = Path::new(&manifest_dir)
                 .parent()
-                .expect("unexpected None parent");
-            parent_dir
+                .context("No parent dir found")?;
+            workspace_dir
                 .join("plugins")
                 .as_os_str()
                 .to_str()
                 .unwrap()
                 .to_string()
         } else {
+            // Don't think this block will ever get hit in the current state
             let exec_path = avalanche_installer::avalanchego::github::download(
                 None,
                 None,
@@ -118,12 +116,11 @@ impl Network {
             vm_id
         );
 
-        fs::create_dir(&plugins_dir).unwrap();
+        //fs::create_dir(&plugins_dir)?;
         fs::copy(
             &self.vm_plugin_path,
             Path::new(&plugins_dir).join(vm_id.to_string()),
-        )
-        .unwrap();
+        )?;
 
         // write some random genesis file
         let genesis = random_manager::secure_string(10);
@@ -136,6 +133,13 @@ impl Network {
             vm_id,
             &self.avalanchego_path,
             genesis_file_path,
+        );
+        log::debug!(
+            "plugins dir: {}, global node config: {:?}",
+            plugins_dir,
+            serde_json::to_string(&GlobalConfig {
+                log_level: String::from("info"),
+            })
         );
         let resp = cli
             .start(StartRequest {
@@ -156,8 +160,8 @@ impl Network {
                 }],
                 ..Default::default()
             })
-            .await
-            .expect("failed start");
+            .await?;
+
         log::info!(
             "started avalanchego cluster with network-runner: {:?}",
             resp
@@ -329,10 +333,39 @@ pub fn get_avalanchego_path(is_local: bool) -> Result<String, anyhow::Error> {
 }
 
 #[must_use]
-pub fn get_vm_plugin_path() -> Result<String, anyhow::Error> {
-    match std::env::var("VM_PLUGIN_PATH") {
-        Ok(s) => Ok(s),
-        _ => Err(anyhow!("VM_PLUGIN_PATH not provided")),
+pub fn get_vm_plugin_path(is_local: bool) -> Result<String, anyhow::Error> {
+    match is_local {
+        true => {
+            let manifest_dir = env::var("CARGO_MANIFEST_DIR").context("No manifest dir found")?;
+            let manifest_path = Path::new(&manifest_dir);
+
+            // Construct the path to the binary with ./target/debug/subnet
+            let subnet_path = manifest_path
+                .parent()
+                .context("Could not find the parent dir")?
+                .join("target")
+                .join("debug")
+                .join("subnet");
+            if !subnet_path.exists() {
+                log::debug!("vm plugin path: {:?}", subnet_path);
+                return Err(anyhow!(
+                    "
+                    vm plugin not in expected path. 
+                    Install the plugin at the expected path {:?}",
+                    subnet_path
+                ));
+            }
+
+            let path_buf = subnet_path
+                .to_str()
+                .context("Failed to convert path to string")?;
+            log::debug!("vm plugin path: {}", path_buf);
+            Ok(path_buf.to_string())
+        }
+        false => match std::env::var("VM_PLUGIN_PATH") {
+            Ok(s) => Ok(s),
+            _ => Err(anyhow!("VM_PLUGIN_PATH not provided")),
+        },
     }
 }
 

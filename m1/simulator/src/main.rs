@@ -123,7 +123,7 @@ async fn start_network(opts: StartCommand) -> Result<(), anyhow::Error> {
     .init();
 
     let avalanche_path = get_avalanchego_path(opts.local)?;
-    let vm_path = get_vm_plugin_path()?;
+    let vm_path = get_vm_plugin_path(opts.local)?;
     let mut net = Network::new(
         opts.local,
         opts.grpc_endpoint,
@@ -131,7 +131,6 @@ async fn start_network(opts: StartCommand) -> Result<(), anyhow::Error> {
         avalanche_path,
         vm_path,
     )?;
-
     net.init_m1_network().await?;
     Ok(())
 }
