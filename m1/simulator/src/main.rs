@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand};
-use simulator::Network;
+use env_logger::{Builder, Env};
+use simulator::{get_avalanchego_path, get_vm_plugin_path, Network};
 
 type NodeId = u64;
 
@@ -113,13 +114,24 @@ async fn main() -> Result<(), anyhow::Error> {
 }
 
 async fn start_network(opts: StartCommand) -> Result<(), anyhow::Error> {
-    let net = Network::new(
+    // Set log level based on verbosity
+    Builder::from_env(Env::default().default_filter_or(if opts.verbose {
+        "debug"
+    } else {
+        "info"
+    }))
+    .init();
+
+    let avalanche_path = get_avalanchego_path(opts.local)?;
+    let vm_path = get_vm_plugin_path()?;
+    let mut net = Network::new(
         opts.local,
         opts.grpc_endpoint,
         opts.staggered,
-        "avalanchego_path".to_string(),
-        "vm_plugin_path".to_string(),
+        avalanche_path,
+        vm_path,
     )?;
+
     net.init_m1_network().await?;
     Ok(())
 }

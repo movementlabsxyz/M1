@@ -1,15 +1,15 @@
 use core::time;
 use std::{
+    env,
     fs::{self, File},
-    io,
-    io::Write,
+    io::{self, Write},
     path::Path,
     str::FromStr,
     thread,
     time::{Duration, Instant},
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 
 use avalanche_network_runner_sdk::{BlockchainSpec, Client, GlobalConfig, StartRequest};
 use avalanche_types::{
@@ -64,7 +64,7 @@ impl Network {
         })
     }
 
-    pub async fn init_m1_network(&self) -> Result<(), anyhow::Error> {
+    pub async fn init_m1_network(&mut self) -> Result<(), anyhow::Error> {
         let grpc = match self.grpc_endpoint.clone() {
             Some(grpc) => grpc,
             None => {
@@ -89,9 +89,8 @@ impl Network {
             .unwrap()
             .to_string();
 
-        let (mut avalanchego_exec_path, _) = get_avalanchego_path();
-        let plugins_dir = if !avalanchego_exec_path.is_empty() {
-            let parent_dir = Path::new(&avalanchego_exec_path)
+        let plugins_dir = if !&self.avalanchego_path.is_empty() {
+            let parent_dir = Path::new(&self.avalanchego_path)
                 .parent()
                 .expect("unexpected None parent");
             parent_dir
@@ -108,8 +107,8 @@ impl Network {
             )
             .await
             .unwrap();
-            avalanchego_exec_path = exec_path;
-            avalanche_installer::avalanchego::get_plugin_dir(&avalanchego_exec_path)
+            self.avalanchego_path = exec_path;
+            avalanche_installer::avalanchego::get_plugin_dir(&self.avalanchego_path)
         };
 
         log::info!(
@@ -135,12 +134,12 @@ impl Network {
         log::info!(
             "starting {} with avalanchego {}, genesis file path {}",
             vm_id,
-            &avalanchego_exec_path,
+            &self.avalanchego_path,
             genesis_file_path,
         );
         let resp = cli
             .start(StartRequest {
-                exec_path: avalanchego_exec_path,
+                exec_path: self.avalanchego_path.clone(),
                 num_nodes: Some(5),
                 plugin_dir: plugins_dir,
                 global_node_config: Some(
@@ -288,18 +287,52 @@ pub fn get_network_runner_enable_shutdown() -> bool {
 }
 
 #[must_use]
-pub fn get_avalanchego_path() -> (String, bool) {
-    match std::env::var("AVALANCHEGO_PATH") {
-        Ok(s) => (s, true),
-        _ => (String::new(), false),
+pub fn get_avalanchego_path(is_local: bool) -> Result<String, anyhow::Error> {
+    match is_local {
+        true => {
+            let manifest_dir = env::var("CARGO_MANIFEST_DIR").context("No manifest dir found")?;
+            let manifest_path = Path::new(&manifest_dir);
+
+            //Navigate two levels up from the Cargo manifest directory ../../
+            let root = manifest_path
+                .parent()
+                .context("No parent dirctory found")?
+                .parent()
+                .context("No parent directory found")?
+                .parent()
+                .context("No parent directory found")?
+                .parent()
+                .context("No parent directory found")?;
+
+            let avalanchego_path = root.join(".avalanchego");
+            if !avalanchego_path.exists() {
+                log::debug!("avalanchego path: {:?}", avalanchego_path);
+                return Err(anyhow!(
+                    "
+                    avalanchego binary not in expected path. 
+                    Install the binary at the expected path {:?}",
+                    avalanchego_path
+                ));
+            }
+
+            let path_buf = avalanchego_path
+                .to_str()
+                .context("Failed to convert path to string")?;
+            log::debug!("avalanchego path: {}", path_buf);
+            Ok(path_buf.to_string())
+        }
+        false => match std::env::var("AVALANCHEGO_PATH") {
+            Ok(s) => Ok(s),
+            _ => Err(anyhow!("AVALANCHEGO_PATH not provided")),
+        },
     }
 }
 
 #[must_use]
-pub fn get_vm_plugin_path() -> (String, bool) {
+pub fn get_vm_plugin_path() -> Result<String, anyhow::Error> {
     match std::env::var("VM_PLUGIN_PATH") {
-        Ok(s) => (s, true),
-        _ => (String::new(), false),
+        Ok(s) => Ok(s),
+        _ => Err(anyhow!("VM_PLUGIN_PATH not provided")),
     }
 }
 
