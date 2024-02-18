@@ -127,7 +127,7 @@ async fn start_network(opts: StartCommand) -> Result<(), anyhow::Error> {
     let mut net = Network::new(
         opts.local,
         opts.grpc_endpoint,
-        opts.staggered,
+        false,
         avalanche_path,
         vm_path,
     )?;

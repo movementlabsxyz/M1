@@ -85,6 +85,8 @@ impl Network {
             .unwrap()
             .to_string();
 
+        let vm_id = subnet::vm_name_to_id("subnet").unwrap();
+
         let plugins_dir = if !&self.avalanchego_path.is_empty() {
             let manifest_dir = env::var("CARGO_MANIFEST_DIR").context("No manifest dir found")?;
             let workspace_dir = Path::new(&manifest_dir)
@@ -105,7 +107,7 @@ impl Network {
             )
             .await
             .unwrap();
-            self.avalanchego_path = exec_path;
+            self.avalanchego_path = exec_path.clone();
             avalanche_installer::avalanchego::get_plugin_dir(&self.avalanchego_path)
         };
 
@@ -298,17 +300,17 @@ pub fn get_avalanchego_path(is_local: bool) -> Result<String, anyhow::Error> {
             let manifest_path = Path::new(&manifest_dir);
 
             //Navigate two levels up from the Cargo manifest directory ../../
-            let root = manifest_path
+            let avalanchego_path = manifest_path
                 .parent()
                 .context("No parent dirctory found")?
                 .parent()
                 .context("No parent directory found")?
                 .parent()
                 .context("No parent directory found")?
-                .parent()
-                .context("No parent directory found")?;
+                .join("avalanchego")
+                .join("build")
+                .join("avalanchego");
 
-            let avalanchego_path = root.join(".avalanchego");
             if !avalanchego_path.exists() {
                 log::debug!("avalanchego path: {:?}", avalanchego_path);
                 return Err(anyhow!(
