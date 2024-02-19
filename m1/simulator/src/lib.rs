@@ -1,17 +1,20 @@
+use anyhow::{anyhow, Context, Result};
 use core::time;
+use serde::{Deserialize, Serialize};
 use std::{
     env,
     fs::{self, File},
     io::{self, Write},
     path::Path,
     str::FromStr,
+    sync::Arc,
     thread,
     time::{Duration, Instant},
 };
 
-use anyhow::{anyhow, Context, Result};
-
-use avalanche_network_runner_sdk::{BlockchainSpec, Client, GlobalConfig, StartRequest};
+use avalanche_network_runner_sdk::{
+    AddNodeRequest, BlockchainSpec, Client, GlobalConfig, StartRequest,
+};
 use avalanche_types::{
     ids::{self, Id as VmId},
     jsonrpc::client::info as avalanche_sdk_info,
@@ -27,7 +30,7 @@ pub const LOCAL_GRPC_ENDPOINT: &str = "http://127.0.0.1:12342";
 const VM_NAME: &str = "subnet";
 
 pub struct Simulator {
-    pub cli: Client<Channel>,
+    pub cli: Arc<Client<Channel>>,
     pub command: SubCommands,
     pub avalanchego_path: String,
     pub vm_plugin_path: String,
@@ -36,11 +39,8 @@ pub struct Simulator {
 impl Simulator {
     pub async fn new(command: SubCommands) -> Result<Self> {
         let cli = Client::new(LOCAL_GRPC_ENDPOINT).await;
-        log::info!("ping...");
-        let resp = cli.ping().await.expect("failed ping");
-        log::info!("network-runner is running (ping response {:?})", resp);
         Ok(Self {
-            cli,
+            cli: Arc::new(cli),
             command,
             avalanchego_path: get_avalanchego_path()?,
             vm_plugin_path: get_vm_plugin_path()?,
@@ -59,7 +59,6 @@ impl Simulator {
     }
 
     pub async fn start_network(&mut self, cmd: StartCommand) -> Result<()> {
-        // Set log level based on verbosity
         env_logger::Builder::from_env(
             env_logger::Env::default().default_filter_or(if cmd.verbose {
                 "debug"
@@ -68,6 +67,7 @@ impl Simulator {
             }),
         )
         .init();
+        log::debug!("Running command: {:?}", cmd);
 
         let vm_id = Path::new(&self.vm_plugin_path)
             .file_stem()
@@ -257,16 +257,16 @@ impl Simulator {
             .parse::<i64>()
             .unwrap();
 
-        log::info!("sleeping for {} seconds", timeout.as_secs());
-        if val < 0 {
-            // run forever
-            loop {
-                thread::sleep(Duration::from_secs(1000));
-            }
-        } else {
-            let timeout = Duration::from_secs(val as u64);
-            thread::sleep(timeout);
-        }
+        // log::info!("sleeping for {} seconds", timeout.as_secs());
+        // if val < 0 {
+        //     // run forever
+        //     loop {
+        //         thread::sleep(Duration::from_secs(1000));
+        //     }
+        // } else {
+        //     let timeout = Duration::from_secs(val as u64);
+        //     thread::sleep(timeout);
+        // }
         Ok(())
     }
 
@@ -279,12 +279,40 @@ impl Simulator {
     }
 
     pub async fn network_health(&self, cmd: HealthCommand) -> Result<()> {
+        env_logger::Builder::from_env(
+            env_logger::Env::default().default_filter_or(if cmd.verbose {
+                "debug"
+            } else {
+                "info"
+            }),
+        )
+        .init();
+        log::debug!("Running command: {:?}", cmd);
         let resp = self.cli.health().await?;
         log::info!("network health: {:?}", resp);
         Ok(())
     }
 
     pub async fn add_node(&self, cmd: AddNodeCommand) -> Result<()> {
+        env_logger::Builder::from_env(
+            env_logger::Env::default().default_filter_or(if cmd.verbose {
+                "debug"
+            } else {
+                "info"
+            }),
+        )
+        .init();
+        log::debug!("Running command: {:?}", cmd);
+        let resp = self
+            .cli
+            .add_node(AddNodeRequest {
+                name: format!("node-simulator-{}", random_manager::secure_string(5)),
+                exec_path: self.avalanchego_path.clone(),
+                node_config: None,
+                ..Default::default()
+            })
+            .await?;
+        log::info!("added node: {:?}", resp);
         Ok(())
     }
 }

@@ -5,9 +5,10 @@ edition = "2021"
 
 [dependencies]
 avalanche-installer = "0.0.77"
-avalanche-network-runner-sdk = "0.3.3" # https://crates.io/crates/avalanche-network-runner-sdk
+avalanche-network-runner-sdk = { git = "https://github.com/0xmovses/avalanche-network-runner-sdk-rs", branch = "main" } 
 log = "0.4.19"
 random-manager = "0.0.5"
+serde = { workspace = true }
 serde_json = "1.0.108" # https://github.com/serde-rs/json/releases
 avalanche-types = { workspace = true } # https://crates.io/crates/avalanche-types
 aptos-sdk = {workspace = true }
