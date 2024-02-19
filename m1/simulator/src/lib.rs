@@ -17,66 +17,57 @@ use avalanche_types::{
     jsonrpc::client::info as avalanche_sdk_info,
     subnet::{self, vm_name_to_id},
 };
+use commands::*;
+use tonic::transport::Channel;
 
-const LOCAL_GRPC_ENDPOINT: &str = "http://127.0.0.1:12342";
+pub mod commands;
+
+const AVALANCHEGO_VERSION: &str = "v1.10.9";
+pub const LOCAL_GRPC_ENDPOINT: &str = "http://127.0.0.1:12342";
 const VM_NAME: &str = "subnet";
 
-/// Network configuration
-pub struct Network {
-    /// The GRPC endpoint of the network runner to connect to
-    pub grpc_endpoint: Option<String>,
-    /// Sets if the validators join the network at once, or in a staggered way
-    pub enable_shutdown: bool,
-    /// The path to the avalanchego binary
+pub struct Simulator {
+    pub cli: Client<Channel>,
+    pub command: SubCommands,
     pub avalanchego_path: String,
-    /// The path to the VM plugin
     pub vm_plugin_path: String,
-    /// VM name, this is hardcoded for now
-    pub vm_name: VmId,
 }
 
-impl Network {
-    /// Create a new network configuration
-
-    pub fn new(
-        is_local: bool,
-        grpc_endpoint: Option<String>,
-        enable_shutdown: bool,
-        avalanchego_path: String,
-        vm_plugin_path: String,
-    ) -> Result<Self> {
-        let grpc_endpoint = match is_local {
-            true => Some(LOCAL_GRPC_ENDPOINT.to_string()),
-            false => {
-                if let Some(endpoint) = grpc_endpoint {
-                    Some(endpoint)
-                } else {
-                    return Err(anyhow!("GRPC endpoint not provided"));
-                }
-            }
-        };
-        Ok(Network {
-            grpc_endpoint,
-            enable_shutdown,
-            avalanchego_path,
-            vm_plugin_path,
-            vm_name: subnet::vm_name_to_id(VM_NAME)?,
-        })
-    }
-
-    pub async fn init_m1_network(&mut self) -> Result<(), anyhow::Error> {
-        let grpc = match self.grpc_endpoint.clone() {
-            Some(grpc) => grpc,
-            None => {
-                return Err(anyhow!("GRPC endpoint not provided"));
-            }
-        };
-
-        let cli = Client::new(&grpc).await;
-
+impl Simulator {
+    pub async fn new(command: SubCommands) -> Result<Self> {
+        let cli = Client::new(LOCAL_GRPC_ENDPOINT).await;
         log::info!("ping...");
         let resp = cli.ping().await.expect("failed ping");
         log::info!("network-runner is running (ping response {:?})", resp);
+        Ok(Self {
+            cli,
+            command,
+            avalanchego_path: get_avalanchego_path()?,
+            vm_plugin_path: get_vm_plugin_path()?,
+        })
+    }
+
+    pub async fn dispatch(&mut self) -> Result<()> {
+        match &self.command {
+            SubCommands::Start(cmd) => self.start_network(cmd.clone()).await?,
+            SubCommands::Partition(cmd) => self.partition_network(cmd.clone()).await?,
+            SubCommands::Reconnect(cmd) => self.reconnect_validators(cmd.clone()).await?,
+            SubCommands::Health(cmd) => self.network_health(cmd.clone()).await?,
+            SubCommands::AddNode(cmd) => self.add_node(cmd.clone()).await?,
+        }
+        Ok(())
+    }
+
+    pub async fn start_network(&mut self, cmd: StartCommand) -> Result<()> {
+        // Set log level based on verbosity
+        env_logger::Builder::from_env(
+            env_logger::Env::default().default_filter_or(if cmd.verbose {
+                "debug"
+            } else {
+                "info"
+            }),
+        )
+        .init();
 
         let vm_id = Path::new(&self.vm_plugin_path)
             .file_stem()
@@ -143,7 +134,8 @@ impl Network {
                 log_level: String::from("info"),
             })
         );
-        let resp = cli
+        let resp = self
+            .cli
             .start(StartRequest {
                 exec_path: self.avalanchego_path.clone(),
                 num_nodes: Some(5),
@@ -196,7 +188,7 @@ impl Network {
             thread::sleep(itv);
 
             ready = {
-                match cli.health().await {
+                match self.cli.health().await {
                     Ok(_) => {
                         log::info!("healthy now!");
                         true
@@ -216,7 +208,7 @@ impl Network {
         assert!(ready);
 
         log::info!("checking status...");
-        let mut status = cli.status().await.expect("failed status");
+        let mut status = self.cli.status().await.expect("failed status");
         loop {
             let elapsed = start.elapsed();
             if elapsed.gt(&timeout) {
@@ -231,7 +223,7 @@ impl Network {
 
             log::info!("retrying checking status...");
             thread::sleep(interval);
-            status = cli.status().await.expect("failed status");
+            status = self.cli.status().await.expect("failed status");
         }
 
         assert!(status.cluster_info.is_some());
@@ -277,6 +269,24 @@ impl Network {
         }
         Ok(())
     }
+
+    pub async fn partition_network(&self, cmd: PartitionCommand) -> Result<()> {
+        Ok(())
+    }
+
+    pub async fn reconnect_validators(&self, cmd: ReconnectCommand) -> Result<()> {
+        Ok(())
+    }
+
+    pub async fn network_health(&self, cmd: HealthCommand) -> Result<()> {
+        let resp = self.cli.health().await?;
+        log::info!("network health: {:?}", resp);
+        Ok(())
+    }
+
+    pub async fn add_node(&self, cmd: AddNodeCommand) -> Result<()> {
+        Ok(())
+    }
 }
 
 #[must_use]
@@ -293,85 +303,67 @@ pub fn get_network_runner_enable_shutdown() -> bool {
 }
 
 #[must_use]
-pub fn get_avalanchego_path(is_local: bool) -> Result<String, anyhow::Error> {
-    match is_local {
-        true => {
-            let manifest_dir = env::var("CARGO_MANIFEST_DIR").context("No manifest dir found")?;
-            let manifest_path = Path::new(&manifest_dir);
+pub fn get_avalanchego_path() -> Result<String, anyhow::Error> {
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR").context("No manifest dir found")?;
+    let manifest_path = Path::new(&manifest_dir);
 
-            //Navigate two levels up from the Cargo manifest directory ../../
-            let avalanchego_path = manifest_path
-                .parent()
-                .context("No parent dirctory found")?
-                .parent()
-                .context("No parent directory found")?
-                .parent()
-                .context("No parent directory found")?
-                .join("avalanchego")
-                .join("build")
-                .join("avalanchego");
+    //Navigate two levels up from the Cargo manifest directory ../../
+    let avalanchego_path = manifest_path
+        .parent()
+        .context("No parent dirctory found")?
+        .parent()
+        .context("No parent directory found")?
+        .parent()
+        .context("No parent directory found")?
+        .join("avalanchego")
+        .join("build")
+        .join("avalanchego");
 
-            if !avalanchego_path.exists() {
-                log::debug!("avalanchego path: {:?}", avalanchego_path);
-                return Err(anyhow!(
-                    "
+    if !avalanchego_path.exists() {
+        log::debug!("avalanchego path: {:?}", avalanchego_path);
+        return Err(anyhow!(
+            "
                     avalanchego binary not in expected path. 
                     Install the binary at the expected path {:?}",
-                    avalanchego_path
-                ));
-            }
-
-            let path_buf = avalanchego_path
-                .to_str()
-                .context("Failed to convert path to string")?;
-            log::debug!("avalanchego path: {}", path_buf);
-            Ok(path_buf.to_string())
-        }
-        false => match std::env::var("AVALANCHEGO_PATH") {
-            Ok(s) => Ok(s),
-            _ => Err(anyhow!("AVALANCHEGO_PATH not provided")),
-        },
+            avalanchego_path
+        ));
     }
+
+    let path_buf = avalanchego_path
+        .to_str()
+        .context("Failed to convert path to string")?;
+    log::debug!("avalanchego path: {}", path_buf);
+    Ok(path_buf.to_string())
 }
 
 #[must_use]
-pub fn get_vm_plugin_path(is_local: bool) -> Result<String, anyhow::Error> {
-    match is_local {
-        true => {
-            let manifest_dir = env::var("CARGO_MANIFEST_DIR").context("No manifest dir found")?;
-            let manifest_path = Path::new(&manifest_dir);
+pub fn get_vm_plugin_path() -> Result<String, anyhow::Error> {
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR").context("No manifest dir found")?;
+    let manifest_path = Path::new(&manifest_dir);
 
-            // Construct the path to the binary with ./target/debug/subnet
-            let subnet_path = manifest_path
-                .parent()
-                .context("Could not find the parent dir")?
-                .join("target")
-                .join("debug")
-                .join("subnet");
-            if !subnet_path.exists() {
-                log::debug!("vm plugin path: {:?}", subnet_path);
-                return Err(anyhow!(
-                    "
+    // Construct the path to the binary with ./target/debug/subnet
+    let subnet_path = manifest_path
+        .parent()
+        .context("Could not find the parent dir")?
+        .join("target")
+        .join("debug")
+        .join("subnet");
+    if !subnet_path.exists() {
+        log::debug!("vm plugin path: {:?}", subnet_path);
+        return Err(anyhow!(
+            "
                     vm plugin not in expected path. 
                     Install the plugin at the expected path {:?}",
-                    subnet_path
-                ));
-            }
-
-            let path_buf = subnet_path
-                .to_str()
-                .context("Failed to convert path to string")?;
-            log::debug!("vm plugin path: {}", path_buf);
-            Ok(path_buf.to_string())
-        }
-        false => match std::env::var("VM_PLUGIN_PATH") {
-            Ok(s) => Ok(s),
-            _ => Err(anyhow!("VM_PLUGIN_PATH not provided")),
-        },
+            subnet_path
+        ));
     }
-}
 
-const AVALANCHEGO_VERSION: &str = "v1.10.9";
+    let path_buf = subnet_path
+        .to_str()
+        .context("Failed to convert path to string")?;
+    log::debug!("vm plugin path: {}", path_buf);
+    Ok(path_buf.to_string())
+}
 
 // todo: extracted from genesis method
 // todo: really we should use a genesis once more
@@ -389,5 +381,3 @@ pub fn sync_genesis(byte_string: &str, file_path: &str) -> io::Result<()> {
 
     Ok(())
 }
-
-pub async fn init_m1_network() {}
