@@ -74,11 +74,49 @@ pub struct ReconnectCommand {
     pub verbose: bool,
 }
 
+/// Add a node to the network
 #[derive(Debug, Parser, Clone)]
 pub struct AddNodeCommand {
     /// Verbose output
     #[clap(short, long, help = "Verbose output.")]
     pub verbose: bool,
+
+    /// The name of the node to add
+    #[clap(long, help = "The name of the node to add.")]
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Parser, Clone)]
+pub struct RemoveNodeCommand {
+    /// Verbose output
+    #[clap(short, long, help = "Verbose output.")]
+    pub verbose: bool,
+
+    /// The name of the node to remove
+    #[clap(long, help = "The name of the node to remove.")]
+    pub name: String,
+}
+
+#[derive(Debug, Parser, Clone)]
+pub struct AddValidatorCommand {
+    /// Verbose output
+    #[clap(short, long, help = "Verbose output.")]
+    pub verbose: bool,
+
+    /// The name of the validator to add
+    #[clap(long, help = "The name of the validator to add.")]
+    pub name: String,
+}
+
+#[derive(Debug, Parser, Clone)]
+pub struct RemoveValidatorCommand {
+    /// Verbose output
+    #[clap(short, long, help = "Verbose output.")]
+    pub verbose: bool,
+
+    /// The name of the validator to remove
+    #[clap(long, help = "The name of the validator to remove.")]
+    pub name: String,
 }
 
 #[derive(Debug, Parser, Clone)]
@@ -94,6 +132,12 @@ pub enum SubCommands {
     Start(StartCommand),
     /// Adds a node to the network
     AddNode(AddNodeCommand),
+    /// Removes a node from the network
+    RemoveNode(RemoveNodeCommand),
+    /// Adds a validator to the network
+    AddValidator(AddValidatorCommand),
+    /// Removes a validator from the network
+    RemoveValidator(RemoveValidatorCommand),
     /// Simulates a network partition.
     Partition(PartitionCommand),
     /// Reconnects the validators after they have become partitioned

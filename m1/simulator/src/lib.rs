@@ -2,6 +2,7 @@ use anyhow::{anyhow, Context, Result};
 use core::time;
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::HashMap,
     env,
     fs::{self, File},
     io::{self, Write},
@@ -13,7 +14,11 @@ use std::{
 };
 
 use avalanche_network_runner_sdk::{
-    AddNodeRequest, BlockchainSpec, Client, GlobalConfig, StartRequest,
+    rpcpb::{
+        AddPermissionlessValidatorRequest, CustomChainInfo, PermissionlessStakerSpec,
+        RemoveSubnetValidatorRequest, VmidRequest, VmidResponse,
+    },
+    AddNodeRequest, BlockchainSpec, Client, GlobalConfig, RemoveNodeRequest, StartRequest,
 };
 use avalanche_types::{
     ids::{self, Id as VmId},
@@ -25,15 +30,25 @@ use tonic::transport::Channel;
 
 pub mod commands;
 
-const AVALANCHEGO_VERSION: &str = "v1.10.9";
+const AVALANCHEGO_VERSION: &str = "v1.10.12";
 pub const LOCAL_GRPC_ENDPOINT: &str = "http://127.0.0.1:12342";
 const VM_NAME: &str = "subnet";
 
+/// The Simulator is used to run commands on the avalanche-go-network-runner.
+/// It can be used across multiple threads and is thread safe.
 pub struct Simulator {
+    /// The network runner client
     pub cli: Arc<Client<Channel>>,
+    /// The command to run
     pub command: SubCommands,
+    /// The path to the avalanchego binary, must be version no higher than 1.10.12
+    /// higher versions use a VM plugin version higher that `28`, which is used by `subnet`
     pub avalanchego_path: String,
+    /// The path to the VM plugin
     pub vm_plugin_path: String,
+    /// The subnet ID created by the network runner,
+    /// this is not the same value as the VM ID.
+    pub subnet_id: Option<String>,
 }
 
 impl Simulator {
@@ -44,16 +59,20 @@ impl Simulator {
             command,
             avalanchego_path: get_avalanchego_path()?,
             vm_plugin_path: get_vm_plugin_path()?,
+            subnet_id: None,
         })
     }
 
     pub async fn dispatch(&mut self) -> Result<()> {
         match &self.command {
             SubCommands::Start(cmd) => self.start_network(cmd.clone()).await?,
+            SubCommands::AddNode(cmd) => self.add_node(cmd.clone()).await?,
+            SubCommands::RemoveNode(cmd) => self.remove_node(cmd.clone()).await?,
+            SubCommands::AddValidator(cmd) => self.add_validator(cmd.clone()).await?,
+            SubCommands::RemoveValidator(cmd) => self.remove_validator(cmd.clone()).await?,
             SubCommands::Partition(cmd) => self.partition_network(cmd.clone()).await?,
             SubCommands::Reconnect(cmd) => self.reconnect_validators(cmd.clone()).await?,
             SubCommands::Health(cmd) => self.network_health(cmd.clone()).await?,
-            SubCommands::AddNode(cmd) => self.add_node(cmd.clone()).await?,
         }
         Ok(())
     }
@@ -149,17 +168,17 @@ impl Simulator {
                 blockchain_specs: vec![BlockchainSpec {
                     vm_name: String::from(VM_NAME),
                     genesis: genesis_file_path.to_string(),
-                    // blockchain_alias : String::from("subnet"), // todo: this doesn't always work oddly enough, need to debug
+                    //blockchain_alias : String::from("subnet"), // todo: this doesn't always work oddly enough, need to debug
                     ..Default::default()
                 }],
                 ..Default::default()
             })
             .await?;
-
         log::info!(
             "started avalanchego cluster with network-runner: {:?}",
             resp
         );
+        
 
         // enough time for network-runner to get ready
         thread::sleep(Duration::from_secs(20));
@@ -242,31 +261,12 @@ impl Simulator {
             }
         }
         log::info!("avalanchego RPC endpoints: {:?}", rpc_eps);
-
         let resp = avalanche_sdk_info::get_network_id(&rpc_eps[0])
             .await
             .unwrap();
         let network_id = resp.result.unwrap().network_id;
         log::info!("network Id: {}", network_id);
 
-        // keep alive by sleeping for duration provided by SUBNET_TIMEOUT environment variable
-        // use sensible default
-
-        let val = std::env::var("SUBNET_TIMEOUT")
-            .unwrap_or_else(|_| "0".to_string())
-            .parse::<i64>()
-            .unwrap();
-
-        // log::info!("sleeping for {} seconds", timeout.as_secs());
-        // if val < 0 {
-        //     // run forever
-        //     loop {
-        //         thread::sleep(Duration::from_secs(1000));
-        //     }
-        // } else {
-        //     let timeout = Duration::from_secs(val as u64);
-        //     thread::sleep(timeout);
-        // }
         Ok(())
     }
 
@@ -302,17 +302,105 @@ impl Simulator {
             }),
         )
         .init();
-        log::debug!("Running command: {:?}", cmd);
+        log::debug!("Running command: {:?}", cmd.clone());
+        let name = match cmd.name {
+            Some(n) => format!("node-{}", n),
+            None => format!("node-{}", random_manager::secure_string(5)),
+        };
         let resp = self
             .cli
             .add_node(AddNodeRequest {
-                name: format!("node-simulator-{}", random_manager::secure_string(5)),
+                name,
                 exec_path: self.avalanchego_path.clone(),
                 node_config: None,
                 ..Default::default()
             })
             .await?;
         log::info!("added node: {:?}", resp);
+        Ok(())
+    }
+
+    pub async fn remove_node(&self, cmd: RemoveNodeCommand) -> Result<()> {
+        env_logger::Builder::from_env(
+            env_logger::Env::default().default_filter_or(if cmd.verbose {
+                "debug"
+            } else {
+                "info"
+            }),
+        )
+        .init();
+        log::debug!("Running command: {:?}", cmd);
+        let resp = self
+            .cli
+            .remove_node(RemoveNodeRequest {
+                name: cmd.name,
+                ..Default::default()
+            })
+            .await?;
+        log::info!("removed node: {:?}", resp);
+        Ok(())
+    }
+
+    pub async fn add_validator(&self, cmd: AddValidatorCommand) -> Result<()> {
+        env_logger::Builder::from_env(
+            env_logger::Env::default().default_filter_or(if cmd.verbose {
+                "debug"
+            } else {
+                "info"
+            }),
+        )
+        .init();
+
+        let resp = self.cli.health().await?;
+        let custom_chains: HashMap<String, CustomChainInfo> = resp
+            .cluster_info
+            .expect("no cluster info found")
+            .custom_chains
+            .clone();
+
+        let mut subnet_id = String::new();
+
+        // This is a bit brittle, but there is only one custom chain in the HashMap:
+        // the subnet. If more subets wanted to be tested on the simulator this wouldn't work.
+        // Create tracking issue for this. The problem is I can't get the blockchain ID as the key
+        // lookup for custom_chains.
+        for (i, chain) in custom_chains.into_iter().enumerate() {
+            if i == 0 {
+                subnet_id = chain.1.subnet_id;
+            }
+        }
+        
+        let resp = self
+            .cli
+            .add_validator(AddPermissionlessValidatorRequest {
+                validator_spec: vec![PermissionlessStakerSpec {
+                    subnet_id,
+                    node_name: cmd.name,
+                    ..Default::default()
+                }],
+            })
+            .await?;
+        log::info!("added validator: {:?}", resp);
+        Ok(())
+    }
+
+    pub async fn remove_validator(&self, cmd: RemoveValidatorCommand) -> Result<()> {
+        env_logger::Builder::from_env(
+            env_logger::Env::default().default_filter_or(if cmd.verbose {
+                "debug"
+            } else {
+                "info"
+            }),
+        )
+        .init();
+        log::debug!("Running command: {:?}", cmd);
+        let resp = self
+            .cli
+            .remove_validator(RemoveSubnetValidatorRequest {
+                ..Default::default()
+            })
+            .await?;
+        log::info!("removed validator: {:?}", resp);
         Ok(())
     }
 }
