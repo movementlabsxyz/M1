@@ -17,7 +17,7 @@ pub struct StartCommand {
         default_value = "5",
         help = "The number of validators for the network."
     )]
-    pub validators: u64,
+    pub nodes: u64,
 
     /// Sets if the validators join the network at once, or in a staggered way
     #[clap(

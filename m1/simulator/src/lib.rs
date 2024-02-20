@@ -1,6 +1,4 @@
 use anyhow::{anyhow, Context, Result};
-use core::time;
-use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     env,
@@ -15,14 +13,15 @@ use std::{
 
 use avalanche_network_runner_sdk::{
     rpcpb::{
-        AddPermissionlessValidatorRequest, AddSubnetValidatorsRequest, CustomChainInfo, PermissionlessStakerSpec, RemoveSubnetValidatorsRequest, SubnetValidatorsSpec, VmidRequest, VmidResponse
+        AddSubnetValidatorsRequest, CustomChainInfo, RemoveSubnetValidatorsRequest,
+        RemoveSubnetValidatorsSpec, SubnetValidatorsSpec,
     },
     AddNodeRequest, BlockchainSpec, Client, GlobalConfig, RemoveNodeRequest, StartRequest,
 };
 use avalanche_types::{
-    ids::{self, Id as VmId},
+    ids::{self},
     jsonrpc::client::info as avalanche_sdk_info,
-    subnet::{self, vm_name_to_id},
+    subnet::{self},
 };
 use commands::*;
 use tonic::transport::Channel;
@@ -48,6 +47,10 @@ pub struct Simulator {
     /// The subnet ID created by the network runner,
     /// this is not the same value as the VM ID.
     pub subnet_id: Option<String>,
+    /// The blockchain ID
+    pub blockchain_id: Option<ids::Id>,
+    /// The network ID
+    pub network_id: Option<u32>,
 }
 
 impl Simulator {
@@ -59,10 +62,12 @@ impl Simulator {
             avalanchego_path: get_avalanchego_path()?,
             vm_plugin_path: get_vm_plugin_path()?,
             subnet_id: None,
+            blockchain_id: None,
+            network_id: None,
         })
     }
 
-    pub async fn dispatch(&mut self) -> Result<()> {
+    pub async fn exec(&mut self) -> Result<()> {
         match &self.command {
             SubCommands::Start(cmd) => self.start_network(cmd.clone()).await?,
             SubCommands::AddNode(cmd) => self.add_node(cmd.clone()).await?,
@@ -76,7 +81,7 @@ impl Simulator {
         Ok(())
     }
 
-    pub async fn start_network(&mut self, cmd: StartCommand) -> Result<()> {
+    async fn start_network(&mut self, cmd: StartCommand) -> Result<()> {
         env_logger::Builder::from_env(
             env_logger::Env::default().default_filter_or(if cmd.verbose {
                 "debug"
@@ -86,13 +91,6 @@ impl Simulator {
         )
         .init();
         log::debug!("Running command: {:?}", cmd);
-
-        let vm_id = Path::new(&self.vm_plugin_path)
-            .file_stem()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_string();
 
         let vm_id = subnet::vm_name_to_id("subnet").unwrap();
 
@@ -127,7 +125,6 @@ impl Simulator {
             vm_id
         );
 
-        //fs::create_dir(&plugins_dir)?;
         fs::copy(
             &self.vm_plugin_path,
             Path::new(&plugins_dir).join(vm_id.to_string()),
@@ -156,7 +153,7 @@ impl Simulator {
             .cli
             .start(StartRequest {
                 exec_path: self.avalanchego_path.clone(),
-                num_nodes: Some(5),
+                num_nodes: Some(cmd.nodes as u32),
                 plugin_dir: plugins_dir,
                 global_node_config: Some(
                     serde_json::to_string(&GlobalConfig {
@@ -250,33 +247,34 @@ impl Simulator {
             log::info!("{}: {}", node_name, iv.uri);
             rpc_eps.push(iv.uri.clone());
         }
-        let mut blockchain_id = ids::Id::empty();
         for (k, v) in cluster_info.custom_chains.iter() {
             log::info!("custom chain info: {}={:?}", k, v);
             if v.chain_name == "subnet" {
-                blockchain_id = ids::Id::from_str(&v.chain_id).unwrap();
+                self.blockchain_id = Some(ids::Id::from_str(&v.chain_id)?);
                 break;
             }
         }
         log::info!("avalanchego RPC endpoints: {:?}", rpc_eps);
+
         let resp = avalanche_sdk_info::get_network_id(&rpc_eps[0])
             .await
             .unwrap();
         let network_id = resp.result.unwrap().network_id;
         log::info!("network Id: {}", network_id);
+        self.network_id = Some(network_id);
 
         Ok(())
     }
 
-    pub async fn partition_network(&self, cmd: PartitionCommand) -> Result<()> {
+    async fn partition_network(&self, _: PartitionCommand) -> Result<()> {
         Ok(())
     }
 
-    pub async fn reconnect_validators(&self, cmd: ReconnectCommand) -> Result<()> {
+    async fn reconnect_validators(&self, _: ReconnectCommand) -> Result<()> {
         Ok(())
     }
 
-    pub async fn network_health(&self, cmd: HealthCommand) -> Result<()> {
+    async fn network_health(&self, cmd: HealthCommand) -> Result<()> {
         env_logger::Builder::from_env(
             env_logger::Env::default().default_filter_or(if cmd.verbose {
                 "debug"
@@ -291,7 +289,7 @@ impl Simulator {
         Ok(())
     }
 
-    pub async fn add_node(&self, cmd: AddNodeCommand) -> Result<()> {
+    async fn add_node(&self, cmd: AddNodeCommand) -> Result<()> {
         env_logger::Builder::from_env(
             env_logger::Env::default().default_filter_or(if cmd.verbose {
                 "debug"
@@ -318,7 +316,7 @@ impl Simulator {
         Ok(())
     }
 
-    pub async fn remove_node(&self, cmd: RemoveNodeCommand) -> Result<()> {
+    async fn remove_node(&self, cmd: RemoveNodeCommand) -> Result<()> {
         env_logger::Builder::from_env(
             env_logger::Env::default().default_filter_or(if cmd.verbose {
                 "debug"
@@ -339,7 +337,7 @@ impl Simulator {
         Ok(())
     }
 
-    pub async fn add_validator(&self, cmd: AddValidatorCommand) -> Result<()> {
+    async fn add_validator(&self, cmd: AddValidatorCommand) -> Result<()> {
         env_logger::Builder::from_env(
             env_logger::Env::default().default_filter_or(if cmd.verbose {
                 "debug"
@@ -349,6 +347,47 @@ impl Simulator {
         )
         .init();
 
+        let resp = self
+            .cli
+            .add_validator(AddSubnetValidatorsRequest {
+                validator_spec: vec![{
+                    SubnetValidatorsSpec {
+                        subnet_id: self.subnet_id().await?,
+                        node_names: vec![cmd.name],
+                    }
+                }],
+            })
+            .await?;
+        log::info!("added validator: {:?}", resp);
+        Ok(())
+    }
+
+    async fn remove_validator(&self, cmd: RemoveValidatorCommand) -> Result<()> {
+        env_logger::Builder::from_env(
+            env_logger::Env::default().default_filter_or(if cmd.verbose {
+                "debug"
+            } else {
+                "info"
+            }),
+        )
+        .init();
+        log::debug!("Running command: {:?}", cmd);
+        let resp = self
+            .cli
+            .remove_validator(RemoveSubnetValidatorsRequest {
+                validator_spec: vec![{
+                    RemoveSubnetValidatorsSpec {
+                        subnet_id: self.subnet_id().await?,
+                        node_names: vec![cmd.name],
+                    }
+                }],
+            })
+            .await?;
+        log::info!("removed validator: {:?}", resp);
+        Ok(())
+    }
+
+    async fn subnet_id(&self) -> Result<String> {
         let resp = self.cli.health().await?;
         let custom_chains: HashMap<String, CustomChainInfo> = resp
             .cluster_info
@@ -367,40 +406,7 @@ impl Simulator {
                 subnet_id = chain.1.subnet_id;
             }
         }
-
-        let resp = self
-            .cli
-            .add_validator(AddSubnetValidatorsRequest {
-                validator_spec: vec![{
-                    SubnetValidatorsSpec {
-                        subnet_id,
-                        node_names: vec![cmd.name],
-                    }
-                }],
-            })
-            .await?;
-        log::info!("added validator: {:?}", resp);
-        Ok(())
-    }
-
-    pub async fn remove_validator(&self, cmd: RemoveValidatorCommand) -> Result<()> {
-        env_logger::Builder::from_env(
-            env_logger::Env::default().default_filter_or(if cmd.verbose {
-                "debug"
-            } else {
-                "info"
-            }),
-        )
-        .init();
-        log::debug!("Running command: {:?}", cmd);
-        let resp = self
-            .cli
-            .remove_validator(RemoveSubnetValidatorsRequest {
-                ..Default::default()
-            })
-            .await?;
-        log::info!("removed validator: {:?}", resp);
-        Ok(())
+        Ok(subnet_id)
     }
 }
 

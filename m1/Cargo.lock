@@ -2565,7 +2565,7 @@ dependencies = [
 [[package]]
 name = "avalanche-network-runner-sdk"
 version = "0.3.3"
-source = "git+https://github.com/0xmovses/avalanche-network-runner-sdk-rs?branch=main#a9117cd0ceec6d0db40ddc16da0dcdc750567667"
+source = "git+https://github.com/0xmovses/avalanche-network-runner-sdk-rs?branch=main#c7bd446cb58931b33648810e6f0618231b27ae89"
 dependencies = [
  "log",
  "prost",
