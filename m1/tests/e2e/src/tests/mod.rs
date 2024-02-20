@@ -13,7 +13,7 @@ use avalanche_types::{ids, jsonrpc::client::info as avalanche_sdk_info, subnet};
 use simulator::{get_network_runner_grpc_endpoint, get_network_runner_enable_shutdown,
 get_avalanchego_path, get_vm_plugin_path, init_m1_network};
 
-const AVALANCHEGO_VERSION: &str = "v1.10.9";
+const AVALANCHEGO_VERSION: &str = "v1.3.7";
 
 #[tokio::test] 
 async fn e2e() {

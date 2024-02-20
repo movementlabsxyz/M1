@@ -2565,24 +2565,7 @@ dependencies = [
 [[package]]
 name = "avalanche-network-runner-sdk"
 version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "355b909145de091c1c55b9aab6c507d77da853104c32ede00d3968998dfc4c18"
-dependencies = [
- "log",
- "prost",
- "prost-types",
- "serde 1.0.193",
- "serde_json",
- "tokio",
- "tokio-stream",
- "tonic 0.9.2",
- "tonic-build",
-]
-
-[[package]]
-name = "avalanche-network-runner-sdk"
-version = "0.3.3"
-source = "git+https://github.com/0xmovses/avalanche-network-runner-sdk-rs?branch=main#7b9a0ac30987325c5c098d9aa0af3031e835bf94"
+source = "git+https://github.com/0xmovses/avalanche-network-runner-sdk-rs?branch=main#a9117cd0ceec6d0db40ddc16da0dcdc750567667"
 dependencies = [
  "log",
  "prost",
@@ -4021,7 +4004,7 @@ name = "e2e"
 version = "0.0.0"
 dependencies = [
  "avalanche-installer",
- "avalanche-network-runner-sdk 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "avalanche-network-runner-sdk",
  "avalanche-types",
  "env_logger",
  "log",
@@ -9011,7 +8994,7 @@ dependencies = [
  "anyhow",
  "aptos-sdk",
  "avalanche-installer",
- "avalanche-network-runner-sdk 0.3.3 (git+https://github.com/0xmovses/avalanche-network-runner-sdk-rs?branch=main)",
+ "avalanche-network-runner-sdk",
  "avalanche-types",
  "clap 3.2.25",
  "env_logger",
