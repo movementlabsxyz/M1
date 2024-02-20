@@ -15,8 +15,7 @@ use std::{
 
 use avalanche_network_runner_sdk::{
     rpcpb::{
-        AddPermissionlessValidatorRequest, CustomChainInfo, PermissionlessStakerSpec,
-        RemoveSubnetValidatorRequest, VmidRequest, VmidResponse,
+        AddPermissionlessValidatorRequest, AddSubnetValidatorsRequest, CustomChainInfo, PermissionlessStakerSpec, RemoveSubnetValidatorsRequest, SubnetValidatorsSpec, VmidRequest, VmidResponse
     },
     AddNodeRequest, BlockchainSpec, Client, GlobalConfig, RemoveNodeRequest, StartRequest,
 };
@@ -178,7 +177,6 @@ impl Simulator {
             "started avalanchego cluster with network-runner: {:?}",
             resp
         );
-        
 
         // enough time for network-runner to get ready
         thread::sleep(Duration::from_secs(20));
@@ -369,14 +367,15 @@ impl Simulator {
                 subnet_id = chain.1.subnet_id;
             }
         }
-        
+
         let resp = self
             .cli
-            .add_validator(AddPermissionlessValidatorRequest {
-                validator_spec: vec![PermissionlessStakerSpec {
-                    subnet_id,
-                    node_name: cmd.name,
-                    ..Default::default()
+            .add_validator(AddSubnetValidatorsRequest {
+                validator_spec: vec![{
+                    SubnetValidatorsSpec {
+                        subnet_id,
+                        node_names: vec![cmd.name],
+                    }
                 }],
             })
             .await?;
@@ -396,7 +395,7 @@ impl Simulator {
         log::debug!("Running command: {:?}", cmd);
         let resp = self
             .cli
-            .remove_validator(RemoveSubnetValidatorRequest {
+            .remove_validator(RemoveSubnetValidatorsRequest {
                 ..Default::default()
             })
             .await?;
