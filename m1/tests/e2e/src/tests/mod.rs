@@ -1,11 +1,7 @@
-use avalanche_network_runner_sdk::{BlockchainSpec, Client, GlobalConfig, StartRequest};
-use avalanche_types::{ids, jsonrpc::client::info as avalanche_sdk_info, subnet};
 use simulator::{
     commands::{StartCommand, SubCommands},
     Simulator,
 };
-
-const AVALANCHEGO_VERSION: &str = "v1.3.7";
 
 #[tokio::test]
 async fn e2e() {
