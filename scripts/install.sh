@@ -50,6 +50,7 @@ MOVEMENT_DIR="$HOME/.movement"
 MOVEMENT_WORKSPACE="$MOVEMENT_DIR/workspace"
 PLUGINS_DIR="$MOVEMENT_DIR/plugins"
 BIN_DIR="$MOVEMENT_DIR/bin"
+SOURCE_DIR="$MOVEMENT_DIR/source"
 SUBNET_ID="2gLyawqthdiyrJktJmdnDAb1XVc6xwJXU6iJKu3Uwj21F2mXAK"
 
 # CLI arguments
@@ -188,9 +189,9 @@ show_config(){
 setup() {
   
   log_warning "Removing previous installation, if one exists."
-  rm -rf "$MOVEMENT_DIR" "$PLUGINS_DIR" "$BIN_DIR" "$MOVEMENT_WORKSPACE"
+  rm -rf "$MOVEMENT_DIR" "$PLUGINS_DIR" "$BIN_DIR" "$MOVEMENT_WORKSPACE" "$SOURCE_DIR"
   log_info "Making new .movement directories."
-  mkdir -p "$AVALANCHEGO_DIR" "$AVALANCHEGO_DIR/plugins" "$MOVEMENT_DIR" "$PLUGINS_DIR" "$BIN_DIR" "$MOVEMENT_WORKSPACE"
+  mkdir -p "$AVALANCHEGO_DIR" "$AVALANCHEGO_DIR/plugins" "$MOVEMENT_DIR" "$PLUGINS_DIR" "$BIN_DIR" "$MOVEMENT_WORKSPACE" "$SOURCE_DIR"
 
 }
 
@@ -200,15 +201,19 @@ pull() {
   rm -rf "$MOVEMENT_DIR/M1"
   if [[ $LATEST = true ]]; then
     local URL="$RELEASES_URL/latest/download/m1-with-submodules.tar.gz"
-    log_info "Downloading full source from $URL..."
-    curl -sSfL $URL -o "$MOVEMENT_DIR/M1.tar.gz"
+    log_info "Downloading full source from $URL ..."
+    curl -SfL $URL -o "$SOURCE_DIR/M1.tar.gz" --progress-bar
+    log_info "Downloaded full source from $URL ."
   else
     local URL="$RELEASES_URL/download/$VERSION/m1-with-submodules.tar.gz"
     log_info "Downloading full source from $URL..."
-    curl -sSfL $URL -o "$PLUGINS_DIR/M1.tar.gz"
+    curl -SfL $URL -o "$PLUGINS_DIR/source/M1.tar.gz" --progress-bar
+    log_info "Downloaded full source from $URL."
   fi
 
-  tar -xzf "$MOVEMENT_DIR/M1.tar.gz" -C "$MOVEMENT_DIR"
+  log_info "Extracting full source..."
+  tar -xzf "$SOURCE_DIR/M1.tar.gz" -C "$SOURCE_DIR"
+  log_info "Extracted full source."
 
 }
 
@@ -330,23 +335,17 @@ avalanche_setup() {
 
 
 build() {
+
+    cd $SOURCE_DIR/m1-with-submodules/movement-sdk
     
-
-    # Build the subnet binary
-    cargo build --release -p subnet
-
-    # Move the subnet binary to the plugin directory
-    mv "$MOVEMENT_DIR/movement-subnet/vm/aptos-vm/target/release/subnet" "$PLUGINS_DIR/subnet"
-
-    # Symlink the subnet binary with its subnet ID
-    ln -sf "$PLUGINS_DIR/subnet" "$PLUGINS_DIR/$SUBNET_ID" 
-    ln -sf "$PLUGINS_DIR/subnet" "$AVALANCHEGO_DIR/plugins/$SUBNET_ID" 
+    # Notify use that we're building
+    log_info "Building movement@$VERSION $FARCH-$OS."
 
     # Build the movement binary
-    cargo build --release -p movement
+    cargo build --release -p movement --features="aptos,sui"
 
     # Move the movement binary to the appropriate directory
-    mv "$MOVEMENT_DIR/movement-subnet/vm/aptos-vm/target/release/movement" "$BIN_DIR"
+    mv "$MOVEMENT_DIR/movement-subnet/vm/aptos-vm/target/release/movement" "$BIN_DIR/movement"
 }
 
 dev() {
@@ -358,15 +357,11 @@ download(){
   log_info "Downloading released binaries for subnet and movement@$VERSION $FARCH-$OS."
 
   if [[ $LATEST = true ]]; then
-    log_info "Downloading subnet from $RELEASES_URL/latest/download/subnet-$FARCH-$OS."
-    curl -sSfL "$RELEASES_URL/latest/download/subnet-$FARCH-$OS" -o "$PLUGINS_DIR/subnet"
     log_info "Downloading movement from $RELEASES_URL/latest/download/movement-$FARCH-$OS."
-    curl -sSfL "$RELEASES_URL/latest/download/movement-$FARCH-$OS" -o "$BIN_DIR/movement"
+    curl -SfL "$RELEASES_URL/latest/download/movement-$FARCH-$OS" -o "$BIN_DIR/movement" --progress-bar
   else
-    log_info "Downloading subnet from $RELEASES_URL/download/$VERSION/subnet-$FARCH-$OS."
-    curl -sSfL "$RELEASES_URL/download/$VERSION/subnet-$FARCH-$OS" -o "$PLUGINS_DIR/subnet"
     log_info "Downloading movement from $RELEASES_URL/download/$VERSION/movement-$FARCH-$OS."
-    curl -sSfL "$RELEASES_URL/download/$VERSION/movement-$FARCH-$OS" -o "$BIN_DIR/movement"
+    curl -SfL "$RELEASES_URL/download/$VERSION/movement-$FARCH-$OS" -o "$BIN_DIR/movement" --progress-bar
   fi
 
 
@@ -378,11 +373,6 @@ download(){
 
 }
 
-movementctl() {
-  log_info "Installing movementctl."
-  curl -sSfL "$MOVEMENTCTL_URL" -o "$BIN_DIR/movementctl"
-  chmod +x "$BIN_DIR/movementctl"
-}
 
 path(){
   log_info "Adding $BIN_DIR to bash profile."
@@ -398,7 +388,7 @@ cleanup(){
 
 main() {
   
-  # parse the args
+  # parse the args into environment variables
   parse "$@"
 
   # detect the OS and architecture
@@ -407,16 +397,13 @@ main() {
   # show the configuration
   show_config
 
-  if [[ "$FARCH-$OS" != x86_64-linux && "$FARCH-$OS" != aarch64-linux ]]; then
+  if [[ "$FARCH-$OS" != x86_64-linux && "$FARCH-$OS" != aarch64-linux && "$BUILD" != true ]]; then
     log_error "$FARCH-$OS is not yet supported. Please use the --build option."
     exit 1
   fi
 
   # setup the .movement directory
   setup
-
-  # include avalanche for movementctl
-  avalanche_setup
 
   # if we're building or using dev, we'll need to pull the repo
   if [[ ("$SOURCE" = true) ]]; then
@@ -428,14 +415,16 @@ main() {
       dev
   fi
 
+  echo "Installing build essentials"
   # if we're building, we'll need to build the binaries
   if [ "$BUILD" = true ]; then
+      # install the build dependencies
+      build_dependencies
       build
   else 
+      echo "Downloading"
       download
   fi
-
-  movementctl
 
   path
 
@@ -443,201 +432,117 @@ main() {
 
 }
 
-# from Aptos setup
-function install_build_essentials {
-  PACKAGE_MANAGER=$1
-  #Differently named packages for pkg-config
-  if [[ "$PACKAGE_MANAGER" == "apt-get" ]]; then
-    install_pkg build-essential "$PACKAGE_MANAGER"
-  fi
-  if [[ "$PACKAGE_MANAGER" == "pacman" ]]; then
-    install_pkg base-devel "$PACKAGE_MANAGER"
-  fi
-  if [[ "$PACKAGE_MANAGER" == "apk" ]]; then
-    install_pkg alpine-sdk "$PACKAGE_MANAGER"
-    install_pkg coreutils "$PACKAGE_MANAGER"
-  fi
-  if [[ "$PACKAGE_MANAGER" == "yum" ]] || [[ "$PACKAGE_MANAGER" == "dnf" ]]; then
-    install_pkg gcc "$PACKAGE_MANAGER"
-    install_pkg gcc-c++ "$PACKAGE_MANAGER"
-    install_pkg make "$PACKAGE_MANAGER"
-  fi
-  #if [[ "$PACKAGE_MANAGER" == "brew" ]]; then
-  #  install_pkg pkgconfig "$PACKAGE_MANAGER"
-  #fi
-}
+# Ubuntu dependencies installation with checks
+install_ubuntu_deps() {
+    log_info "Updating package lists..."
+    sudo apt-get update
 
-function install_protoc {
-  INSTALL_PROTOC="true"
-  echo "Installing protoc and plugins"
-
-  if command -v "${INSTALL_DIR}protoc" &>/dev/null && [[ "$("${INSTALL_DIR}protoc" --version || true)" =~ .*${PROTOC_VERSION}.* ]]; then
-     echo "protoc 3.${PROTOC_VERSION} already installed"
-     return
-  fi
-
-  if [[ "$(uname)" == "Linux" ]]; then
-    PROTOC_PKG="protoc-$PROTOC_VERSION-linux-x86_64"
-  elif [[ "$(uname)" == "Darwin" ]]; then
-    PROTOC_PKG="protoc-$PROTOC_VERSION-osx-universal_binary"
-  else
-    echo "protoc support not configured for this platform (uname=$(uname))"
-    return
-  fi
-
-  TMPFILE=$(mktemp)
-  rm "$TMPFILE"
-  mkdir -p "$TMPFILE"/
-  (
-    cd "$TMPFILE" || exit
-    curl -LOs "https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/$PROTOC_PKG.zip" --retry 3
-    sudo unzip -o "$PROTOC_PKG.zip" -d /usr/local bin/protoc
-    sudo unzip -o "$PROTOC_PKG.zip" -d /usr/local 'include/*'
-    sudo chmod +x "/usr/local/bin/protoc"
-  )
-  rm -rf "$TMPFILE"
-
-  # Install the cargo plugins
-  if ! command -v protoc-gen-prost &> /dev/null; then
-    cargo install protoc-gen-prost --locked
-  fi
-  if ! command -v protoc-gen-prost-serde &> /dev/null; then
-    cargo install protoc-gen-prost-serde --locked
-  fi
-  if ! command -v protoc-gen-prost-crate &> /dev/null; then
-    cargo install protoc-gen-prost-crate --locked
-  fi
-}
-
-function install_pkg {
-  package=$1
-  PACKAGE_MANAGER=$2
-  PRE_COMMAND=()
-  if [ "$(whoami)" != 'root' ]; then
-    PRE_COMMAND=(sudo)
-  fi
-  if command -v "$package" &>/dev/null; then
-    echo "$package is already installed"
-  else
-    echo "Installing ${package}."
-    if [[ "$PACKAGE_MANAGER" == "yum" ]]; then
-      "${PRE_COMMAND[@]}" yum install "${package}" -y
-    elif [[ "$PACKAGE_MANAGER" == "apt-get" ]]; then
-      "${PRE_COMMAND[@]}" apt-get install "${package}" --no-install-recommends -y
-      echo apt-get install result code: $?
-    elif [[ "$PACKAGE_MANAGER" == "pacman" ]]; then
-      "${PRE_COMMAND[@]}" pacman -Syu "$package" --noconfirm
-    elif [[ "$PACKAGE_MANAGER" == "apk" ]]; then
-      apk --update add --no-cache "${package}"
-    elif [[ "$PACKAGE_MANAGER" == "dnf" ]]; then
-      dnf install "$package"
-    elif [[ "$PACKAGE_MANAGER" == "brew" ]]; then
-      brew install "$package"
-    fi
-  fi
-}
-
-function install_pkg_config {
-  PACKAGE_MANAGER=$1
-  #Differently named packages for pkg-config
-  if [[ "$PACKAGE_MANAGER" == "apt-get" ]] || [[ "$PACKAGE_MANAGER" == "dnf" ]]; then
-    install_pkg pkg-config "$PACKAGE_MANAGER"
-  fi
-  if [[ "$PACKAGE_MANAGER" == "pacman" ]]; then
-    install_pkg pkgconf "$PACKAGE_MANAGER"
-  fi
-  if [[ "$PACKAGE_MANAGER" == "brew" ]] || [[ "$PACKAGE_MANAGER" == "apk" ]] || [[ "$PACKAGE_MANAGER" == "yum" ]]; then
-    install_pkg pkgconfig "$PACKAGE_MANAGER"
-  fi
-}
-
-function install_shellcheck {
-  if ! command -v shellcheck &> /dev/null; then
-    if [[ $(uname -s) == "Darwin" ]]; then
-      install_pkg shellcheck brew
+    if ! dpkg -l | grep -qw build-essential; then
+        log_info "Installing build-essential..."
+        sudo apt-get install -y build-essential
     else
-      install_pkg xz "$PACKAGE_MANAGER"
-      MACHINE=$(uname -m);
-      TMPFILE=$(mktemp)
-      rm "$TMPFILE"
-      mkdir -p "$TMPFILE"/
-      curl -sL -o "$TMPFILE"/out.xz "https://github.com/koalaman/shellcheck/releases/download/v${SHELLCHECK_VERSION}/shellcheck-v${SHELLCHECK_VERSION}.$(uname -s | tr '[:upper:]' '[:lower:]').${MACHINE}.tar.xz"
-      tar -xf "$TMPFILE"/out.xz -C "$TMPFILE"/
-      cp "${TMPFILE}/shellcheck-v${SHELLCHECK_VERSION}/shellcheck" "${INSTALL_DIR}/shellcheck"
-      rm -rf "$TMPFILE"
-      chmod +x "${INSTALL_DIR}"/shellcheck
+        log_info "build-essential is already installed."
     fi
-  fi
-}
 
-function install_openssl_dev {
-  PACKAGE_MANAGER=$1
-  #Differently named packages for openssl dev
-  if [[ "$PACKAGE_MANAGER" == "apk" ]]; then
-    install_pkg openssl-dev "$PACKAGE_MANAGER"
-  fi
-  if [[ "$PACKAGE_MANAGER" == "apt-get" ]]; then
-    install_pkg libssl-dev "$PACKAGE_MANAGER"
-  fi
-  if [[ "$PACKAGE_MANAGER" == "yum" ]] || [[ "$PACKAGE_MANAGER" == "dnf" ]]; then
-    install_pkg openssl-devel "$PACKAGE_MANAGER"
-  fi
-  if [[ "$PACKAGE_MANAGER" == "pacman" ]] || [[ "$PACKAGE_MANAGER" == "brew" ]]; then
-    install_pkg openssl "$PACKAGE_MANAGER"
-  fi
-}
-
-function install_lcov {
-  PACKAGE_MANAGER=$1
-  #Differently named packages for lcov with different sources.
-  if [[ "$PACKAGE_MANAGER" == "apk" ]]; then
-    apk --update add --no-cache  -X http://dl-cdn.alpinelinux.org/alpine/edge/testing lcov
-  fi
-  if [[ "$PACKAGE_MANAGER" == "apt-get" ]] || [[ "$PACKAGE_MANAGER" == "yum" ]] || [[ "$PACKAGE_MANAGER" == "dnf" ]] || [[ "$PACKAGE_MANAGER" == "brew" ]]; then
-    install_pkg lcov "$PACKAGE_MANAGER"
-  fi
-  if [[ "$PACKAGE_MANAGER" == "pacman" ]]; then
-    echo nope no lcov for you.
-    echo You can try installing yourself with:
-    echo install_pkg git "$PACKAGE_MANAGER"
-    echo cd lcov;
-    echo git clone https://aur.archlinux.org/lcov.git
-    echo makepkg -si --noconfirm
-  fi
-}
-
-function install_tidy {
-  PACKAGE_MANAGER=$1
-  #Differently named packages for tidy
-  if [[ "$PACKAGE_MANAGER" == "apk" ]]; then
-    apk --update add --no-cache  -X http://dl-cdn.alpinelinux.org/alpine/edge/testing tidyhtml
-  else
-    install_pkg tidy "$PACKAGE_MANAGER"
-  fi
-}
-
-
-function install_xsltproc {
-    if [[ "$PACKAGE_MANAGER" == "apt-get" ]]; then
-      install_pkg xsltproc "$PACKAGE_MANAGER"
+    if ! command -v rustc &>/dev/null; then
+        log_info "Installing Rust..."
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
     else
-      install_pkg libxslt "$PACKAGE_MANAGER"
+        log_info "Rust is already installed."
+    fi
+
+    if ! dpkg -l | grep -qw lld; then
+        log_info "Installing lld..."
+        sudo apt-get install -y lld
+    else
+        log_info "lld is already installed."
+    fi
+
+    if ! dpkg -l | grep -qw libssl-dev; then
+        log_info "Installing libssl-dev..."
+        sudo apt-get install -y libssl-dev
+    else
+        log_info "libssl-dev is already installed."
+    fi
+
+    if ! dpkg -l | grep -qw libudev-dev; then
+        log_info "Installing libudev-dev..."
+        sudo apt-get install -y libudev-dev
+    else
+        log_info "libudev-dev is already installed."
+    fi
+
+    if ! dpkg -l | grep -qw libpq-dev; then
+        log_info "Installing pq..."
+        sudo apt-get install -y libpq-dev
+    else
+        log_info "libpq-dev (pq) is already installed."
     fi
 }
 
-function install_lld {
-  # Right now, only install lld for linux
-  if [[ "$(uname)" == "Linux" ]]; then
-    install_pkg lld "$PACKAGE_MANAGER"
-  fi
+# MacOS dependencies installation with checks
+install_macos_deps() {
+    if ! command -v brew &>/dev/null; then
+        log_info "Installing Homebrew..."
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    else
+        log_info "Homebrew is already installed."
+    fi
+
+    log_info "Updating Homebrew..."
+    brew update
+
+    if ! brew list gcc &>/dev/null; then
+        log_info "Installing build-essential..."
+        brew install gcc
+    else
+        log_info "gcc (build-essential) is already installed."
+    fi
+
+    if ! command -v rustc &>/dev/null; then
+        log_info "Installing Rust..."
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    else
+        log_info "Rust is already installed."
+    fi
+
+    if ! brew list llvm &>/dev/null; then
+        log_info "Installing lld..."
+        brew install llvm
+    else
+        log_info "lld (llvm) is already installed."
+    fi
+
+    if ! brew list openssl &>/dev/null; then
+        log_info "Installing libssl..."
+        brew install openssl
+    else
+        log_info "libssl (openssl) is already installed."
+    fi
 }
 
-# this is needed for hdpi crate from aptos-ledger
-function install_libudev-dev {
-  # Need to install libudev-dev for linux
-  if [[ "$(uname)" == "Linux" ]]; then
-    install_pkg libudev-dev "$PACKAGE_MANAGER"
-  fi
+# Windows unsupported configuration message
+unsupported_windows() {
+    log_warning "Windows dependency configuration is not currently supported."
+}
+
+# Install build dependencies
+build_dependencies() {
+    case $OS in
+        linux)
+            install_ubuntu_deps
+            ;;
+        macos)
+            install_macos_deps
+            ;;
+        windows)
+            unsupported_windows
+            ;;
+        *)
+            log_error "Unsupported OS: $OS"
+            exit 1
+            ;;
+    esac
 }
 
 main "$@"
