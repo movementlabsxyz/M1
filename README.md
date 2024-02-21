@@ -35,7 +35,7 @@ Movement M1 is designed for the Avalanche subnet, allowing users to seamlessly i
 - Movement will be able to hit 160,000+ theoretical TPS as the project scales to provide much needed performance to protocols.
 - Move bytecode verifiers and interpreters provide native solvency for the reentrancy attacks and security woes that have plagued Solidity developers for years, resulting in $3 billion lost last year.
 
-This repository contains the code and contributor documentation for M1. If you would like to learn how to use and develop for the platform, please visit [docs.movementlabs.xyx](docs.movementlabs.xyz).
+This repository contains the code and contributor documentation for M1. If you would like to learn how to use and develop for the platform, please visit [https://docs.movementlabs.xyx](https://docs.movementlabs.xyz).
 
 ## Features
 
@@ -45,7 +45,7 @@ Currently, M1 consists of...
 
 ## Installation
 
-See [docs.movementlabs.xyz](docs.movementlabs.xyz) for a more complete installation guide. We recommend working with our Docker containers or using our installer.
+See [https://docs.movementlabs.xyz](https://docs.movementlabs.xyz) for a more complete installation guide. We recommend working with our Docker containers or using our installer.
 
 ## Contributing
 
