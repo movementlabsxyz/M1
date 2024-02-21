@@ -14,5 +14,8 @@ async fn e2e() {
     let mut simulator = Simulator::new(SubCommands::Start(cmd))
         .await
         .expect("Failed to create simulator");
-    simulator.exec().await.expect("Failed to execute simulator");
+    simulator
+        .exec(cmd.verbose)
+        .await
+        .expect("Failed to execute simulator");
 }

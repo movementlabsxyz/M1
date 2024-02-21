@@ -6,6 +6,9 @@ pub struct Cli {
     /// The command to run
     #[clap(subcommand)]
     pub command: SubCommands,
+    /// Verbose output
+    #[clap(short, long, help = "Verbose output.")]
+    pub verbose: bool,
 }
 
 /// Start the simulator

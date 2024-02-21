@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Context, Error, Result};
 use std::{
     collections::HashMap,
     env,
@@ -19,9 +19,9 @@ use avalanche_network_runner_sdk::{
     AddNodeRequest, BlockchainSpec, Client, GlobalConfig, RemoveNodeRequest, StartRequest,
 };
 use avalanche_types::{
-    ids::{self},
+    ids,
     jsonrpc::client::info as avalanche_sdk_info,
-    subnet::{self},
+    subnet::{self, rpc::snowman::block},
 };
 use commands::*;
 use tonic::transport::Channel;
@@ -47,8 +47,6 @@ pub struct Simulator {
     /// The subnet ID created by the network runner,
     /// this is not the same value as the VM ID.
     pub subnet_id: Option<String>,
-    /// The blockchain ID
-    pub blockchain_id: Option<ids::Id>,
     /// The network ID
     pub network_id: Option<u32>,
 }
@@ -62,12 +60,12 @@ impl Simulator {
             avalanchego_path: get_avalanchego_path()?,
             vm_plugin_path: get_vm_plugin_path()?,
             subnet_id: None,
-            blockchain_id: None,
             network_id: None,
         })
     }
 
-    pub async fn exec(&mut self) -> Result<()> {
+    pub async fn exec(&mut self, verbose: bool) -> Result<()> {
+        self.init_logger(verbose);
         match &self.command {
             SubCommands::Start(cmd) => self.start_network(cmd.clone()).await?,
             SubCommands::AddNode(cmd) => self.add_node(cmd.clone()).await?,
@@ -82,14 +80,6 @@ impl Simulator {
     }
 
     async fn start_network(&mut self, cmd: StartCommand) -> Result<()> {
-        env_logger::Builder::from_env(
-            env_logger::Env::default().default_filter_or(if cmd.verbose {
-                "debug"
-            } else {
-                "info"
-            }),
-        )
-        .init();
         log::debug!("Running command: {:?}", cmd);
 
         let vm_id = subnet::vm_name_to_id("subnet").unwrap();
@@ -249,10 +239,6 @@ impl Simulator {
         }
         for (k, v) in cluster_info.custom_chains.iter() {
             log::info!("custom chain info: {}={:?}", k, v);
-            if v.chain_name == "subnet" {
-                self.blockchain_id = Some(ids::Id::from_str(&v.chain_id)?);
-                break;
-            }
         }
         log::info!("avalanchego RPC endpoints: {:?}", rpc_eps);
 
@@ -275,14 +261,6 @@ impl Simulator {
     }
 
     async fn network_health(&self, cmd: HealthCommand) -> Result<()> {
-        env_logger::Builder::from_env(
-            env_logger::Env::default().default_filter_or(if cmd.verbose {
-                "debug"
-            } else {
-                "info"
-            }),
-        )
-        .init();
         log::debug!("Running command: {:?}", cmd);
         let resp = self.cli.health().await?;
         log::info!("network health: {:?}", resp);
@@ -290,14 +268,6 @@ impl Simulator {
     }
 
     async fn add_node(&self, cmd: AddNodeCommand) -> Result<()> {
-        env_logger::Builder::from_env(
-            env_logger::Env::default().default_filter_or(if cmd.verbose {
-                "debug"
-            } else {
-                "info"
-            }),
-        )
-        .init();
         log::debug!("Running command: {:?}", cmd.clone());
         let name = match cmd.name {
             Some(n) => format!("node-{}", n),
@@ -317,14 +287,6 @@ impl Simulator {
     }
 
     async fn remove_node(&self, cmd: RemoveNodeCommand) -> Result<()> {
-        env_logger::Builder::from_env(
-            env_logger::Env::default().default_filter_or(if cmd.verbose {
-                "debug"
-            } else {
-                "info"
-            }),
-        )
-        .init();
         log::debug!("Running command: {:?}", cmd);
         let resp = self
             .cli
@@ -338,15 +300,6 @@ impl Simulator {
     }
 
     async fn add_validator(&self, cmd: AddValidatorCommand) -> Result<()> {
-        env_logger::Builder::from_env(
-            env_logger::Env::default().default_filter_or(if cmd.verbose {
-                "debug"
-            } else {
-                "info"
-            }),
-        )
-        .init();
-
         let resp = self
             .cli
             .add_validator(AddSubnetValidatorsRequest {
@@ -363,14 +316,6 @@ impl Simulator {
     }
 
     async fn remove_validator(&self, cmd: RemoveValidatorCommand) -> Result<()> {
-        env_logger::Builder::from_env(
-            env_logger::Env::default().default_filter_or(if cmd.verbose {
-                "debug"
-            } else {
-                "info"
-            }),
-        )
-        .init();
         log::debug!("Running command: {:?}", cmd);
         let resp = self
             .cli
@@ -388,25 +333,41 @@ impl Simulator {
     }
 
     async fn subnet_id(&self) -> Result<String> {
+        let blockchain_id = self.blockchain_id().await?;
         let resp = self.cli.health().await?;
-        let custom_chains: HashMap<String, CustomChainInfo> = resp
-            .cluster_info
-            .expect("no cluster info found")
+        let cluster_info = resp.cluster_info.context("no cluster info found")?;
+        let subnet_id = &cluster_info
             .custom_chains
-            .clone();
+            .get(&blockchain_id.to_string())
+            .context("no custom chains found")?
+            .subnet_id;
+        return Ok(subnet_id.to_owned());
+    }
 
-        let mut subnet_id = String::new();
+    async fn blockchain_id(&self) -> Result<ids::Id> {
+        log::info!("checking status...");
+        let status = self.cli.status().await?;
 
-        // This is a bit brittle, but there is only one custom chain in the HashMap:
-        // the subnet. If more subets wanted to be tested on the simulator this wouldn't work.
-        // Create tracking issue for this. The problem is I can't get the blockchain ID as the key
-        // lookup for custom_chains.
-        for (i, chain) in custom_chains.into_iter().enumerate() {
-            if i == 0 {
-                subnet_id = chain.1.subnet_id;
+        let mut blockchain_id = ids::Id::empty();
+
+        let cluster_info = status.cluster_info.context("no cluster info found")?;
+        for (k, v) in cluster_info.custom_chains.iter() {
+            log::info!("custom chain info: {}={:?}", k, v);
+            if v.chain_name == VM_NAME {
+                blockchain_id = ids::Id::from_str(&v.chain_id)?;
+                break;
             }
         }
-        Ok(subnet_id)
+        Ok(blockchain_id)
+    }
+
+    fn init_logger(&self, verbose: bool) {
+        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(if verbose {
+            "debug"
+        } else {
+            "info"
+        }))
+        .init();
     }
 }
 

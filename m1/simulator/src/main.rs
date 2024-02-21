@@ -5,6 +5,6 @@ use simulator::{commands::Cli, Simulator};
 async fn main() -> Result<(), anyhow::Error> {
     let cli = Cli::parse();
     let mut simulator = Simulator::new(cli.command).await?;
-    simulator.exec().await?;
+    simulator.exec(cli.verbose).await?;
     Ok(())
 }
