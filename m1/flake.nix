@@ -80,9 +80,10 @@
           };
 
           devShells.default = mkShell {
-            NIX_LDFLAGS="-l${stdenv.cc.libcxx.cxxabi.libName}";
             buildInputs = developmentDependencies;
+
             shellHook = ''
+              ${lib.optionalString (stdenv.cc.isClang && stdenv.isDarwin) "export NIX_LDFLAGS='-l${stdenv.cc.libcxx.cxxabi.libName}'"}
               export PATH=$PATH:${avalanche-network-runner}/bin
               export LIBCLANG_PATH="${pkgs.libclang.lib}/lib"
             '';
