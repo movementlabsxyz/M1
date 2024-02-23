@@ -2,7 +2,7 @@
 
 pkgs.buildGoModule rec {
   pname = "avalanche-network-runner";
-  version = "1.75";
+  version = "1.7.5";
 
   src = pkgs.fetchFromGitHub {
     owner = "ava-labs";
