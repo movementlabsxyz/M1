@@ -1,18 +1,18 @@
 [submodule "aptos-core"]
 	path = vendors/aptos-core
-	url = https://github.com/movemntdev/aptos-core
+	url = https://github.com/movementlabsxyz/aptos-core
 	branch = canonical
 [submodule "x25519-dalek"]
 	path = vendors/x25519-dalek
-	url = https://github.com/movemntdev/x25519-dalek
+	url = https://github.com/movementlabsxyz/x25519-dalek
 [submodule "ed25519-dalek"]
 	path = vendors/ed25519-dalek
-	url = https://github.com/movemntdev/ed25519-dalek
+	url = https://github.com/movementlabsxyz/ed25519-dalek
 [submodule "aptos-core-v2"]
 	path = vendors/aptos-core-v2
-	url = https://github.com/movemntdev/aptos-core
+	url = https://github.com/movementlabsxyz/aptos-core
 	branch = v2
 [submodule "vendors/sui"]
 	path = vendors/sui
-	url = https://github.com/movemntdev/sui
+	url = https://github.com/movementlabsxyz/sui
 	branch = canonical

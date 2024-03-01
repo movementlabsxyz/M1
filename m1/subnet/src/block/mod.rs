@@ -215,19 +215,20 @@ impl Block {
     /// Mark this [`Block`](Block) accepted and updates [`State`](crate::state::State) accordingly.
     pub async fn accept(&mut self) -> io::Result<()> {
         log::info!("accept block height {} ", self.height);
-        self.inner_build().await?;
+        self.execute_and_commit().await?;
         self.set_status(choices::status::Status::Accepted);
         // only decided blocks are persistent -- no reorg
         self.state.write_block(&self.clone()).await?;
         self.state.set_last_accepted_block(&self.id()).await?;
-        self.state.remove_verified(&self.id()).await;
+        // ! this should not be removed from the verified blocks
+        // self.state.remove_verified(&self.id()).await;
         Ok(())
     }
 
-    async fn inner_build(&self) -> io::Result<()> {
+    async fn execute_and_commit(&self) -> io::Result<()> {
         if let Some(vm_) = self.state.vm.as_ref() {
             let vm = vm_.read().await;
-            return vm.inner_build_block(self.data.clone()).await.map_err(
+            return vm.execute_and_commit_block(self.data.clone()).await.map_err(
                 |e| Error::new(ErrorKind::Other, format!("failed to build block: {}", e)),
             );
         }

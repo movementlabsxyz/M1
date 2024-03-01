@@ -32,8 +32,3 @@ aptos = { path = "../../../vendors/aptos-core/crates/aptos", optional = true }
 [features]
 sui = ["dep:sui"]
 aptos = ["dep:aptos"]
-
-[patch.crates-io]
-serde-reflection = { git = "https://github.com/aptos-labs/serde-reflection", rev = "73b6bbf748334b71ff6d7d09d06a29e3062ca075" }
-merlin = { git = "https://github.com/aptos-labs/merlin" }
-x25519-dalek = { git = "https://github.com/aptos-labs/x25519-dalek", branch = "zeroize_v1" }
