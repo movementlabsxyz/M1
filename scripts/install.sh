@@ -42,8 +42,8 @@ log_error() {
 }
 
 # Set global variables
-MOVEMENTCTL_URL="https://raw.githubusercontent.com/movemntdev/M1/main/scripts/movementctl.sh"
-RELEASES_URL="https://github.com/movemntdev/M1/releases"
+MOVEMENTCTL_URL="https://raw.githubusercontent.com/movementlabsxyz/M1/main/scripts/movementctl.sh"
+RELEASES_URL="https://github.com/movementlabsxyz/M1/releases"
 AVALANCHEGO_VERSION="v1.10.3"
 AVALANCHEGO_DIR="$HOME/.avalanchego"
 MOVEMENT_DIR="$HOME/.movement"
@@ -344,8 +344,8 @@ build() {
     # Build the movement binary
     cargo build --release -p movement --features="aptos,sui"
 
-    # Move the movement binary to the appropriate directory
-    mv "$MOVEMENT_DIR/movement-subnet/vm/aptos-vm/target/release/movement" "$BIN_DIR/movement"
+    # Copy the movement binary to the appropriate directory
+    cp "$MOVEMENT_DIR/movement-subnet/vm/aptos-vm/target/release/movement" "$BIN_DIR/movement"
 }
 
 dev() {
@@ -519,6 +519,15 @@ install_macos_deps() {
     else
         log_info "libssl (openssl) is already installed."
     fi
+
+    # zstd
+    if ! brew list zstd &>/dev/null; then
+        log_info "Installing zstd..."
+        brew install zstd
+    else
+        log_info "zstd is already installed."
+    fi
+
 }
 
 # Windows unsupported configuration message
