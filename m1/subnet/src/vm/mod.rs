@@ -710,15 +710,6 @@ impl Vm {
         let mut pending_txs : Vec<SignedTransaction> = vec![];
         let core_pool = self.core_mempool.as_ref().ok_or_else(|| anyhow::anyhow!("Core mempool not available"))?.read().await;
 
-        log::info!(
-            "parking lot size: {}", 
-            core_pool.get_parking_lot_size()
-        );
-        log::info!(
-            "snapshot: {}", 
-            core_pool.gen_snapshot()
-        );
-
         while pending_txs.len() < count as usize {
 
             // convert signed transactions to TransactionInProgress

@@ -345,7 +345,7 @@ build() {
     cargo build --release -p movement --features="aptos,sui"
 
     # Copy the movement binary to the appropriate directory
-    cp "$MOVEMENT_DIR/movement-subnet/vm/aptos-vm/target/release/movement" "$BIN_DIR/movement"
+    cp "target/release/movement" "$BIN_DIR/movement"
 }
 
 dev() {
