@@ -1105,7 +1105,7 @@ impl BatchedChainVm for Vm {
         _block_id: ids::Id,
         _max_block_num: i32,
         _max_block_size: i32,
-        _max_block_retrival_time: Duration,
+        _max_block_retrieval_time: Duration,
     ) -> io::Result<Vec<Bytes>> {
         Err(Error::new(
             ErrorKind::Unsupported,

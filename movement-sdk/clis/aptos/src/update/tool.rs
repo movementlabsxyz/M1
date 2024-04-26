@@ -24,7 +24,7 @@ pub struct UpdateTool {
     repo_owner: String,
 
     /// The name of the repo to download the binary from.
-    #[clap(long, default_value = "subnet")] // TODO: update CI/CD to include this binar release in GitHub workflows
+    #[clap(long, default_value = "subnet")] // TODO: update CI/CD to include this binary release in GitHub workflows
     repo_name: String,
 }
 
