@@ -4,7 +4,7 @@ use crate::block::VerifiedExecutableExecutionGroups;
 #[async_trait::async_trait]
 pub trait ObjectVersionProvider {
 
-    /// Assignes sequence numbers to objects in the transactions
+    /// Assigns sequence numbers to objects in the transactions
     async fn assign_shared_object_versions(&self, transactions : VerifiedExecutableExecutionGroups) -> Result<VerifiedExecutableExecutionGroups, anyhow::Error>;
 
 }
