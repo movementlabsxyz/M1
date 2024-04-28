@@ -3,7 +3,8 @@ resolver = "2"
 members = [
     "subnet",
     "tests/e2e",
-    "e2e-benchmark"
+    "e2e-benchmark",
+    "simulator",
 ]
 
 [workspace.package]
@@ -35,6 +36,7 @@ codespan-reporting = "0.11.1"
 criterion = "0.3.5"
 criterion-cpu-time = "0.1.0"
 dirs = "4.0.0"
+env_logger = "0.10.1"
 hex = "0.4.3"
 hkdf = "0.10.0"
 hostname = "0.3.1"
