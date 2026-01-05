@@ -1,6 +1,8 @@
 <div align="center">
     <img src="https://movementlabs.xyz/wp-content/themes/movement-labs/assets/images/logo.svg" alt="Project Logo" width="200" height="200">
 
+Note: This repository is archived, see our updated documentation at https://docs.movementnetwork.xyz/
+
 # M1
 
 [![License](https://img.shields.io/badge/license-BSD-blue.svg)](https://opensource.org/license/bsd-3-clause/)
