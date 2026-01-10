@@ -225,11 +225,11 @@ impl AnalyzeValidators {
                                 version: raw_event.transaction_version,
                                 sequence_number: raw_event.event.sequence_number(),
                             });
-                        },
+                        }
                         Ordering::Greater => {
                             return Ok(result);
-                        },
-                        Ordering::Less => {},
+                        }
+                        Ordering::Less => {}
                     };
                 }
             }
@@ -280,7 +280,7 @@ impl AnalyzeValidators {
                 previous_round + u64::from(!is_nil) + event.failed_proposer_indices().len() as u64;
             if event.round() != expected_round {
                 println!(
-                    "Missing failed AccountAddresss : {} {:?}",
+                    "Missing failed AccountAddress : {} {:?}",
                     previous_round, &event
                 );
                 assert!(expected_round < event.round());
@@ -344,13 +344,16 @@ impl AnalyzeValidators {
             validator_stats: validators
                 .iter()
                 .map(|validator| {
-                    (validator.address, ValidatorStats {
-                        proposal_successes: *successes.get(&validator.address).unwrap_or(&0),
-                        proposal_failures: *failures.get(&validator.address).unwrap_or(&0),
-                        votes: *votes.get(&validator.address).unwrap_or(&0),
-                        transactions: *transactions.get(&validator.address).unwrap_or(&0),
-                        voting_power: validator.voting_power,
-                    })
+                    (
+                        validator.address,
+                        ValidatorStats {
+                            proposal_successes: *successes.get(&validator.address).unwrap_or(&0),
+                            proposal_failures: *failures.get(&validator.address).unwrap_or(&0),
+                            votes: *votes.get(&validator.address).unwrap_or(&0),
+                            transactions: *transactions.get(&validator.address).unwrap_or(&0),
+                            voting_power: validator.voting_power,
+                        },
+                    )
                 })
                 .collect(),
             total_rounds,
@@ -382,7 +385,7 @@ impl AnalyzeValidators {
             "elected",
             "% rounds",
             "% failed",
-            "succeded",
+            "succeeded",
             "failed",
             "voted",
             "transact",

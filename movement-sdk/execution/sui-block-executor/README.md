@@ -16,7 +16,7 @@ A [`VerifiedExecutableTransaction`](https://github.com/MystenLabs/sui/blob/55215
     - `SenderSignedData` which constitutes the actual transactions in a programmable transaction block sent by the user.
     - `CertificateEnvelope` which certifies that a transaction belongs in a given epoch. 
 
-Obtaining a `CertificateEnvelope` in an agnostic manner is part of the responsibility of the `sui-block-executor`. In the skeleton, you will see that there is a dependency on a `Box<dyn CerificateProvider>` which is responsible for providing the `CertificateEnvelope` for a given `SenderSignedData`.
+Obtaining a `CertificateEnvelope` in an agnostic manner is part of the responsibility of the `sui-block-executor`. In the skeleton, you will see that there is a dependency on a `Box<dyn CertificateProvider>` which is responsible for providing the `CertificateEnvelope` for a given `SenderSignedData`.
 
 That being said, in the proof concept phase, we will mainly rely on simply transforming `Vec<SenderSignedData>` into `Vec<VerifiedExecutableTransaction>` by certifying each `SenderSignedData` with a `CertificateEnvelope` indicating a system transaction. 
 

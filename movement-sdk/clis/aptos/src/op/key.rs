@@ -370,7 +370,7 @@ impl SaveKey {
             .encoding_options
             .encoding
             .encode_key(key_name, &key.public_key())?;
-        let encoded_proof_of_posession = self
+        let encoded_proof_of_possession = self
             .encoding_options
             .encoding
             .encode_key(key_name, &bls12381::ProofOfPossession::create(key))?;
@@ -384,7 +384,7 @@ impl SaveKey {
         write_to_file(
             &proof_of_possession_file,
             key_name,
-            &encoded_proof_of_posession,
+            &encoded_proof_of_possession,
         )?;
 
         let mut map = HashMap::new();

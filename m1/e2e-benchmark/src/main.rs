@@ -179,19 +179,19 @@ impl Statistics {
                 .iter()
                 .filter(|&&(time, _)| time >= current_time && time < window_end)
                 .count();
-            let sucess_count = self
+            let success_count = self
                 .records
                 .iter()
                 .filter(|&&(time, success)| time >= current_time && time < window_end && success)
                 .count();
-            let failure_count = total_count - sucess_count;
+            let failure_count = total_count - success_count;
 
             writeln!(
                 file, 
                 "{},{},{},{}", 
                 current_time.elapsed().as_secs_f64(), 
                 total_count,
-                sucess_count,
+                success_count,
                 failure_count
             )?;
             current_time += Duration::from_secs(WINDOW_SIZE.clone());
